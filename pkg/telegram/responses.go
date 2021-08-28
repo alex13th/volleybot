@@ -30,12 +30,15 @@ type ResponseParameters struct {
 	RetryAfter      int `json:"retry_after"`
 }
 
-func (resp *UpdateResponse) Parse(reader io.Reader) error {
+func ParseJson(i interface{}, reader io.Reader) error {
 	dec := json.NewDecoder(reader)
-	return dec.Decode(&resp)
+	return dec.Decode(i)
 }
 
-func (resp *MessageResponse) Parse(reader io.Reader) error {
-	dec := json.NewDecoder(reader)
-	return dec.Decode(&resp)
+func (update *UpdateResponse) Parse(reader io.Reader) error {
+	return ParseJson(update, reader)
+}
+
+func (message *MessageResponse) Parse(reader io.Reader) error {
+	return ParseJson(message, reader)
 }
