@@ -1,0 +1,41 @@
+package telegram
+
+import (
+	"encoding/json"
+	"io"
+)
+
+type Response interface {
+	Parse(reader io.Reader) error
+}
+
+type UpdateResponse struct {
+	Ok          bool               `json:"ok"`
+	Result      []Update           `json:"result"`
+	Description string             `json:"description"`
+	ErrorCode   int                `json:"error_code"`
+	Parameters  ResponseParameters `json:"parameters"`
+}
+
+type MessageResponse struct {
+	Ok          bool               `json:"ok"`
+	Result      Message            `json:"result"`
+	Description string             `json:"description"`
+	ErrorCode   int                `json:"error_code"`
+	Parameters  ResponseParameters `json:"parameters"`
+}
+
+type ResponseParameters struct {
+	MigrateToChatId int `json:"migrate_to_chat_id"`
+	RetryAfter      int `json:"retry_after"`
+}
+
+func (resp *UpdateResponse) Parse(reader io.Reader) error {
+	dec := json.NewDecoder(reader)
+	return dec.Decode(&resp)
+}
+
+func (resp *MessageResponse) Parse(reader io.Reader) error {
+	dec := json.NewDecoder(reader)
+	return dec.Decode(&resp)
+}

@@ -1,9 +1,7 @@
 package telegram
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -33,19 +31,6 @@ type LongPoller struct {
 	Client     HttpClient
 }
 
-type Response struct {
-	Ok          bool               `json:"ok"`
-	Result      []Update           `json:"result"`
-	Description string             `json:"description"`
-	ErrorCode   int                `json:"error_code"`
-	Parameters  ResponseParameters `json:"parameters"`
-}
-
-type ResponseParameters struct {
-	MigrateToChatId int `json:"migrate_to_chat_id"`
-	RetryAfter      int `json:"retry_after"`
-}
-
 type BotMessage struct {
 	Bot     Bot
 	Message Message
@@ -56,12 +41,6 @@ func NewBot(Settings Bot) (*Bot, error) {
 		Settings.ApiEndpoint = DefaultApiUrl
 	}
 	return &Bot{ApiEndpoint: Settings.ApiEndpoint, Token: Settings.Token}, nil
-}
-
-func ParseResponse(reader io.Reader) (response Response, err error) {
-	dec := json.NewDecoder(reader)
-	err = dec.Decode(&response)
-	return
 }
 
 func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error) {
@@ -78,7 +57,13 @@ func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error)
 	return
 }
 
-func (tb Bot) SendMessage(msg MessageRequest) error {
-	_, err := tb.SendRequest(&msg)
-	return err
+func (tb Bot) SendMessage(msg MessageRequest) (response MessageResponse, err error) {
+	httpResp, err := tb.SendRequest(&msg)
+
+	if err != nil {
+		return
+	}
+	response = MessageResponse{}
+	err = response.Parse(httpResp.Body)
+	return
 }
