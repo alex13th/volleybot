@@ -16,24 +16,25 @@ type Bot struct {
 	ApiEndpoint string
 	Token       string
 	Client      HttpClient
+	Parameters  UpdatesRequest
 }
 
-type GetUpdateParams struct {
-	Offset         int      `json:"offset"`
-	Limit          int      `json:"limit"`
-	Timeout        int      `json:"timeout"`
-	AllowedUpdates []string `json:"allowed_updates"`
-}
+func (tb *Bot) GetUpdates() (botResp UpdateResponse, err error) {
+	httpResp, err := tb.SendRequest(&tb.Parameters)
 
-type LongPoller struct {
-	Parameters GetUpdateParams
-	Bot        Bot
-	Client     HttpClient
-}
+	if err != nil {
+		return
+	}
 
-type BotMessage struct {
-	Bot     Bot
-	Message Message
+	defer httpResp.Body.Close()
+
+	err = botResp.Parse(httpResp.Body)
+
+	if len(botResp.Result) > 0 {
+		tb.Parameters.Offset = botResp.Result[len(botResp.Result)-1].UpdateId + 1
+	}
+
+	return
 }
 
 func NewBot(Settings Bot) (*Bot, error) {
@@ -44,7 +45,12 @@ func NewBot(Settings Bot) (*Bot, error) {
 }
 
 func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error) {
-	values, method, _ := request.GetParams()
+	values, method, err := request.GetParams()
+
+	if err != nil {
+		return
+	}
+
 	url := fmt.Sprintf("%s/bot%s/%s", tb.ApiEndpoint, tb.Token, method)
 
 	httpReq, err := http.NewRequest("POST", url, strings.NewReader(values.Encode()))
@@ -57,13 +63,16 @@ func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error)
 	return
 }
 
-func (tb Bot) SendMessage(msg MessageRequest) (response MessageResponse, err error) {
+func (tb *Bot) SendMessage(msg MessageRequest) (botResp MessageResponse, err error) {
 	httpResp, err := tb.SendRequest(&msg)
 
 	if err != nil {
 		return
 	}
-	response = MessageResponse{}
-	err = response.Parse(httpResp.Body)
+
+	defer httpResp.Body.Close()
+
+	botResp = MessageResponse{}
+	err = botResp.Parse(httpResp.Body)
 	return
 }

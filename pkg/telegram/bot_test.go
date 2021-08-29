@@ -116,3 +116,31 @@ func TestSendMessage(t *testing.T) {
 		}
 	})
 }
+
+func TestGetUpdates(t *testing.T) {
+	tb := Bot{Token: "***Token***"}
+	tb.Client = httpClientMock{Body: `{
+		"ok": true,
+		"result": [{"update_id": 123130161},{"update_id": 123130162},{"update_id": 123130163}]
+	}`}
+
+	botResp, err := tb.GetUpdates()
+
+	t.Run("Error is nil", func(t *testing.T) {
+		if err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("Response Ok", func(t *testing.T) {
+		if !botResp.Ok {
+			t.Fail()
+		}
+	})
+
+	t.Run("New offset", func(t *testing.T) {
+		if tb.Parameters.Offset != 123130164 {
+			t.Fail()
+		}
+	})
+}
