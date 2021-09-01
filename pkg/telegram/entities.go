@@ -122,10 +122,10 @@ type CallbackQuery struct {
 }
 
 type Update struct {
-	UpdateId          int           `json:"update_id"`
-	Message           Message       `json:"message"`
-	EditedMessage     Message       `json:"edited_message"`
-	ChannelPost       Message       `json:"channel_post"`
-	EditedChannelPost Message       `json:"edited_channel_post"`
-	CallbackQuery     CallbackQuery `json:"callback_query"`
+	UpdateId          int            `json:"update_id"`
+	Message           *Message       `json:"message"`
+	EditedMessage     *Message       `json:"edited_message"`
+	ChannelPost       *Message       `json:"channel_post"`
+	EditedChannelPost *Message       `json:"edited_channel_post"`
+	CallbackQuery     *CallbackQuery `json:"callback_query"`
 }

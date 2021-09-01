@@ -34,7 +34,7 @@ func TestNewBot(t *testing.T) {
 	}
 }
 
-func TestSendRequest(t *testing.T) {
+func TestBotSendRequest(t *testing.T) {
 	tb, _ := NewBot(Bot{Token: "***Token***"})
 	tb.Client = httpClientMock{}
 
@@ -76,7 +76,7 @@ func TestSendRequest(t *testing.T) {
 	})
 }
 
-func TestSendMessage(t *testing.T) {
+func TestBotSendMessage(t *testing.T) {
 	tb, _ := NewBot(Bot{Token: "***Token***"})
 	tb.Client = httpClientMock{
 		Body: `{
@@ -117,7 +117,7 @@ func TestSendMessage(t *testing.T) {
 	})
 }
 
-func TestGetUpdates(t *testing.T) {
+func TestBotGetUpdates(t *testing.T) {
 	tb := Bot{Token: "***Token***"}
 	tb.Client = httpClientMock{Body: `{
 		"ok": true,
@@ -139,8 +139,39 @@ func TestGetUpdates(t *testing.T) {
 	})
 
 	t.Run("New offset", func(t *testing.T) {
-		if tb.Parameters.Offset != 123130164 {
+		if tb.Request.Offset != 123130164 {
 			t.Fail()
 		}
 	})
+}
+
+func TestUpdateHandlerProceed(t *testing.T) {
+	tb := Bot{Token: "***Token***"}
+	message := Message{}
+	tu := Update{Message: &message}
+
+	uh := UpdateHandler{}
+	uh.MessageHandlers = []MessageHandler{
+		{
+			Handler: func(_ Bot, tm *Message) error {
+				tm.Caption = "Test caption"
+				return nil
+			},
+		},
+	}
+
+	err := uh.Proceed(tb, tu)
+
+	t.Run("Error is nil", func(t *testing.T) {
+		if err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("Message proceeded", func(t *testing.T) {
+		if message.Caption != "Test caption" {
+			t.Fail()
+		}
+	})
+
 }

@@ -12,15 +12,22 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+func NewBot(Settings Bot) (*Bot, error) {
+	if Settings.ApiEndpoint == "" {
+		Settings.ApiEndpoint = DefaultApiUrl
+	}
+	return &Bot{ApiEndpoint: Settings.ApiEndpoint, Token: Settings.Token}, nil
+}
+
 type Bot struct {
 	ApiEndpoint string
 	Token       string
 	Client      HttpClient
-	Parameters  UpdatesRequest
+	Request     UpdatesRequest
 }
 
 func (tb *Bot) GetUpdates() (botResp UpdateResponse, err error) {
-	httpResp, err := tb.SendRequest(&tb.Parameters)
+	httpResp, err := tb.SendRequest(&tb.Request)
 
 	if err != nil {
 		return
@@ -31,17 +38,10 @@ func (tb *Bot) GetUpdates() (botResp UpdateResponse, err error) {
 	err = botResp.Parse(httpResp.Body)
 
 	if len(botResp.Result) > 0 {
-		tb.Parameters.Offset = botResp.Result[len(botResp.Result)-1].UpdateId + 1
+		tb.Request.Offset = botResp.Result[len(botResp.Result)-1].UpdateId + 1
 	}
 
 	return
-}
-
-func NewBot(Settings Bot) (*Bot, error) {
-	if Settings.ApiEndpoint == "" {
-		Settings.ApiEndpoint = DefaultApiUrl
-	}
-	return &Bot{ApiEndpoint: Settings.ApiEndpoint, Token: Settings.Token}, nil
 }
 
 func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error) {
@@ -75,4 +75,46 @@ func (tb *Bot) SendMessage(msg MessageRequest) (botResp MessageResponse, err err
 	botResp = MessageResponse{}
 	err = botResp.Parse(httpResp.Body)
 	return
+}
+
+type LongPoller struct {
+	Bot            *Bot
+	UpdateHandlers []UpdateHandler
+}
+
+func (lp *LongPoller) Run() {
+	for {
+		updates, _ := lp.Bot.GetUpdates()
+		for _, update := range updates.Result {
+			for _, handler := range lp.UpdateHandlers {
+				handler.Proceed(*lp.Bot, update)
+			}
+
+		}
+	}
+}
+
+type UpdateHandler struct {
+	MessageHandlers []MessageHandler
+}
+
+func (uh UpdateHandler) Proceed(tb Bot, update Update) (err error) {
+	if update.Message != nil {
+		for _, handler := range uh.MessageHandlers {
+			err = handler.Call(tb, update.Message)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+type MessageHandler struct {
+	Command string
+	Handler func(Bot, *Message) error
+}
+
+func (mh *MessageHandler) Call(tb Bot, tm *Message) error {
+	return mh.Handler(tb, tm)
 }

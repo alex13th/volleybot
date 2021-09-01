@@ -47,7 +47,7 @@ func TestParseResponse(t *testing.T) {
 
 	expUpdate := Update{
 		UpdateId: 123130161,
-		Message: Message{
+		Message: &Message{
 			MessageId: 2468,
 			From: &User{
 				Id:           586350636,
