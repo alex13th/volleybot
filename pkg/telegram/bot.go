@@ -77,6 +77,11 @@ func (tb *Bot) SendMessage(msg MessageRequest) (botResp MessageResponse, err err
 	return
 }
 
+func NewPoller(tb *Bot) (lp LongPoller, err error) {
+	lp = LongPoller{Bot: tb, UpdateHandlers: []*UpdateHandler{{MessageHandlers: []MessageHandler{}}}}
+	return
+}
+
 type LongPoller struct {
 	Bot            *Bot
 	UpdateHandlers []*UpdateHandler
