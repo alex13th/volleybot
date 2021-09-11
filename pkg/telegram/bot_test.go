@@ -151,14 +151,13 @@ func TestUpdateHandlerProceed(t *testing.T) {
 	tu := Update{Message: &message}
 
 	uh := UpdateHandler{}
-	uh.MessageHandlers = []MessageHandler{
-		{
-			Handler: func(_ Bot, tm *Message) error {
-				tm.Caption = "Test caption"
-				return nil
-			},
+	mh := MessageHandler{
+		Handler: func(_ Bot, tm *Message) error {
+			tm.Caption = "Test caption"
+			return nil
 		},
 	}
+	uh.MessageHandlers = append(uh.MessageHandlers, mh)
 
 	err := uh.Proceed(tb, tu)
 

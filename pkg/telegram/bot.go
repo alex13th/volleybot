@@ -79,7 +79,7 @@ func (tb *Bot) SendMessage(msg MessageRequest) (botResp MessageResponse, err err
 
 type LongPoller struct {
 	Bot            *Bot
-	UpdateHandlers []UpdateHandler
+	UpdateHandlers []*UpdateHandler
 }
 
 func (lp *LongPoller) Run() {
@@ -101,7 +101,7 @@ type UpdateHandler struct {
 func (uh UpdateHandler) Proceed(tb Bot, update Update) (err error) {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
-			err = handler.Call(tb, update.Message)
+			err = handler.Proceed(tb, update.Message)
 			if err != nil {
 				return
 			}
@@ -115,6 +115,6 @@ type MessageHandler struct {
 	Handler func(Bot, *Message) error
 }
 
-func (mh *MessageHandler) Call(tb Bot, tm *Message) error {
+func (mh *MessageHandler) Proceed(tb Bot, tm *Message) error {
 	return mh.Handler(tb, tm)
 }
