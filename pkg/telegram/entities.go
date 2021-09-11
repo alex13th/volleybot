@@ -111,6 +111,23 @@ type Message struct {
 	ReplyMarkup           interface{}     `json:"reply_markup"`
 }
 
+func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
+	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
+}
+
+func (msg *Message) CreateReplyRequest(Text string, Request *MessageRequest) (mr MessageRequest) {
+	if Request == nil {
+		mr = MessageRequest{}
+	} else {
+		mr = *Request
+	}
+	mr.ChatId = msg.Chat.Id
+	mr.ReplyToMessageId = msg.MessageId
+	mr.Text = Text
+
+	return
+}
+
 type CallbackQuery struct {
 	Id              int      `json:"id"`
 	From            *User    `json:"from"`

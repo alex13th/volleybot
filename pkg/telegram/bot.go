@@ -92,7 +92,7 @@ func (lp *LongPoller) Run() {
 		updates, _ := lp.Bot.GetUpdates()
 		for _, update := range updates.Result {
 			for _, handler := range lp.UpdateHandlers {
-				handler.Proceed(*lp.Bot, update)
+				handler.Proceed(lp.Bot, update)
 			}
 
 		}
@@ -103,7 +103,7 @@ type UpdateHandler struct {
 	MessageHandlers []MessageHandler
 }
 
-func (uh UpdateHandler) Proceed(tb Bot, update Update) (err error) {
+func (uh UpdateHandler) Proceed(tb *Bot, update Update) (err error) {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
 			err = handler.Proceed(tb, update.Message)
@@ -117,9 +117,9 @@ func (uh UpdateHandler) Proceed(tb Bot, update Update) (err error) {
 
 type MessageHandler struct {
 	Command string
-	Handler func(Bot, *Message) error
+	Handler func(*Bot, *Message) error
 }
 
-func (mh *MessageHandler) Proceed(tb Bot, tm *Message) error {
+func (mh *MessageHandler) Proceed(tb *Bot, tm *Message) error {
 	return mh.Handler(tb, tm)
 }
