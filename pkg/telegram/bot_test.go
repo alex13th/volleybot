@@ -91,7 +91,7 @@ func TestBotSendMessage(t *testing.T) {
 		}`,
 	}
 
-	req := MessageRequest{
+	req := &MessageRequest{
 		ChatId: 586350636,
 		Text:   "Message text",
 	}

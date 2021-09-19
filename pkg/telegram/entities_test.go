@@ -20,3 +20,20 @@ func TestMessageCreateReplyRequest(t *testing.T) {
 		}
 	})
 }
+
+func TestMessageCreateEditTextRequest(t *testing.T) {
+	msg := Message{Chat: &Chat{Id: 123456789}, MessageId: 987}
+	mer := msg.CreateEditTextRequest("Hello", nil)
+
+	t.Run("Error is nil", func(t *testing.T) {
+		if mer.ChatId != msg.Chat.Id {
+			t.Fail()
+		}
+		if mer.MessageId != msg.MessageId {
+			t.Fail()
+		}
+		if mer.Text != "Hello" {
+			t.Fail()
+		}
+	})
+}

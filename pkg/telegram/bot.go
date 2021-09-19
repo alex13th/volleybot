@@ -63,8 +63,8 @@ func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error)
 	return
 }
 
-func (tb *Bot) SendMessage(msg MessageRequest) (botResp MessageResponse, err error) {
-	httpResp, err := tb.SendRequest(&msg)
+func (tb *Bot) SendMessage(msg Request) (botResp MessageResponse, err error) {
+	httpResp, err := tb.SendRequest(msg)
 
 	if err != nil {
 		return

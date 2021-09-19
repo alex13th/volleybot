@@ -115,15 +115,32 @@ func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResp
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }
 
-func (msg *Message) CreateReplyRequest(Text string, Request *MessageRequest) (mr MessageRequest) {
+func (msg *Message) CreateReplyRequest(Text string, Request *MessageRequest) (mr *MessageRequest) {
 	if Request == nil {
-		mr = MessageRequest{}
+		mr = &MessageRequest{}
 	} else {
-		mr = *Request
+		mr = Request
 	}
 	mr.ChatId = msg.Chat.Id
 	mr.ReplyToMessageId = msg.MessageId
 	mr.Text = Text
+
+	return
+}
+
+func (msg *Message) EditText(tb *Bot, Text string, mer *EditMessageTextRequest) (MessageResponse, error) {
+	return tb.SendMessage(msg.CreateEditTextRequest(Text, mer))
+}
+
+func (msg *Message) CreateEditTextRequest(Text string, Request *EditMessageTextRequest) (mer *EditMessageTextRequest) {
+	if Request == nil {
+		mer = &EditMessageTextRequest{}
+	} else {
+		mer = Request
+	}
+	mer.ChatId = msg.Chat.Id
+	mer.MessageId = msg.MessageId
+	mer.Text = Text
 
 	return
 }

@@ -83,3 +83,45 @@ func (req *MessageRequest) GetParams() (url.Values, string, error) {
 
 	return values, "sendMessage", nil
 }
+
+type EditMessageTextRequest struct {
+	ChatId                int             `json:"chat_id"`
+	MessageId             int             `json:"message_id"`
+	InlineMessageId       int             `json:"inline_message_id"`
+	Text                  string          `json:"text"`
+	ParseMode             string          `json:"parse_mode"`
+	Entities              []MessageEntity `json:"entities"`
+	DisableWebPagePreview bool            `json:"disable_web_page_preview"`
+	ReplyMarkup           interface{}     `json:"reply_markup"`
+}
+
+func (req *EditMessageTextRequest) GetParams() (url.Values, string, error) {
+	values := url.Values{}
+	values.Add("chat_id", strconv.Itoa(req.ChatId))
+	values.Add("message_id", strconv.Itoa(req.MessageId))
+	values.Add("inline_message_id", strconv.Itoa(req.InlineMessageId))
+	values.Add("text", req.Text)
+	if req.ParseMode != "" {
+		values.Add("parse_mode", req.ParseMode)
+	}
+	if req.DisableWebPagePreview {
+		values.Add("disable_web_page_preview", strconv.FormatBool(req.DisableWebPagePreview))
+	}
+	if len(req.Entities) > 0 {
+		data, err := json.Marshal(req.Entities)
+		if err != nil {
+			return nil, "", err
+		}
+		values.Add("entities", string(data))
+	}
+
+	if req.ReplyMarkup != nil {
+		data, err := json.Marshal(req.ReplyMarkup)
+		if err != nil {
+			return nil, "", err
+		}
+		values.Add("reply_markup", string(data))
+	}
+
+	return values, "editMessageText", nil
+}
