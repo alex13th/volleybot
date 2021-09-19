@@ -38,6 +38,20 @@ func TestMessageCreateEditTextRequest(t *testing.T) {
 	})
 }
 
+func TestMessageCreateMessageRequest(t *testing.T) {
+	msg := Message{Chat: &Chat{Id: 123456789}, MessageId: 987}
+	mer := msg.CreateMessageRequest("Hello", nil)
+
+	t.Run("Error is nil", func(t *testing.T) {
+		if mer.ChatId != msg.Chat.Id {
+			t.Fail()
+		}
+		if mer.Text != "Hello" {
+			t.Fail()
+		}
+	})
+}
+
 func TestMessageGetCommand(t *testing.T) {
 	tests := map[string]struct {
 		text string

@@ -130,18 +130,27 @@ func (msg *Message) IsCommand() (result bool) {
 	return cmd != ""
 }
 
+func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
+	return tb.SendMessage(msg.CreateMessageRequest(Text, mr))
+}
+
 func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }
 
 func (msg *Message) CreateReplyRequest(Text string, Request *MessageRequest) (mr *MessageRequest) {
+	mr = msg.CreateMessageRequest(Text, Request)
+	mr.ReplyToMessageId = msg.MessageId
+	return
+}
+
+func (msg *Message) CreateMessageRequest(Text string, Request *MessageRequest) (mr *MessageRequest) {
 	if Request == nil {
 		mr = &MessageRequest{}
 	} else {
 		mr = Request
 	}
 	mr.ChatId = msg.Chat.Id
-	mr.ReplyToMessageId = msg.MessageId
 	mr.Text = Text
 
 	return
