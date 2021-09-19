@@ -1,5 +1,7 @@
 package telegram
 
+import "regexp"
+
 type User struct {
 	Id                      int    `json:"id"`
 	IsBot                   bool   `json:"is_bot"`
@@ -109,6 +111,23 @@ type Message struct {
 	Caption               string          `json:"caption"`
 	CaptionEentities      []MessageEntity `json:"caption_entities"`
 	ReplyMarkup           interface{}     `json:"reply_markup"`
+}
+
+func (msg *Message) GetCommand() (result string, err error) {
+	re, err := regexp.Compile(`^/([a-zA-Z0-9_]*)`)
+	if err != nil {
+		return
+	}
+	matches := re.FindStringSubmatch(msg.Text)
+	if len(matches) < 2 {
+		return
+	}
+	return matches[1], nil
+}
+
+func (msg *Message) IsCommand() (result bool) {
+	cmd, _ := msg.GetCommand()
+	return cmd != ""
 }
 
 func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {

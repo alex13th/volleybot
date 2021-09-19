@@ -37,3 +37,71 @@ func TestMessageCreateEditTextRequest(t *testing.T) {
 		}
 	})
 }
+
+func TestMessageGetCommand(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		want string
+	}{
+		"Text without command": {
+			text: "some text",
+			want: "",
+		},
+		"Command": {
+			text: "/start",
+			want: "start",
+		},
+		"Command with bot name": {
+			text: "/start@bot",
+			want: "start",
+		},
+		"Command with text": {
+			text: "/start some text",
+			want: "start",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			msg := Message{Text: test.text}
+			command, _ := msg.GetCommand()
+
+			if command != test.want {
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestMessageIsCommand(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		want bool
+	}{
+		"Text without command": {
+			text: "some text",
+			want: false,
+		},
+		"Command": {
+			text: "/start",
+			want: true,
+		},
+		"Command with bot name": {
+			text: "/start@bot",
+			want: true,
+		},
+		"Command with text": {
+			text: "/start some text",
+			want: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			msg := Message{Text: test.text}
+			if msg.IsCommand() != test.want {
+				t.Fail()
+			}
+		})
+	}
+}
