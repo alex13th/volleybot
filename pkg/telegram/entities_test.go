@@ -78,9 +78,7 @@ func TestMessageGetCommand(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			msg := Message{Text: test.text}
-			command, _ := msg.GetCommand()
-
-			if command != test.want {
+			if msg.GetCommand() != test.want {
 				t.Fail()
 			}
 		})

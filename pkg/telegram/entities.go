@@ -113,7 +113,7 @@ type Message struct {
 	ReplyMarkup           interface{}     `json:"reply_markup"`
 }
 
-func (msg *Message) GetCommand() (result string, err error) {
+func (msg *Message) GetCommand() (result string) {
 	re, err := regexp.Compile(`^/([a-zA-Z0-9_]*)`)
 	if err != nil {
 		return
@@ -122,12 +122,11 @@ func (msg *Message) GetCommand() (result string, err error) {
 	if len(matches) < 2 {
 		return
 	}
-	return matches[1], nil
+	return matches[1]
 }
 
 func (msg *Message) IsCommand() (result bool) {
-	cmd, _ := msg.GetCommand()
-	return cmd != ""
+	return msg.GetCommand() != ""
 }
 
 func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {

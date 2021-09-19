@@ -77,7 +77,7 @@ func (tb *Bot) SendMessage(msg Request) (botResp MessageResponse, err error) {
 	return
 }
 
-func NewPoller(tb *Bot) (lp LongPoller, err error) {
+func (tb *Bot) NewPoller() (lp LongPoller, err error) {
 	lp = LongPoller{Bot: tb, UpdateHandlers: []*UpdateHandler{{MessageHandlers: []MessageHandler{}}}}
 	return
 }
