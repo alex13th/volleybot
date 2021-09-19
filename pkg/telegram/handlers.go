@@ -1,5 +1,7 @@
 package telegram
 
+import "regexp"
+
 type UpdateHandler interface {
 	Proceed(tb *Bot, update Update) error
 	AppendMessageHandler(mh MessageHandler)
@@ -35,4 +37,27 @@ type BaseMessageHandler struct {
 
 func (mh *BaseMessageHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
 	return mh.Handler(tb, tm)
+}
+
+type CommandHandler struct {
+	InnerHandler MessageHandler
+	Command      string
+	IsRegexp     bool
+}
+
+func (mh *CommandHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
+	if mh.IsRegexp {
+		re, err := regexp.Compile(mh.Command)
+		if err != nil {
+			return true, err
+		}
+		cmd := tm.GetCommand()
+		if re.MatchString(cmd) {
+			return mh.InnerHandler.Proceed(tb, tm)
+		}
+	}
+	if tm.GetCommand() == mh.Command {
+		return mh.InnerHandler.Proceed(tb, tm)
+	}
+	return true, nil
 }
