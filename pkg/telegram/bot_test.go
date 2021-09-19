@@ -150,7 +150,7 @@ func TestUpdateHandlerProceed(t *testing.T) {
 	message := Message{}
 	tu := Update{Message: &message}
 
-	uh := UpdateHandler{}
+	uh := BaseUpdateHandler{}
 	mh := MessageHandler{
 		Handler: func(_ *Bot, tm *Message) (bool, error) {
 			tm.Caption = "Test caption"

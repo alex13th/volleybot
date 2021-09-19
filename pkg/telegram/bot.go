@@ -78,13 +78,14 @@ func (tb *Bot) SendMessage(msg Request) (botResp MessageResponse, err error) {
 }
 
 func (tb *Bot) NewPoller() (lp LongPoller, err error) {
-	lp = LongPoller{Bot: tb, UpdateHandlers: []*UpdateHandler{{MessageHandlers: []MessageHandler{}}}}
+	uh := BaseUpdateHandler{MessageHandlers: []MessageHandler{}}
+	lp = LongPoller{Bot: tb, UpdateHandlers: []UpdateHandler{&uh}}
 	return
 }
 
 type LongPoller struct {
 	Bot            *Bot
-	UpdateHandlers []*UpdateHandler
+	UpdateHandlers []UpdateHandler
 }
 
 func (lp *LongPoller) Run() {
@@ -99,11 +100,20 @@ func (lp *LongPoller) Run() {
 	}
 }
 
-type UpdateHandler struct {
+type UpdateHandler interface {
+	Proceed(tb *Bot, update Update) error
+	AppendMessageHandler(mh MessageHandler)
+}
+
+type BaseUpdateHandler struct {
 	MessageHandlers []MessageHandler
 }
 
-func (uh UpdateHandler) Proceed(tb *Bot, update Update) error {
+func (handler *BaseUpdateHandler) AppendMessageHandler(mh MessageHandler) {
+	handler.MessageHandlers = append(handler.MessageHandlers, mh)
+}
+
+func (uh BaseUpdateHandler) Proceed(tb *Bot, update Update) error {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
 			cont, err := handler.Proceed(tb, update.Message)
