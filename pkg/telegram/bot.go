@@ -125,11 +125,14 @@ func (uh BaseUpdateHandler) Proceed(tb *Bot, update Update) error {
 	return nil
 }
 
-type MessageHandler struct {
-	Command string
+type MessageHandler interface {
+	Proceed(tb *Bot, tm *Message) (bool, error)
+}
+
+type BaseMessageHandler struct {
 	Handler func(*Bot, *Message) (bool, error)
 }
 
-func (mh *MessageHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
+func (mh *BaseMessageHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
 	return mh.Handler(tb, tm)
 }
