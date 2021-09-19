@@ -152,9 +152,9 @@ func TestUpdateHandlerProceed(t *testing.T) {
 
 	uh := UpdateHandler{}
 	mh := MessageHandler{
-		Handler: func(_ *Bot, tm *Message) error {
+		Handler: func(_ *Bot, tm *Message) (bool, error) {
 			tm.Caption = "Test caption"
-			return nil
+			return true, nil
 		},
 	}
 	uh.MessageHandlers = append(uh.MessageHandlers, mh)

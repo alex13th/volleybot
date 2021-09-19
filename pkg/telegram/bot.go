@@ -103,23 +103,23 @@ type UpdateHandler struct {
 	MessageHandlers []MessageHandler
 }
 
-func (uh UpdateHandler) Proceed(tb *Bot, update Update) (err error) {
+func (uh UpdateHandler) Proceed(tb *Bot, update Update) error {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
-			err = handler.Proceed(tb, update.Message)
-			if err != nil {
-				return
+			cont, err := handler.Proceed(tb, update.Message)
+			if !cont || err != nil {
+				return err
 			}
 		}
 	}
-	return
+	return nil
 }
 
 type MessageHandler struct {
 	Command string
-	Handler func(*Bot, *Message) error
+	Handler func(*Bot, *Message) (bool, error)
 }
 
-func (mh *MessageHandler) Proceed(tb *Bot, tm *Message) error {
+func (mh *MessageHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
 	return mh.Handler(tb, tm)
 }
