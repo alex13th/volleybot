@@ -8,7 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrReserveInvalidPeriod = errors.New("reserve end time must be greater start time")
+var (
+	ErrReserveInvalidPeriod = errors.New("the reserve was not found in the repository")
+	ErrFailedToAddReserve   = errors.New("failed to add the reserve to the repository")
+	ErrUpdateReserve        = errors.New("failed to update the reserve in the repository")
+	ErrReserveNotFound      = errors.New("a reserve has to have an valid person")
+)
 
 func NewReserve(p person.Person, start time.Time, end time.Time) (reserve Reserve, err error) {
 
