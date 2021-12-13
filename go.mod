@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
+	github.com/goodsign/monday v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jackc/pgtype v1.9.1
 	github.com/jackc/pgx v3.6.2+incompatible // indirect
