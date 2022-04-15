@@ -66,3 +66,9 @@ func (o *OrderService) CreateOrder(PersonId uuid.UUID, start time.Time, end time
 
 	return nil
 }
+
+func (o *OrderService) List(p person.Person, start time.Time, end time.Time) (reserves map[uuid.UUID]reserve.Reserve, err error) {
+	filter := reserve.ReserveFilter{Person: p, StartTime: start, EndTime: end}
+
+	return o.reserves.GetByFilter(filter)
+}

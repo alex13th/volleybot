@@ -3,6 +3,8 @@ package memory
 import (
 	"fmt"
 	"sync"
+	"time"
+	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
 
 	"github.com/google/uuid"
@@ -25,6 +27,40 @@ func (mr *MemoryRepository) Get(id uuid.UUID) (reserve.Reserve, error) {
 	}
 
 	return reserve.Reserve{}, reserve.ErrReserveNotFound
+}
+
+func (mr *MemoryRepository) GetByFilter(filter reserve.ReserveFilter) (reserves map[uuid.UUID]reserve.Reserve, err error) {
+	if mr.reserves != nil {
+		mr.Lock()
+		reserves = make(map[uuid.UUID]reserve.Reserve)
+		for id, res := range mr.reserves {
+			if filter.Person != (person.Person{}) && res.Person.Id != filter.Person.Id {
+				continue
+			}
+
+			if filter.StartTime != (time.Time{}) && filter.StartTime.After(res.EndTime) {
+				continue
+			}
+
+			if filter.EndTime != (time.Time{}) && filter.EndTime.Before(res.StartTime) {
+				continue
+			}
+
+			if filter.StartTime != (time.Time{}) && filter.EndTime != (time.Time{}) {
+				fres := reserve.Reserve{
+					StartTime: filter.StartTime,
+					EndTime:   filter.EndTime,
+				}
+				if !fres.CheckConflicts(res) {
+					continue
+				}
+			}
+
+			reserves[id] = res
+		}
+		mr.Unlock()
+	}
+	return
 }
 
 func (mr *MemoryRepository) Add(memr reserve.Reserve) error {

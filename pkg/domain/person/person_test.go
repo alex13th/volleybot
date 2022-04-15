@@ -16,29 +16,34 @@ func TestPersonGetDisplayname(t *testing.T) {
 			want:   "Lastname",
 		},
 		"Firstname Lastname": {
-			Person: Person{Firstname: "Firstname",
-				Lastname: "Lastname"},
+			Person: Person{
+				Firstname: "Firstname",
+				Lastname:  "Lastname"},
 			want: "Firstname Lastname",
 		},
 		"Fullname only": {
-			Person: Person{Firstname: "Firstname",
-				Fullname: "Full Name"},
+			Person: Person{
+				Firstname: "Firstname",
+				Fullname:  "Full Name"},
 			want: "Full Name",
 		},
 		"Fullname Firstname": {
-			Person: Person{Firstname: "Firstname",
-				Fullname: "Full Name"},
+			Person: Person{
+				Firstname: "Firstname",
+				Fullname:  "Full Name"},
 			want: "Full Name",
 		},
 		"Fullname Lastname": {
-			Person: Person{Lastname: "Lastname",
+			Person: Person{
+				Lastname: "Lastname",
 				Fullname: "Full Name"},
 			want: "Full Name",
 		},
 		"Fullname Firstname Lastname": {
-			Person: Person{Firstname: "Firstname",
-				Lastname: "Lastname",
-				Fullname: "Full Name"},
+			Person: Person{
+				Firstname: "Firstname",
+				Lastname:  "Lastname",
+				Fullname:  "Full Name"},
 			want: "Full Name",
 		},
 	}
