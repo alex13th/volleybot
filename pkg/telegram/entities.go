@@ -77,7 +77,7 @@ type InlineKeyboardButton struct {
 }
 
 type InlineKeyboardMarkup struct {
-	InlineKeyboard []InlineKeyboardButton `json:"inline_keyboard"`
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
 type MessageEntity struct {
@@ -113,49 +113,53 @@ type Message struct {
 	ReplyMarkup           interface{}     `json:"reply_markup"`
 }
 
-func (msg *Message) GetCommand() (result string) {
+func (msg *Message) GetCommand() string {
 	re, err := regexp.Compile(`^/([a-zA-Z0-9_]*)`)
 	if err != nil {
-		return
+		return ""
 	}
 	matches := re.FindStringSubmatch(msg.Text)
 	if len(matches) < 2 {
-		return
+		return ""
 	}
 	return matches[1]
 }
 
-func (msg *Message) IsCommand() (result bool) {
+func (msg *Message) IsCommand() bool {
 	return msg.GetCommand() != ""
 }
 
-func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
-	return tb.SendMessage(msg.CreateMessageRequest(Text, mr))
+func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) {
+	tb.SendMessage(msg.CreateMessageRequest(Text, mr))
 }
 
-func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
+func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }
 
-func (msg *Message) CreateReplyRequest(Text string, Request *MessageRequest) (mr *MessageRequest) {
-	mr = msg.CreateMessageRequest(Text, Request)
-	mr.ReplyToMessageId = msg.MessageId
+func (msg *Message) CreateReplyRequest(Text string, mr *MessageRequest) (result *MessageRequest) {
+	result = msg.CreateMessageRequest(Text, mr)
+	result.ReplyToMessageId = msg.MessageId
 	return
 }
 
-func (msg *Message) CreateMessageRequest(Text string, Request *MessageRequest) (mr *MessageRequest) {
-	if Request == nil {
-		mr = &MessageRequest{}
+func (msg *Message) CreateMessageRequest(Text string, mr *MessageRequest) (result *MessageRequest) {
+	if mr == nil {
+		result = &MessageRequest{}
 	} else {
-		mr = Request
+		result = mr
 	}
-	mr.ChatId = msg.Chat.Id
-	mr.Text = Text
+	result.ChatId = msg.Chat.Id
+	result.Text = Text
 
 	return
 }
 
-func (msg *Message) EditText(tb *Bot, Text string, mer *EditMessageTextRequest) (MessageResponse, error) {
+func (msg *Message) EditText(tb *Bot, Text string,
+	mer *EditMessageTextRequest) MessageResponse {
+	if mer == nil {
+		mer = &EditMessageTextRequest{}
+	}
 	return tb.SendMessage(msg.CreateEditTextRequest(Text, mer))
 }
 
@@ -167,19 +171,28 @@ func (msg *Message) CreateEditTextRequest(Text string, Request *EditMessageTextR
 	}
 	mer.ChatId = msg.Chat.Id
 	mer.MessageId = msg.MessageId
-	mer.Text = Text
+	mer.Text += Text
 
 	return
 }
 
 type CallbackQuery struct {
-	Id              int      `json:"id"`
+	Id              string   `json:"id"`
 	From            *User    `json:"from"`
 	Message         *Message `json:"message"`
 	InlineMessageId string   `json:"inline_message_id"`
 	ChatInstance    string   `json:"chat_instance"`
 	Data            string   `json:"data"`
 	GameShortName   string   `json:"game_short_name"`
+}
+
+func (cq *CallbackQuery) Answer(tb *Bot, Text string, req *AnswerCallbackQueryRequest) MessageResponse {
+	if req == nil {
+		req = &AnswerCallbackQueryRequest{}
+	}
+	req.CallbackQueryId = cq.Id
+	req.Text = Text
+	return tb.SendMessage(req)
 }
 
 type Update struct {

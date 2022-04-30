@@ -8,18 +8,18 @@ import (
 func TestNewBot(t *testing.T) {
 	tests := []struct {
 		name     string
-		settings Bot
-		want     Bot
+		settings *Bot
+		want     *Bot
 	}{
 		{
 			"Default Url test",
-			Bot{Token: "SOME123TOKEN"},
-			Bot{Token: "SOME123TOKEN", ApiEndpoint: "https://api.telegram.org"},
+			&Bot{Token: "SOME123TOKEN"},
+			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "https://api.telegram.org"},
 		},
 		{
 			"Custom Url test",
-			Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
-			Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
+			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
+			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
 		},
 	}
 
@@ -35,7 +35,7 @@ func TestNewBot(t *testing.T) {
 }
 
 func TestBotSendRequest(t *testing.T) {
-	tb, _ := NewBot(Bot{Token: "***Token***"})
+	tb, _ := NewBot(&Bot{Token: "***Token***"})
 	tb.Client = httpClientMock{}
 
 	req := MessageRequest{
@@ -77,7 +77,7 @@ func TestBotSendRequest(t *testing.T) {
 }
 
 func TestBotSendMessage(t *testing.T) {
-	tb, _ := NewBot(Bot{Token: "***Token***"})
+	tb, _ := NewBot(&Bot{Token: "***Token***"})
 	tb.Client = httpClientMock{
 		Body: `{
 			"ok": true,
@@ -96,13 +96,7 @@ func TestBotSendMessage(t *testing.T) {
 		Text:   "Message text",
 	}
 
-	botResp, err := tb.SendMessage(req)
-
-	t.Run("Error is nil", func(t *testing.T) {
-		if err != nil {
-			t.Fail()
-		}
-	})
+	botResp := tb.SendMessage(req)
 
 	t.Run("Response Ok", func(t *testing.T) {
 		if !botResp.Ok {

@@ -6,6 +6,7 @@ import (
 
 type PersonRepository interface {
 	Get(uuid.UUID) (Person, error)
-	Add(Person) error
+	GetByTelegramId(int) (Person, error)
+	Add(Person) (Person, error)
 	Update(Person) error
 }

@@ -11,20 +11,14 @@ func TestUpdateHandlerProceed(t *testing.T) {
 
 	uh := BaseUpdateHandler{}
 	mh := BaseMessageHandler{
-		Handler: func(_ *Bot, tm *Message) (bool, error) {
+		Handler: func(tm *Message) (MessageResponse, error) {
 			tm.Caption = "Test caption"
-			return true, nil
+			return MessageResponse{}, nil
 		},
 	}
 	uh.MessageHandlers = append(uh.MessageHandlers, &mh)
 
-	err := uh.Proceed(&tb, tu)
-
-	t.Run("Error is nil", func(t *testing.T) {
-		if err != nil {
-			t.Fail()
-		}
-	})
+	uh.ProceedUpdate(&tb, tu)
 
 	t.Run("Message proceeded", func(t *testing.T) {
 		if message.Caption != "Test caption" {
@@ -73,18 +67,20 @@ func TestCommandHandlerProceed(t *testing.T) {
 	}
 
 	mh := BaseMessageHandler{
-		Handler: func(_ *Bot, tm *Message) (bool, error) {
+		Handler: func(tm *Message) (MessageResponse, error) {
 			tm.Caption = "Ok"
-			return true, nil
+			return MessageResponse{}, nil
 		},
 	}
 
-	ch := CommandHandler{Command: "start", InnerHandler: &mh}
+	ch := CommandHandler{Command: "start", Handler: func(m *Message) (MessageResponse, error) {
+		return mh.ProceedMessage(m)
+	}}
 
 	for name, test := range tests {
 		t.Run("Simple "+name, func(t *testing.T) {
 			msg := Message{Text: test.text, Caption: ""}
-			ch.Proceed(nil, &msg)
+			ch.ProceedMessage(&msg)
 			if msg.Caption != test.want {
 				t.Fail()
 			}
@@ -96,8 +92,47 @@ func TestCommandHandlerProceed(t *testing.T) {
 	for name, test := range tests {
 		t.Run("Regexp "+name, func(t *testing.T) {
 			msg := Message{Text: test.text, Caption: ""}
-			ch.Proceed(nil, &msg)
+			ch.ProceedMessage(&msg)
 			if msg.Caption != test.want_regexp {
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestPrefixCallbackHandlerProceed(t *testing.T) {
+	tests := map[string]struct {
+		text        string
+		want        string
+		want_regexp string
+	}{
+		"Data without prefix": {
+			text: "some text",
+			want: "some text",
+		},
+		"Prefix pref": {
+			text: "pref_some",
+			want: "Ok",
+		},
+		"Another prefixt": {
+			text: "alternate_pref",
+			want: "alternate_pref",
+		},
+	}
+
+	handler := PrefixCallbackHandler{
+		Prefix: "pref",
+		Handler: func(cb *CallbackQuery) (MessageResponse, error) {
+			cb.Data = "Ok"
+			return MessageResponse{}, nil
+		},
+	}
+
+	for name, test := range tests {
+		t.Run("Callback "+name, func(t *testing.T) {
+			callback := CallbackQuery{Data: test.text}
+			handler.ProceedCallback(&callback)
+			if callback.Data != test.want {
 				t.Fail()
 			}
 		})
