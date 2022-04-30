@@ -15,6 +15,10 @@ var (
 	ErrReserveNotFound      = errors.New("a reserve has to have an valid person")
 )
 
+func NewPreReserve(p person.Person) (res Reserve) {
+	return Reserve{Id: uuid.New(), Person: p, Players: make(map[uuid.UUID]Player)}
+}
+
 func NewReserve(p person.Person, start time.Time, end time.Time) (reserve Reserve, err error) {
 
 	if end.Before(start) {
@@ -26,15 +30,25 @@ func NewReserve(p person.Person, start time.Time, end time.Time) (reserve Reserv
 		Person:    p,
 		StartTime: start,
 		EndTime:   end,
-	}
+		Players:   make(map[uuid.UUID]Player)}
 	return
 }
 
+type Player struct {
+	Person person.Person
+	Count  int
+}
+
 type Reserve struct {
-	Id        uuid.UUID     `json:"id"`
-	Person    person.Person `json:"person"`
-	StartTime time.Time     `json:"start_time"`
-	EndTime   time.Time     `json:"end_time"`
+	Id         uuid.UUID            `json:"id"`
+	Person     person.Person        `json:"person"`
+	StartTime  time.Time            `json:"start_time"`
+	EndTime    time.Time            `json:"end_time"`
+	CourtCount int                  `json:"court_count"`
+	MaxPlayers int                  `json:"max_players"`
+	Ordered    bool                 `json:"ordered"`
+	Approved   bool                 `json:"approved"`
+	Players    map[uuid.UUID]Player `json:"players"`
 }
 
 func (reserve *Reserve) GetPerson() person.Person {

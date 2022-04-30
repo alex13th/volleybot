@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 type Request interface {
@@ -11,30 +12,35 @@ type Request interface {
 }
 
 type UpdatesRequest struct {
+	mu             sync.RWMutex
 	Offset         int      `json:"offset"`
 	Limit          int      `json:"limit"`
 	Timeout        int      `json:"timeout"`
 	AllowedUpdates []string `json:"allowed_updates"`
 }
 
-func (req *UpdatesRequest) GetParams() (url.Values, string, error) {
-	values := url.Values{}
+func (req *UpdatesRequest) GetParams() (val url.Values, method string, err error) {
+	req.mu.RLock()
+	method = "getUpdates"
+	val = url.Values{}
 	if req.Offset != 0 {
-		values.Add("offset", strconv.Itoa(req.Offset))
+		val.Add("offset", strconv.Itoa(req.Offset))
 	}
 	if req.Limit > 0 {
-		values.Add("limit", strconv.Itoa(req.Limit))
+		val.Add("limit", strconv.Itoa(req.Limit))
 	}
 	if req.Timeout > 0 {
-		values.Add("timeout", strconv.Itoa(req.Timeout))
+		val.Add("timeout", strconv.Itoa(req.Timeout))
 	}
 	for _, au := range req.AllowedUpdates {
-		values.Add("allowed_updates", au)
+		val.Add("allowed_updates", au)
 	}
-	return values, "getUpdates", nil
+	defer req.mu.RUnlock()
+	return
 }
 
 type MessageRequest struct {
+	mu                       sync.RWMutex
 	ChatId                   int             `json:"chat_id"`
 	Text                     string          `json:"text"`
 	ParseMode                string          `json:"parse_mode"`
@@ -46,31 +52,33 @@ type MessageRequest struct {
 	ReplyMarkup              interface{}     `json:"reply_markup"`
 }
 
-func (req *MessageRequest) GetParams() (url.Values, string, error) {
-	values := url.Values{}
-	values.Add("chat_id", strconv.Itoa(req.ChatId))
-	values.Add("text", req.Text)
+func (req *MessageRequest) GetParams() (val url.Values, method string, err error) {
+	req.mu.RLock()
+	method = "sendMessage"
+	val = url.Values{}
+	val.Add("chat_id", strconv.Itoa(req.ChatId))
+	val.Add("text", req.Text)
 	if req.ParseMode != "" {
-		values.Add("parse_mode", req.ParseMode)
+		val.Add("parse_mode", req.ParseMode)
 	}
 	if req.DisableWebPagePreview {
-		values.Add("disable_web_page_preview", strconv.FormatBool(req.DisableWebPagePreview))
+		val.Add("disable_web_page_preview", strconv.FormatBool(req.DisableWebPagePreview))
 	}
 	if req.DisableNotification {
-		values.Add("disable_notification", strconv.FormatBool(req.DisableNotification))
+		val.Add("disable_notification", strconv.FormatBool(req.DisableNotification))
 	}
 	if req.ReplyToMessageId > 0 {
-		values.Add("reply_to_message_id", strconv.Itoa(req.ReplyToMessageId))
+		val.Add("reply_to_message_id", strconv.Itoa(req.ReplyToMessageId))
 	}
 	if req.AllowSendingWithoutReply {
-		values.Add("allow_sending_without_reply", strconv.FormatBool(req.AllowSendingWithoutReply))
+		val.Add("allow_sending_without_reply", strconv.FormatBool(req.AllowSendingWithoutReply))
 	}
 	if len(req.Entities) > 0 {
 		data, err := json.Marshal(req.Entities)
 		if err != nil {
 			return nil, "", err
 		}
-		values.Add("entities", string(data))
+		val.Add("entities", string(data))
 	}
 
 	if req.ReplyMarkup != nil {
@@ -78,13 +86,14 @@ func (req *MessageRequest) GetParams() (url.Values, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		values.Add("reply_markup", string(data))
+		val.Add("reply_markup", string(data))
 	}
-
-	return values, "sendMessage", nil
+	defer req.mu.RUnlock()
+	return
 }
 
 type EditMessageTextRequest struct {
+	mu                    sync.RWMutex
 	ChatId                int             `json:"chat_id"`
 	MessageId             int             `json:"message_id"`
 	InlineMessageId       int             `json:"inline_message_id"`
@@ -95,24 +104,26 @@ type EditMessageTextRequest struct {
 	ReplyMarkup           interface{}     `json:"reply_markup"`
 }
 
-func (req *EditMessageTextRequest) GetParams() (url.Values, string, error) {
-	values := url.Values{}
-	values.Add("chat_id", strconv.Itoa(req.ChatId))
-	values.Add("message_id", strconv.Itoa(req.MessageId))
-	values.Add("inline_message_id", strconv.Itoa(req.InlineMessageId))
-	values.Add("text", req.Text)
+func (req *EditMessageTextRequest) GetParams() (val url.Values, method string, err error) {
+	method = "editMessageText"
+	val = url.Values{}
+	req.mu.RLock()
+	val.Add("chat_id", strconv.Itoa(req.ChatId))
+	val.Add("message_id", strconv.Itoa(req.MessageId))
+	val.Add("inline_message_id", strconv.Itoa(req.InlineMessageId))
+	val.Add("text", req.Text)
 	if req.ParseMode != "" {
-		values.Add("parse_mode", req.ParseMode)
+		val.Add("parse_mode", req.ParseMode)
 	}
 	if req.DisableWebPagePreview {
-		values.Add("disable_web_page_preview", strconv.FormatBool(req.DisableWebPagePreview))
+		val.Add("disable_web_page_preview", strconv.FormatBool(req.DisableWebPagePreview))
 	}
 	if len(req.Entities) > 0 {
 		data, err := json.Marshal(req.Entities)
 		if err != nil {
 			return nil, "", err
 		}
-		values.Add("entities", string(data))
+		val.Add("entities", string(data))
 	}
 
 	if req.ReplyMarkup != nil {
@@ -120,8 +131,30 @@ func (req *EditMessageTextRequest) GetParams() (url.Values, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		values.Add("reply_markup", string(data))
+		val.Add("reply_markup", string(data))
 	}
+	defer req.mu.RUnlock()
+	return
+}
 
-	return values, "editMessageText", nil
+type AnswerCallbackQueryRequest struct {
+	mu              sync.RWMutex
+	CallbackQueryId string `json:"callback_query_id"`
+	Text            string `json:"text"`
+	ShowAlert       bool   `json:"show_alert"`
+	URL             string `json:"url"`
+	CacheTime       int    `json:"cache_time"`
+}
+
+func (req *AnswerCallbackQueryRequest) GetParams() (val url.Values, method string, err error) {
+	method = "answerCallbackQuery"
+	val = url.Values{}
+	req.mu.RLock()
+	val.Add("callback_query_id", req.CallbackQueryId)
+	val.Add("text", req.Text)
+	val.Add("show_alert", strconv.FormatBool(req.ShowAlert))
+	val.Add("url", req.URL)
+	val.Add("cache_time", strconv.Itoa(req.CacheTime))
+	defer req.mu.RUnlock()
+	return
 }

@@ -12,11 +12,15 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func NewBot(Settings Bot) (*Bot, error) {
+func NewBot(Settings *Bot) (*Bot, error) {
 	if Settings.ApiEndpoint == "" {
 		Settings.ApiEndpoint = DefaultApiUrl
 	}
-	return &Bot{ApiEndpoint: Settings.ApiEndpoint, Token: Settings.Token}, nil
+	return &Bot{
+		ApiEndpoint: Settings.ApiEndpoint,
+		Token:       Settings.Token,
+		ChatStates:  make(map[int]interface{}),
+	}, nil
 }
 
 type Bot struct {
@@ -24,6 +28,7 @@ type Bot struct {
 	Token       string
 	Client      HttpClient
 	Request     UpdatesRequest
+	ChatStates  map[int]interface{}
 }
 
 func (tb *Bot) GetUpdates() (botResp UpdateResponse, err error) {
@@ -63,18 +68,22 @@ func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error)
 	return
 }
 
-func (tb *Bot) SendMessage(msg Request) (botResp MessageResponse, err error) {
-	httpResp, err := tb.SendRequest(msg)
+func (tb *Bot) SendMessage(req Request) (resp MessageResponse) {
+	httpResp, err := tb.SendRequest(req)
 
-	if err != nil {
-		return
+	if err == nil {
+		defer httpResp.Body.Close()
+		err = resp.Parse(httpResp.Body)
 	}
-
-	defer httpResp.Body.Close()
-
-	botResp = MessageResponse{}
-	err = botResp.Parse(httpResp.Body)
+	if err != nil {
+		resp.Description = err.Error()
+	}
 	return
+}
+
+func (tb *Bot) SendMessageAsync(req Request, chm chan MessageResponse) {
+	resp := tb.SendMessage(req)
+	chm <- resp
 }
 
 func (tb *Bot) NewPoller() (lp LongPoller, err error) {
@@ -93,9 +102,8 @@ func (lp *LongPoller) Run() {
 		updates, _ := lp.Bot.GetUpdates()
 		for _, update := range updates.Result {
 			for _, handler := range lp.UpdateHandlers {
-				handler.Proceed(lp.Bot, update)
+				handler.ProceedUpdate(lp.Bot, update)
 			}
-
 		}
 	}
 }

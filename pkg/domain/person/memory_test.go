@@ -1,8 +1,7 @@
-package memory
+package person
 
 import (
 	"testing"
-	"volleybot/pkg/domain/person"
 
 	"github.com/google/uuid"
 )
@@ -14,21 +13,21 @@ func TestMemory_GetPerson(t *testing.T) {
 		expectedErr error
 	}
 
-	p, err := person.NewPerson("Firstname")
+	p, err := NewPerson("Firstname")
 	if err != nil {
 		t.Fatal(err)
 	}
 	id := p.Id
 
 	repo := MemoryRepository{
-		persons: map[uuid.UUID]person.Person{p.Id: p},
+		persons: map[uuid.UUID]Person{p.Id: p},
 	}
 
 	testCases := []testCase{
 		{
 			name:        "No person By ID",
 			id:          uuid.MustParse("f47ac10b-58cc-0372-8567-0e02b2c3d479"),
-			expectedErr: person.ErrPersonNotFound,
+			expectedErr: ErrPersonNotFound,
 		}, {
 			name:        "person By ID",
 			id:          id,
@@ -65,15 +64,15 @@ func TestMemory_AddPerson(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := MemoryRepository{
-				persons: map[uuid.UUID]person.Person{},
+				persons: map[uuid.UUID]Person{},
 			}
 
-			p, err := person.NewPerson(tc.firstname)
+			p, err := NewPerson(tc.firstname)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			err = repo.Add(p)
+			_, err = repo.Add(p)
 			if err != tc.expectedErr {
 				t.Errorf("Expected error %v, got %v", tc.expectedErr, err)
 			}

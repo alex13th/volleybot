@@ -27,10 +27,11 @@ func NewPerson(firstname string) (person Person, err error) {
 }
 
 type Person struct {
-	Id        uuid.UUID `json:"id"`
-	Firstname string    `json:"firstname"`
-	Lastname  string    `json:"lastname"`
-	Fullname  string    `json:"fullname"`
+	Id         uuid.UUID `json:"id"`
+	TelegramId int       `json:"telegram_id"`
+	Firstname  string    `json:"firstname"`
+	Lastname   string    `json:"lastname"`
+	Fullname   string    `json:"fullname"`
 }
 
 func (user *Person) GetDisplayname() string {

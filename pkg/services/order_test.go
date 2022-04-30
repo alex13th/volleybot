@@ -25,16 +25,18 @@ func TestOrder_NewOrderService(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = os.persons.Add(p)
+	_, err = os.Persons.Add(p)
 	if err != nil {
 		t.Error(err)
 	}
 
 	duration, _ := time.ParseDuration("2h")
-	err = os.CreateOrder(p.Id, time.Now(), time.Now().Add(duration))
+	rres := os.CreateOrder(reserve.Reserve{
+		Person: p, StartTime: time.Now(), EndTime: time.Now().Add(duration)},
+		nil)
 
-	if err != nil {
-		t.Error(err)
+	if rres.Err != nil {
+		t.Error(rres.Err)
 	}
 }
 
@@ -77,16 +79,12 @@ func CreateTestOrders() (os *OrderService, pl []person.Person, rl []reserve.Rese
 	}
 
 	for _, p := range pl {
-		os.persons.Add(p)
+		os.Persons.Add(p)
 	}
 
 	for _, res := range rl {
-		err = os.CreateOrder(
-			res.Person.Id,
-			res.StartTime,
-			res.EndTime,
-		)
-		if err != nil {
+		rres := os.CreateOrder(res, nil)
+		if rres.Err != nil {
 			return
 		}
 	}
@@ -137,12 +135,12 @@ func TestOrder_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			reserves, err := os.List(test.p, test.start, test.end)
-			if err != nil {
+			rlist := os.List(reserve.Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, nil)
+			if rlist.Err != nil {
 				t.Fail()
 			}
 
-			for _, reserve := range reserves {
+			for _, reserve := range rlist.Reserves {
 				checked := false
 				for _, exp_reserve := range test.want {
 					if reserve.Person.Id.ID() == exp_reserve.Person.Id.ID() {

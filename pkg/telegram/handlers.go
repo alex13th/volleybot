@@ -1,63 +1,107 @@
 package telegram
 
-import "regexp"
+import (
+	"errors"
+	"regexp"
+	"strings"
+)
+
+type CallbackQueryFunc func(cq *CallbackQuery) (MessageResponse, error)
+type MessageFunc func(m *Message) (MessageResponse, error)
 
 type UpdateHandler interface {
-	Proceed(tb *Bot, update Update) error
+	ProceedUpdate(tb *Bot, update Update)
 	AppendMessageHandler(mh MessageHandler)
+	AppendCallbackHandler(ch CallbackHandler)
 }
 
 type BaseUpdateHandler struct {
-	MessageHandlers []MessageHandler
+	MessageHandlers  []MessageHandler
+	CallbackHandlers []CallbackHandler
+}
+
+func (handler *BaseUpdateHandler) AppendCallbackHandler(ch CallbackHandler) {
+	handler.CallbackHandlers = append(handler.CallbackHandlers, ch)
 }
 
 func (handler *BaseUpdateHandler) AppendMessageHandler(mh MessageHandler) {
 	handler.MessageHandlers = append(handler.MessageHandlers, mh)
 }
 
-func (uh BaseUpdateHandler) Proceed(tb *Bot, update Update) error {
+func (uh BaseUpdateHandler) ProceedUpdate(tb *Bot, update Update) {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
-			cont, err := handler.Proceed(tb, update.Message)
-			if !cont || err != nil {
-				return err
-			}
+			handler.ProceedMessage(update.Message)
 		}
 	}
-	return nil
+	if update.CallbackQuery != nil {
+		for _, handler := range uh.CallbackHandlers {
+			handler.ProceedCallback(update.CallbackQuery)
+		}
+	}
+}
+
+type CallbackHandler interface {
+	ProceedCallback(*CallbackQuery) (MessageResponse, error)
+}
+
+type BaseCallbackHandler struct {
+	Bot     *Bot
+	Handler CallbackQueryFunc
+}
+
+func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+	return h.Handler(cb)
+}
+
+type PrefixCallbackHandler struct {
+	Bot     *Bot
+	Prefix  string
+	Handler CallbackQueryFunc
+}
+
+func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+	var prefix []string = strings.Split(cb.Data, "_")
+	if len(prefix) > 1 && prefix[0] == h.Prefix {
+		return h.Handler(cb)
+	}
+	return MessageResponse{}, errors.New("data hasn't prefix")
 }
 
 type MessageHandler interface {
-	Proceed(tb *Bot, tm *Message) (bool, error)
+	ProceedMessage(tm *Message) (MessageResponse, error)
 }
 
 type BaseMessageHandler struct {
-	Handler func(*Bot, *Message) (bool, error)
+	Bot     *Bot
+	Handler MessageFunc
 }
 
-func (mh *BaseMessageHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
-	return mh.Handler(tb, tm)
+func (h *BaseMessageHandler) ProceedMessage(m *Message) (MessageResponse, error) {
+	return h.Handler(m)
 }
 
 type CommandHandler struct {
-	InnerHandler MessageHandler
-	Command      string
-	IsRegexp     bool
+	Bot      *Bot
+	Handler  MessageFunc
+	Command  string
+	IsRegexp bool
 }
 
-func (mh *CommandHandler) Proceed(tb *Bot, tm *Message) (bool, error) {
-	if mh.IsRegexp {
-		re, err := regexp.Compile(mh.Command)
+func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+	if h.IsRegexp {
+		var re *regexp.Regexp
+		re, err = regexp.Compile(h.Command)
 		if err != nil {
-			return true, err
+			return
 		}
-		cmd := tm.GetCommand()
+		cmd := m.GetCommand()
 		if re.MatchString(cmd) {
-			return mh.InnerHandler.Proceed(tb, tm)
+			return h.Handler(m)
 		}
 	}
-	if tm.GetCommand() == mh.Command {
-		return mh.InnerHandler.Proceed(tb, tm)
+	if m.GetCommand() == h.Command {
+		return h.Handler(m)
 	}
-	return true, nil
+	return
 }
