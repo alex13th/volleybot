@@ -25,10 +25,12 @@ func TestTelegramView(t *testing.T) {
 				Person:     pl1,
 				StartTime:  time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
 				EndTime:    time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
+				MinLevel:   int(Middle),
 				MaxPlayers: 6,
+				Price:      600,
 			},
 			want: "*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
-				"*Игроков:* 6\n1.\n.\n.\n6.",
+				"💪*Уровень*: Средний\n💳 600\n*Игроков:* 6\n1.\n.\n.\n6.",
 		},
 		"4 max": {
 			res: Reserve{

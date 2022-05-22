@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 	"volleybot/pkg/domain/person"
 
 	"github.com/google/uuid"
@@ -47,13 +46,14 @@ type PgRepository struct {
 func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %[1]s " +
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, " +
-		"start_time TIMESTAMP, end_time TIMESTAMP, " +
-		"court_count INT, max_players INT, ordered BOOL, approved BOOL, canceled BOOL);"
+		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
+		"min_level INT, court_count INT, max_players INT, " +
+		"ordered BOOL, approved BOOL, canceled BOOL);"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, canceled, " +
+		"price, min_level, court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %[1]s AS r " +
 		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id; "
@@ -108,8 +108,8 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 }
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
-	sql := "SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, canceled, " +
+	sql := "SELECT reserve_id, r.person_id, start_time, end_time, price, " +
+		"min_level, court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %s AS r " +
 		"INNER JOIN %s AS p ON r.person_id = p.person_id " +
@@ -117,42 +117,20 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql = fmt.Sprintf(sql, rep.TableName, rep.PersonsTableName)
 	row := rep.dbpool.QueryRow(context.Background(), sql, rid)
 
-	var (
-		ReserveId, PersonId                uuid.UUID
-		StartTime, EndTime                 time.Time
-		CourtCount, MaxPlayers, TelegramId int
-		Ordered, Approved, Canceled        bool
-		FirstName, LastName, FullName      string
-	)
-
-	err = row.Scan(&ReserveId, &PersonId, &StartTime, &EndTime, &CourtCount, &MaxPlayers,
-		&Ordered, &Approved, &Canceled,
-		&TelegramId, &FirstName, &LastName, &FullName)
+	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
+		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname)
 	if err != nil {
 		return
 	}
-	res.Id = ReserveId
-	res.Person = person.Person{
-		Id:         PersonId,
-		TelegramId: TelegramId,
-		Firstname:  FirstName,
-		Lastname:   LastName,
-		Fullname:   FullName}
-	res.StartTime = StartTime
-	res.EndTime = EndTime
-	res.CourtCount = CourtCount
-	res.MaxPlayers = MaxPlayers
-	res.Ordered = Ordered
-	res.Approved = Approved
-	res.Canceled = Canceled
 	pmap, err := rep.GetPlayers(res.Id)
 	res.Players = pmap
 	return
 }
 
 func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve, err error) {
-	sql := "SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, canceled, " +
+	sql := "SELECT reserve_id, r.person_id, start_time, end_time, price, " +
+		"min_level, court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %s AS r " +
 		"INNER JOIN %s AS p ON r.person_id = p.person_id "
@@ -184,50 +162,30 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 		return rmap, err
 	}
 	rmap = make(map[uuid.UUID]Reserve)
-	var (
-		ReserveId, PersonId                uuid.UUID
-		StartTime, EndTime                 time.Time
-		CourtCount, MaxPlayers, TelegramId int
-		Ordered, Approved, Canceled        bool
-		FirstName, LastName, FullName      string
-	)
 
 	for rows.Next() {
-
-		if err = rows.Scan(&ReserveId, &PersonId, &StartTime, &EndTime,
-			&CourtCount, &MaxPlayers, &Ordered, &Approved, &Canceled,
-			&TelegramId, &FirstName, &LastName, &FullName); err != nil {
+		res := Reserve{}
+		if err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
+			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname); err != nil {
 			return
 		}
-		var pmap map[uuid.UUID]Player
-		pmap, err = rep.GetPlayers(ReserveId)
-		rmap[ReserveId] = Reserve{
-			Id: ReserveId,
-			Person: person.Person{
-				Id: PersonId, TelegramId: TelegramId,
-				Firstname: FirstName, Lastname: LastName, Fullname: FullName},
-			StartTime:  StartTime,
-			EndTime:    EndTime,
-			CourtCount: CourtCount,
-			MaxPlayers: MaxPlayers,
-			Ordered:    Ordered,
-			Approved:   Approved,
-			Canceled:   Canceled,
-			Players:    pmap}
+		res.Players, err = rep.GetPlayers(res.Id)
+		rmap[res.Id] = res
 	}
 	return
 }
 
 func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql := "INSERT INTO %s " +
-		"(reserve_id, person_id, start_time, end_time, " +
-		"court_count, max_players, approved, ordered, canceled) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) " +
+		"(reserve_id, person_id, start_time, end_time, price, " +
+		"min_level, court_count, max_players, approved, ordered, canceled) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
-		r.Id, r.Person.Id, r.StartTime, r.EndTime, r.CourtCount,
+		r.Id, r.Person.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel, r.CourtCount,
 		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled)
 
 	var ReserveId uuid.UUID
@@ -244,14 +202,14 @@ func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 
 func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql := "UPDATE %s SET " +
-		"person_id = $1, start_time = $2, end_time = $3, " +
-		"court_count = $4, max_players = $5, " +
-		"approved = $6, ordered = $7, canceled = $8 " +
-		"WHERE reserve_id = $9"
+		"person_id = $1, start_time = $2, end_time = $3, price = $4, " +
+		"min_level = $5, court_count = $6, max_players = $7, " +
+		"approved = $8, ordered = $9, canceled = $10 " +
+		"WHERE reserve_id = $11"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
-		r.Person.Id, r.StartTime, r.EndTime, r.CourtCount,
+		r.Person.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel, r.CourtCount,
 		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled, r.Id)
 	if err != nil {
 		return

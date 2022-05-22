@@ -39,6 +39,15 @@ func (tgv *TelegramView) GetText() (text string) {
 	text = fmt.Sprintf(
 		tt, tgv.Reserve.Person.GetDisplayname(),
 		tgv.GetTimeText())
+
+	if tgv.Reserve.MinLevel > 0 {
+		text += fmt.Sprintf("\n💪*Уровень*: %s", PlayerLevel(tgv.Reserve.MinLevel))
+	}
+
+	if tgv.Reserve.Price > 0 {
+		text += fmt.Sprintf("\n💳 %d", tgv.Reserve.Price)
+	}
+
 	if tgv.Reserve.CourtCount > 0 {
 		text += fmt.Sprintf("\n*Корты:* %d", tgv.Reserve.CourtCount)
 	}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
@@ -19,6 +20,13 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService) (oh OrderBotHa
 	oh.DateHelper = telegram.NewDateKeyboardHelper("Выбери дату:", "orderdate")
 	oh.ListDateHelper = telegram.NewDateKeyboardHelper("Выбери дату:", "orderlistdate")
 	oh.TimeHelper = telegram.NewTimeKeyboardHelper("Выбери время:", "ordertime")
+
+	levels := []telegram.EnumItem{}
+	for i := 0; i <= 80; i += 10 {
+		levels = append(levels, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.PlayerLevel(i)})
+	}
+	oh.MinLevelHelper = telegram.NewEnumKeyboardHelper("❓Какой минимальный уровень игроков❓", "orderminlevel", levels)
+
 	oh.CourtsHelper = telegram.NewCountKeyboardHelper("❓Сколько нужно кортов❓", "ordercourts", 1, 4)
 	oh.SetsHelper = telegram.NewCountKeyboardHelper("❓Количество часов❓", "ordersets", 1, 4)
 	oh.PlayerCountHelper = telegram.NewCountKeyboardHelper("❓Максимальное количество игроков❓", "orderplayers", 4, 32)
@@ -35,6 +43,7 @@ type OrderBotHandler struct {
 	DateHelper         telegram.DateKeyboardHelper
 	ListDateHelper     telegram.DateKeyboardHelper
 	TimeHelper         telegram.TimeKeyboardHelper
+	MinLevelHelper     telegram.EnumKeyboardHelper
 	CourtsHelper       telegram.CountKeyboardHelper
 	SetsHelper         telegram.CountKeyboardHelper
 	PlayerCountHelper  telegram.CountKeyboardHelper
@@ -52,6 +61,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "orderdate", Handler: oh.StartDateCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordertime", Handler: oh.StartTimeCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderminlevel", Handler: oh.MinLevelCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordercourts", Handler: oh.CourtsCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
@@ -204,6 +215,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderdate", Text: "📆 Дата"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordertime", Text: "⏰ Время"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordersets", Text: "⏱ Сеты"})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderminlevel", Text: "💪 Уровень"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercourts", Text: "🏐 Площадки"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderplayers", Text: "😀 Мест"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercancel", Text: "💥Отменить"})
@@ -303,6 +315,32 @@ func (oh *OrderBotHandler) SetsCallback(cq *telegram.CallbackQuery) (result tele
 	}
 	if ch.Action == "set" {
 		res.EndTime = res.StartTime.Add(time.Duration(time.Hour * time.Duration(ch.Count)))
+		return oh.UpdateReserveCQ(res, cq)
+	} else {
+		mr := oh.GetReserveEditMR(res, &ch)
+		mr.ChatId = cq.Message.Chat.Id
+		cq.Message.EditText(oh.Bot, "", &mr)
+		return cq.Answer(oh.Bot, "Ok", nil), nil
+	}
+}
+
+func (oh *OrderBotHandler) MinLevelCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ch := oh.MinLevelHelper
+	err = ch.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(ch.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	if ch.Action == "set" {
+		lvl, err := strconv.Atoi(ch.Choice)
+		res.MinLevel = lvl
+		if err != nil {
+			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+		}
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
 		mr := oh.GetReserveEditMR(res, &ch)

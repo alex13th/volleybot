@@ -254,7 +254,7 @@ func (kh *CountKeyboardHelper) Parse(Data string) (err error) {
 	if len(splitedData) < 2 {
 		err = HelperError{
 			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
+			AnswerMsg: "Can't parse count"}
 		return
 	} else if len(splitedData) > 2 {
 		kh.Action = splitedData[2]
@@ -332,5 +332,83 @@ func (tkh ActionsKeyboardHelper) Parse(Data string) (data string, err error) {
 		return
 	}
 	data = splitedData[1]
+	return
+}
+
+type EnumItem struct {
+	Id   string
+	Item fmt.Stringer
+}
+
+func NewEnumKeyboardHelper(msg string, prefix string, enums []EnumItem) EnumKeyboardHelper {
+	return EnumKeyboardHelper{Enums: enums,
+		Columns: 2, Msg: msg, Prefix: prefix}
+}
+
+type EnumKeyboardHelper struct {
+	Msg      string
+	Prefix   string
+	Action   string
+	Choice   string
+	BackData string
+	Data     string
+	Enums    []EnumItem
+	Columns  int
+}
+
+func (kh EnumKeyboardHelper) GetText() string {
+	return kh.Msg
+}
+
+func (kh *EnumKeyboardHelper) SetData(data string) {
+	kh.Data = data
+}
+
+func (kh EnumKeyboardHelper) GetData() string {
+	return kh.Data
+}
+
+func (kh EnumKeyboardHelper) GetBtnData(val interface{}) string {
+	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", val)
+}
+
+func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+	kbdRow := []InlineKeyboardButton{}
+	count := 0
+	for _, val := range kh.Enums {
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: val.Item.String(), CallbackData: kh.GetBtnData(val.Id)})
+		count++
+		if count%kh.Columns == 0 {
+			kbd = append(kbd, kbdRow)
+			kbdRow = []InlineKeyboardButton{}
+			count = 0
+		}
+	}
+	if len(kbdRow) > 0 {
+		kbd = append(kbd, kbdRow)
+	}
+	if kh.BackData != "" {
+		kbdRow := []InlineKeyboardButton{}
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
+		kbd = append(kbd, kbdRow)
+	}
+	return
+}
+
+func (kh *EnumKeyboardHelper) Parse(Data string) (err error) {
+	splitedData := strings.Split(Data, "_")
+	if len(splitedData) < 2 {
+		err = HelperError{
+			Msg:       "incorrect Date button data format",
+			AnswerMsg: "Can't parse date"}
+		return
+	} else if len(splitedData) > 2 {
+		kh.Action = splitedData[2]
+	}
+
+	if kh.Action == "set" {
+		kh.Choice = splitedData[3]
+	}
+	kh.Data = splitedData[1]
 	return
 }
