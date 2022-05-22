@@ -424,6 +424,13 @@ func (oh *OrderBotHandler) CancelCallback(cq *telegram.CallbackQuery) (result te
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 	res.Canceled = true
+	for _, pl := range res.Players {
+		if pl.Person.TelegramId != cq.From.Id {
+			mr := oh.GetReserveMR(res, nil)
+			mr.ChatId = pl.Person.TelegramId
+			oh.Bot.SendMessage(&mr)
+		}
+	}
 	return oh.UpdateReserveCQ(res, cq)
 }
 
