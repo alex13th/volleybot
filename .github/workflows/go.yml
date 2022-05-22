@@ -10,6 +10,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    environment: Beget
     steps:
     - uses: actions/checkout@v2
 
@@ -20,24 +21,37 @@ jobs:
 
     - name: Build
       run: |
-        go build -v ./...
-        ls
+        mkdir build
+        env GOOS=linux GOARCH=amd64 go build -o build/vbot -v cmd/tst.go
+        ls -la
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Test
-      run: go test -v ./...
-
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy bot 
-      uses: actions/setup-go@v2
+    - name: Deploy bot
+      uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH2 }}
         port: ${{ secrets.PORT }}
-        source: "*/*"
-        target: "/root/"
+        source: build/*
+        target: /tmp/vbot
+        strip_components: 1
+
+  #   - name: Test
+  #     run: go test -v ./...
+
+  #   - name: Upload the build output
+  #     uses: actions/upload-artifact@v2
+  #     with:
+  #       name: build-output
+  #       path: vbot
+  #       retention-days: 1
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   environment: Beget
+  #   needs: build
+  #   steps:
+
+  #   - name: Download the build output
+  #     uses: actions/download-artifact@v2
+

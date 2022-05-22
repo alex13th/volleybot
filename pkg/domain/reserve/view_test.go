@@ -64,10 +64,9 @@ func TestTelegramView(t *testing.T) {
 				Canceled:   true,
 				Players: map[uuid.UUID]Player{
 					pl1.Id: {Person: pl1, Count: 2},
-					pl2.Id: {Person: pl2, Count: 3},
-					pl3.Id: {Person: pl3, Count: 1}}},
+				}},
 			want: "🔥*ОТМЕНА*🔥\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
-				"*Игроков:* 12\n1. Elly+1\n3. Steve+2\n6. Tina\n7.\n.\n.\n12.",
+				"*Игроков:* 12\n1. Elly+1\n3.\n.\n.\n12.",
 		},
 	}
 

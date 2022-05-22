@@ -66,7 +66,7 @@ func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	currDate := time.Now()
 	for i := 1; i <= kh.Days; i++ {
-		btnDate := currDate.AddDate(0, 0, i)
+		btnDate := currDate.AddDate(0, 0, i-1)
 		btnText := monday.Format(btnDate, kh.DateFormat, kh.Locale)
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnDate)})
 		if i%kh.Columns == 0 {

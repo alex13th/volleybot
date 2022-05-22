@@ -140,7 +140,11 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
 	}
 
-	res, err := oh.OrderService.CreateOrder(reserve.Reserve{Person: p}, nil)
+	currTime := time.Now()
+	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(), 0, 0, 0, 0, currTime.Location())
+	etime := stime.Add(time.Duration(time.Hour))
+
+	res, err := oh.OrderService.CreateOrder(reserve.Reserve{Person: p, StartTime: stime, EndTime: etime}, nil)
 	if err != nil {
 		err = telegram.HelperError{
 			Msg:       fmt.Sprintf("creating order error: %s", err.Error()),
@@ -214,7 +218,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 	if res.Person.TelegramId == user.Id {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderdate", Text: "📆 Дата"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordertime", Text: "⏰ Время"})
-		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordersets", Text: "⏱ Сеты"})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordersets", Text: "⏱ Кол-во часов"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderminlevel", Text: "💪 Уровень"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercourts", Text: "🏐 Площадки"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderplayers", Text: "😀 Мест"})
@@ -291,8 +295,10 @@ func (oh *OrderBotHandler) StartTimeCallback(cq *telegram.CallbackQuery) (result
 	}
 
 	if th.Action == "set" {
+		dur := res.GetDuration()
 		res.StartTime = time.Date(res.StartTime.Year(), res.StartTime.Month(), res.StartTime.Day(),
 			th.Time.Hour(), 0, 0, 0, time.Local)
+		res.EndTime = res.StartTime.Add(dur)
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
 		mr := oh.GetReserveEditMR(res, &th)

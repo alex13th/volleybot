@@ -90,7 +90,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
 		"WHERE reserve_id = $1;"
 	sql = fmt.Sprintf(sql, rep.PlayersTableName, rep.PersonsTableName)
-	rows := rep.dbpool.QueryRow(context.Background(), sql, rid)
+	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	pmap = make(map[uuid.UUID]Player)
 	var (
 		Count, TelegramId             int
@@ -98,7 +98,8 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 		FirstName, LastName, FullName string
 	)
 
-	for rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName) == nil {
+	for rows.Next() {
+		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName)
 		pmap[PersonId] = Player{
 			Person: person.Person{Id: PersonId, TelegramId: TelegramId,
 				Firstname: FirstName, Lastname: LastName, Fullname: FullName},
