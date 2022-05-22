@@ -31,12 +31,12 @@ func TestOrder_NewOrderService(t *testing.T) {
 	}
 
 	duration, _ := time.ParseDuration("2h")
-	rres := os.CreateOrder(reserve.Reserve{
+	_, err = os.CreateOrder(reserve.Reserve{
 		Person: p, StartTime: time.Now(), EndTime: time.Now().Add(duration)},
 		nil)
 
-	if rres.Err != nil {
-		t.Error(rres.Err)
+	if err != nil {
+		t.Error(err)
 	}
 }
 
@@ -83,8 +83,8 @@ func CreateTestOrders() (os *OrderService, pl []person.Person, rl []reserve.Rese
 	}
 
 	for _, res := range rl {
-		rres := os.CreateOrder(res, nil)
-		if rres.Err != nil {
+		_, err = os.CreateOrder(res, nil)
+		if err != nil {
 			return
 		}
 	}
@@ -135,12 +135,12 @@ func TestOrder_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			rlist := os.List(reserve.Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, nil)
-			if rlist.Err != nil {
+			rlist, err := os.List(reserve.Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, nil)
+			if err != nil {
 				t.Fail()
 			}
 
-			for _, reserve := range rlist.Reserves {
+			for _, reserve := range rlist {
 				checked := false
 				for _, exp_reserve := range test.want {
 					if reserve.Person.Id.ID() == exp_reserve.Person.Id.ID() {

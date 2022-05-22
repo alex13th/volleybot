@@ -48,6 +48,7 @@ type Reserve struct {
 	MaxPlayers int                  `json:"max_players"`
 	Ordered    bool                 `json:"ordered"`
 	Approved   bool                 `json:"approved"`
+	Canceled   bool                 `json:"canceled"`
 	Players    map[uuid.UUID]Player `json:"players"`
 }
 

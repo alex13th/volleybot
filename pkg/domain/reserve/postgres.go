@@ -48,12 +48,12 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %[1]s " +
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, " +
-		"court_count INT, max_players INT, ordered BOOL, approved BOOL);"
+		"court_count INT, max_players INT, ordered BOOL, approved BOOL, canceled BOOL);"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, " +
+		"court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %[1]s AS r " +
 		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id; "
@@ -109,7 +109,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql := "SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, " +
+		"court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %s AS r " +
 		"INNER JOIN %s AS p ON r.person_id = p.person_id " +
@@ -121,11 +121,12 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 		ReserveId, PersonId                uuid.UUID
 		StartTime, EndTime                 time.Time
 		CourtCount, MaxPlayers, TelegramId int
-		Ordered, Approved                  bool
+		Ordered, Approved, Canceled        bool
 		FirstName, LastName, FullName      string
 	)
 
-	err = row.Scan(&ReserveId, &PersonId, &StartTime, &EndTime, &CourtCount, &MaxPlayers, &Ordered, &Approved,
+	err = row.Scan(&ReserveId, &PersonId, &StartTime, &EndTime, &CourtCount, &MaxPlayers,
+		&Ordered, &Approved, &Canceled,
 		&TelegramId, &FirstName, &LastName, &FullName)
 	if err != nil {
 		return
@@ -143,6 +144,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	res.MaxPlayers = MaxPlayers
 	res.Ordered = Ordered
 	res.Approved = Approved
+	res.Canceled = Canceled
 	pmap, err := rep.GetPlayers(res.Id)
 	res.Players = pmap
 	return
@@ -150,7 +152,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 
 func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve, err error) {
 	sql := "SELECT reserve_id, r.person_id, start_time, end_time, " +
-		"court_count, max_players, ordered, approved, " +
+		"court_count, max_players, ordered, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname " +
 		"FROM %s AS r " +
 		"INNER JOIN %s AS p ON r.person_id = p.person_id "
@@ -186,14 +188,14 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 		ReserveId, PersonId                uuid.UUID
 		StartTime, EndTime                 time.Time
 		CourtCount, MaxPlayers, TelegramId int
-		Ordered, Approved                  bool
+		Ordered, Approved, Canceled        bool
 		FirstName, LastName, FullName      string
 	)
 
 	for rows.Next() {
 
 		if err = rows.Scan(&ReserveId, &PersonId, &StartTime, &EndTime,
-			&CourtCount, &MaxPlayers, &Ordered, &Approved,
+			&CourtCount, &MaxPlayers, &Ordered, &Approved, &Canceled,
 			&TelegramId, &FirstName, &LastName, &FullName); err != nil {
 			return
 		}
@@ -210,6 +212,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 			MaxPlayers: MaxPlayers,
 			Ordered:    Ordered,
 			Approved:   Approved,
+			Canceled:   Canceled,
 			Players:    pmap}
 	}
 	return
@@ -218,14 +221,14 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql := "INSERT INTO %s " +
 		"(reserve_id, person_id, start_time, end_time, " +
-		"court_count, max_players, approved, ordered) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8) " +
+		"court_count, max_players, approved, ordered, canceled) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		r.Id, r.Person.Id, r.StartTime, r.EndTime, r.CourtCount,
-		r.MaxPlayers, r.Approved, r.Ordered)
+		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -243,13 +246,13 @@ func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql := "UPDATE %s SET " +
 		"person_id = $1, start_time = $2, end_time = $3, " +
 		"court_count = $4, max_players = $5, " +
-		"approved = $6, ordered = $7 " +
-		"WHERE reserve_id = $8"
+		"approved = $6, ordered = $7, canceled = $8 " +
+		"WHERE reserve_id = $9"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
 		r.Person.Id, r.StartTime, r.EndTime, r.CourtCount,
-		r.MaxPlayers, r.Approved, r.Ordered, r.Id)
+		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled, r.Id)
 	if err != nil {
 		return
 	}

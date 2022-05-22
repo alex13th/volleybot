@@ -62,6 +62,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "orderjoin", Handler: oh.JoinCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderleave", Handler: oh.LeaveCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "ordercancel", Handler: oh.CancelCallback})
 	}
 	for _, handler := range oh.CallbackHandlers {
 		result, err = handler.ProceedCallback(cq)
@@ -127,8 +129,8 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
 	}
 
-	res := oh.OrderService.CreateOrder(reserve.Reserve{Person: p}, nil)
-	if res.Err != nil {
+	res, err := oh.OrderService.CreateOrder(reserve.Reserve{Person: p}, nil)
+	if err != nil {
 		err = telegram.HelperError{
 			Msg:       fmt.Sprintf("creating order error: %s", err.Error()),
 			AnswerMsg: "Can't create order"}
@@ -136,8 +138,8 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 	}
 
 	var kbd telegram.InlineKeyboardMarkup
-	kh := oh.GetReserveActions(res.Reserve, *msg.From)
-	kh.SetData(res.Reserve.Id.String())
+	kh := oh.GetReserveActions(res, *msg.From)
+	kh.SetData(res.Id.String())
 	kbd.InlineKeyboard = kh.GetKeyboard()
 	mr := &telegram.MessageRequest{
 		ChatId:      msg.Chat.Id,
@@ -190,10 +192,13 @@ func (oh *OrderBotHandler) GetDataReserve(data string,
 
 func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.User) (h telegram.KeyboardHelper) {
 	ah := telegram.ActionsKeyboardHelper{Data: res.Id.String()}
+	if res.Canceled {
+		return &ah
+	}
 	ah.Columns = 2
 	if res.Ordered {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderjoin", Text: "👌 Хочу"})
-		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderleave", Text: "Не хочу"})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderleave", Text: "😞 Не хочу"})
 	}
 	if res.Person.TelegramId == user.Id {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderdate", Text: "📆 Дата"})
@@ -201,7 +206,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordersets", Text: "⏱ Сеты"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercourts", Text: "🏐 Площадки"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderplayers", Text: "😀 Мест"})
-		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderdel", Text: "Отменить"})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercancel", Text: "💥Отменить"})
 	}
 
 	return &ah
@@ -213,12 +218,20 @@ func (oh *OrderBotHandler) ListDateCallback(cq *telegram.CallbackQuery) (result 
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 
-	rlist := oh.OrderService.List(reserve.Reserve{
+	rlist, err := oh.OrderService.List(reserve.Reserve{
 		StartTime: oh.ListDateHelper.Date,
 		EndTime:   oh.ListDateHelper.Date.Add(time.Duration(time.Hour * 24)),
 		Ordered:   true}, nil)
 
-	for _, res := range rlist.Reserves {
+	if len(rlist) == 0 {
+		cq.Answer(oh.Bot, "Резервы отсутствуют", nil)
+		result = oh.Bot.SendMessage(&telegram.MessageRequest{
+			Text:   "На эту дату нет доступных записей.",
+			ChatId: cq.Message.Chat.Id})
+		return
+
+	}
+	for _, res := range rlist {
 		kh := oh.GetReserveActions(res, *cq.From)
 		kh.SetData(res.Id.String())
 		mr := oh.GetReserveMR(res, kh)
@@ -401,6 +414,19 @@ func (oh *OrderBotHandler) LeaveCallback(cq *telegram.CallbackQuery) (result tel
 	return oh.JoinPlayer(cq, data, 0)
 }
 
+func (oh *OrderBotHandler) CancelCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	data, err := oh.OrderActionsHelper.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	res, err := oh.GetDataReserve(data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	res.Canceled = true
+	return oh.UpdateReserveCQ(res, cq)
+}
+
 func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.CallbackQuery) (telegram.MessageResponse, error) {
 
 	res, err := oh.UpdateReserve(res)
@@ -429,8 +455,11 @@ func (oh *OrderBotHandler) GetReserveMR(res reserve.Reserve, kh telegram.Keyboar
 	}
 
 	rview := reserve.NewTelegramViewRu(res)
-	return telegram.MessageRequest{
-		Text: fmt.Sprintf("%s\n%s", rview.GetText(), kbdText), ParseMode: rview.ParseMode, ReplyMarkup: kbd}
+	mtxt := fmt.Sprintf("%s\n%s", rview.GetText(), kbdText)
+	if len(kbd.InlineKeyboard) > 0 {
+		return telegram.MessageRequest{Text: mtxt, ParseMode: rview.ParseMode, ReplyMarkup: kbd}
+	}
+	return telegram.MessageRequest{Text: mtxt, ParseMode: rview.ParseMode}
 }
 
 func (oh *OrderBotHandler) GetReserve(id uuid.UUID) (result reserve.Reserve, err error) {

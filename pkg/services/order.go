@@ -69,28 +69,36 @@ func WithPgReserveRepository(url string) OrderConfiguration {
 	return WithReserveRepository(&rrep)
 }
 
-func (o *OrderService) CreateOrder(r reserve.Reserve, rchan chan ReserveResult) (result ReserveResult) {
-	result.Reserve.Person, result.Err = o.Persons.Get(r.Person.Id)
-	if result.Err != nil {
-		result.Reserve.Person, result.Err = person.NewPerson(r.Person.Firstname)
+func (serv *OrderService) CreateOrder(r reserve.Reserve, rchan chan ReserveResult) (res reserve.Reserve, err error) {
+	res.Person, err = serv.Persons.Get(r.Person.Id)
+	if err != nil {
+		res.Person, err = person.NewPerson(r.Person.Firstname)
 	}
-	if result.Err == nil {
-		result.Reserve, result.Err = reserve.NewReserve(result.Reserve.Person, r.StartTime, r.EndTime)
+	if err == nil {
+		res, err = reserve.NewReserve(res.Person, r.StartTime, r.EndTime)
 	}
-	if result.Err == nil {
-		o.Reserves.Add(result.Reserve)
+	if err == nil {
+		serv.Reserves.Add(res)
 	}
 	if rchan != nil {
-		rchan <- result
+		rchan <- ReserveResult{Reserve: res, Err: err}
 	}
-	return result
+	return
 }
 
-func (o *OrderService) List(filter reserve.Reserve, rchan chan ReserveListResult) ReserveListResult {
-	rlist := ReserveListResult{}
-	rlist.Reserves, rlist.Err = o.Reserves.GetByFilter(filter)
+func (serv *OrderService) CancelOrder(r reserve.Reserve, rchan chan error) (err error) {
+	r.Canceled = true
+	err = serv.Reserves.Update(r)
 	if rchan != nil {
-		rchan <- rlist
+		rchan <- err
 	}
-	return rlist
+	return
+}
+
+func (serv *OrderService) List(filter reserve.Reserve, rchan chan ReserveListResult) (rlist map[uuid.UUID]reserve.Reserve, err error) {
+	rlist, err = serv.Reserves.GetByFilter(filter)
+	if rchan != nil {
+		rchan <- ReserveListResult{Reserves: rlist, Err: err}
+	}
+	return
 }

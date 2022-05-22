@@ -12,24 +12,30 @@ type ReserveView interface {
 
 func NewTelegramViewRu(res Reserve) TelegramView {
 	return TelegramView{
-		Reserve:   res,
-		DateLabel: "📆",
-		TimeLabel: "⏰",
-		Locale:    monday.LocaleRuRU,
-		ParseMode: "Markdown",
+		Reserve:     res,
+		CancelLabel: "🔥*ОТМЕНА*🔥",
+		DateLabel:   "📆",
+		TimeLabel:   "⏰",
+		Locale:      monday.LocaleRuRU,
+		ParseMode:   "Markdown",
 	}
 }
 
 type TelegramView struct {
-	Reserve   Reserve
-	DateLabel string
-	TimeLabel string
-	Locale    monday.Locale
-	ParseMode string
+	Reserve     Reserve
+	CancelLabel string
+	DateLabel   string
+	TimeLabel   string
+	Locale      monday.Locale
+	ParseMode   string
 }
 
 func (tgv *TelegramView) GetText() (text string) {
-	tt := "*%s*\n%s"
+	tt := ""
+	if tgv.Reserve.Canceled {
+		tt = tgv.CancelLabel + "\n"
+	}
+	tt += "*%s*\n%s"
 	text = fmt.Sprintf(
 		tt, tgv.Reserve.Person.GetDisplayname(),
 		tgv.GetTimeText())
