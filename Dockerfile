@@ -7,9 +7,9 @@ FROM golang:1.16-buster AS build
 
 WORKDIR /volleybot
 
-COPY * ./
+COPY ./ ./
 RUN go mod download
-RUN go build -o ./vbot
+RUN go build -o /vbot ./cmd/*.go
 
 ##
 ## Deploy
@@ -18,8 +18,8 @@ FROM gcr.io/distroless/base-debian10
 
 WORKDIR /
 
-COPY --from=build ./vbot ./vbot
+COPY --from=build /vbot /vbot
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["./vbot"]
+ENTRYPOINT ["/vbot"]

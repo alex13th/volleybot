@@ -36,16 +36,6 @@ jobs:
         target: /tmp/vbot
         strip_components: 1
 
-  #   - name: Test
-  #     run: go test -v ./...
-
-  #   - name: Upload the build output
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: build-output
-  #       path: vbot
-  #       retention-days: 1
-
   # deploy:
   #   runs-on: ubuntu-latest
   #   environment: Beget
