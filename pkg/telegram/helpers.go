@@ -323,7 +323,7 @@ func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (tkh ActionsKeyboardHelper) Parse(Data string) (data string, err error) {
+func (tkh *ActionsKeyboardHelper) Parse(Data string) (err error) {
 	splitedData := strings.Split(Data, "_")
 	if len(splitedData) < 2 {
 		err = HelperError{
@@ -331,7 +331,7 @@ func (tkh ActionsKeyboardHelper) Parse(Data string) (data string, err error) {
 			AnswerMsg: "Can't parse data"}
 		return
 	}
-	data = splitedData[1]
+	tkh.Data = splitedData[1]
 	return
 }
 

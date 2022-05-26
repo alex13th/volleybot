@@ -75,6 +75,10 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "orderleave", Handler: oh.LeaveCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordercancel", Handler: oh.CancelCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "ordercancelcomfirm", Handler: oh.CancelComfirmCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "ordershow", Handler: oh.ShowCallback})
 	}
 	for _, handler := range oh.CallbackHandlers {
 		result, err = handler.ProceedCallback(cq)
@@ -331,6 +335,23 @@ func (oh *OrderBotHandler) SetsCallback(cq *telegram.CallbackQuery) (result tele
 	}
 }
 
+func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ch := oh.OrderActionsHelper
+	err = ch.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	res, err := oh.GetDataReserve(ch.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	kbd := oh.GetReserveActions(res, *cq.From)
+	mr := oh.GetReserveEditMR(res, kbd)
+	mr.ChatId = cq.Message.Chat.Id
+	cq.Message.EditText(oh.Bot, "", &mr)
+	return cq.Answer(oh.Bot, "Ok", nil), nil
+}
+
 func (oh *OrderBotHandler) MinLevelCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
 	ch := oh.MinLevelHelper
 	err = ch.Parse(cq.Data)
@@ -451,19 +472,43 @@ func (oh *OrderBotHandler) JoinPlayer(cq *telegram.CallbackQuery, data string, c
 }
 
 func (oh *OrderBotHandler) LeaveCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
-	data, err := oh.OrderActionsHelper.Parse(cq.Data)
+	ah := oh.OrderActionsHelper
+	err = ah.Parse(cq.Data)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	return oh.JoinPlayer(cq, data, 0)
+	return oh.JoinPlayer(cq, ah.Data, 0)
 }
 
 func (oh *OrderBotHandler) CancelCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
-	data, err := oh.OrderActionsHelper.Parse(cq.Data)
+	ah := oh.OrderActionsHelper
+	err = ah.Parse(cq.Data)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	res, err := oh.GetDataReserve(data, nil)
+	res, err := oh.GetDataReserve(ah.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	ah.Columns = 2
+	ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderleave", Text: "😞 Не хочу"})
+	ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercancelcomfirm", Text: "🧨 Уверен"})
+	ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordershow", Text: "👌 Передумал"})
+	mr := oh.GetReserveEditMR(res, &ah)
+	mr.ChatId = cq.Message.Chat.Id
+	mr.Text += "\nВНИМАНИ!!!\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться опцией кнопкой \"😞 Не хочу\""
+	cq.Message.EditText(oh.Bot, "", &mr)
+
+	return cq.Answer(oh.Bot, "Ok", nil), nil
+}
+
+func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ah := oh.OrderActionsHelper
+	err = ah.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	res, err := oh.GetDataReserve(ah.Data, nil)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
