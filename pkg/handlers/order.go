@@ -156,9 +156,11 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 	kh := oh.GetReserveActions(res, *msg.From)
 	kh.SetData(res.Id.String())
 	kbd.InlineKeyboard = kh.GetKeyboard()
+	rview := reserve.NewTelegramViewRu(res)
 	mr := &telegram.MessageRequest{
 		ChatId:      msg.Chat.Id,
-		Text:        "Давай для начала выберем дату.",
+		Text:        rview.GetText(),
+		ParseMode:   rview.ParseMode,
 		ReplyMarkup: kbd}
 	result = oh.Bot.SendMessage(mr)
 	if chanr != nil {
