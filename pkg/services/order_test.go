@@ -135,7 +135,7 @@ func TestOrder_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			rlist, err := os.List(reserve.Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, nil)
+			rlist, err := os.List(reserve.Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, false, nil)
 			if err != nil {
 				t.Fail()
 			}

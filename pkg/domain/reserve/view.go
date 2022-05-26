@@ -81,10 +81,10 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 func (tgv *TelegramView) GetTimeText() (text string) {
 	text = fmt.Sprintf("%s %s", tgv.DateLabel,
 		monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale))
-	if tgv.Reserve.StartTime.Hour() > 0 {
+	if !tgv.Reserve.StartTime.IsZero() {
 		text += fmt.Sprintf("\n%s %s", tgv.TimeLabel,
 			tgv.Reserve.StartTime.Format("15:04"))
-		if !tgv.Reserve.EndTime.IsZero() {
+		if !tgv.Reserve.GetEndTime().IsZero() {
 			text += fmt.Sprintf("-%s", tgv.Reserve.EndTime.Format("15:04"))
 		}
 	}

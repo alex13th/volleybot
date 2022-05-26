@@ -177,7 +177,7 @@ func TestMemory_GetByFilter(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			frepo := NewMemoryRepository(&repo.reserves, Reserve{Person: test.p, StartTime: test.start, EndTime: test.end})
+			frepo := NewMemoryRepository(&repo.reserves, Reserve{Person: test.p, StartTime: test.start, EndTime: test.end}, false)
 			if err != nil {
 				t.Fail()
 			}

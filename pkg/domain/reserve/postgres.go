@@ -115,7 +115,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, ordered, approved, canceled, " +
+		"min_level, court_count, max_players, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname, " +
 		"location_id, location_name " +
 		"FROM %s " +
@@ -125,7 +125,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 
 	var lname sql.NullString
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
 		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 		&res.Location.Id, &lname)
 	if err != nil {
@@ -139,9 +139,9 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	return
 }
 
-func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve, err error) {
+func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uuid.UUID]Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, ordered, approved, canceled, " +
+		"min_level, court_count, max_players, approved, canceled, " +
 		"telegram_id, firstname, lastname, fullname, " +
 		"location_id, location_name " +
 		"FROM %s "
@@ -161,8 +161,8 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 	if !filter.EndTime.IsZero() {
 		AddWhereParam(&wheresql, &params, filter.EndTime, "start_time <=")
 	}
-	if filter.Ordered {
-		AddWhereParam(&wheresql, &params, filter.Ordered, "ordered =")
+	if oredered {
+		AddWhereParam(&wheresql, &params, oredered, "ordered =")
 	}
 	if len(params) > 0 {
 		wheresql = " WHERE" + wheresql
@@ -178,7 +178,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 		res := Reserve{}
 		var lname sql.NullString
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
 			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 			&res.Location.Id, &lname)
 		if err != nil {
@@ -202,8 +202,8 @@ func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
-		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered, r.Canceled)
+		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -226,8 +226,8 @@ func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
-		r.Person.Id, r.Location.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered, r.Canceled, r.Id)
+		r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Id)
 	if err != nil {
 		return
 	}

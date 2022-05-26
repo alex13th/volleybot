@@ -79,7 +79,6 @@ type Reserve struct {
 	Price      int                  `json:"price"`
 	CourtCount int                  `json:"court_count"`
 	MaxPlayers int                  `json:"max_players"`
-	Ordered    bool                 `json:"ordered"`
 	Approved   bool                 `json:"approved"`
 	Canceled   bool                 `json:"canceled"`
 	Players    map[uuid.UUID]Player `json:"players"`
@@ -93,8 +92,8 @@ func (reserve *Reserve) GetStartTime() time.Time {
 	return reserve.StartTime
 }
 
-func (reserve *Reserve) GetEndTime() time.Time {
-	return reserve.EndTime
+func (r *Reserve) GetEndTime() time.Time {
+	return r.EndTime
 }
 
 func (reserve *Reserve) GetDuration() time.Duration {
@@ -118,4 +117,10 @@ func (reserve *Reserve) CheckConflicts(other Reserve) bool {
 	}
 
 	return false
+}
+
+func (r Reserve) Orderd() (ordered bool) {
+	ordered = (!r.StartTime.IsZero() && r.GetDuration() > 0 &&
+		r.CourtCount > 0 && r.MaxPlayers > 0 && !r.Canceled)
+	return
 }

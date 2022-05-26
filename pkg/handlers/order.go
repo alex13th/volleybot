@@ -141,7 +141,7 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 	}
 
 	currTime := time.Now()
-	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(), 0, 0, 0, 0, currTime.Location())
+	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(), 8, 0, 0, 0, currTime.Location())
 	etime := stime.Add(time.Duration(time.Hour))
 
 	res, err := oh.OrderService.CreateOrder(reserve.Reserve{Person: p, StartTime: stime, EndTime: etime}, nil)
@@ -213,7 +213,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 		return &ah
 	}
 	ah.Columns = 2
-	if res.Ordered {
+	if res.Orderd() {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderjoin", Text: "👌 Хочу"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderleave", Text: "😞 Не хочу"})
 	}
@@ -238,8 +238,7 @@ func (oh *OrderBotHandler) ListDateCallback(cq *telegram.CallbackQuery) (result 
 
 	rlist, err := oh.OrderService.List(reserve.Reserve{
 		StartTime: oh.ListDateHelper.Date,
-		EndTime:   oh.ListDateHelper.Date.Add(time.Duration(time.Hour * 24)),
-		Ordered:   true}, nil)
+		EndTime:   oh.ListDateHelper.Date.Add(time.Duration(time.Hour * 24))}, true, nil)
 
 	if len(rlist) == 0 {
 		cq.Answer(oh.Bot, "Резервы отсутствуют", nil)
@@ -393,7 +392,6 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 	}
 	if ch.Action == "set" {
 		res.MaxPlayers = ch.Count
-		res.Ordered = true
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
 		mr := oh.GetReserveEditMR(res, &ch)

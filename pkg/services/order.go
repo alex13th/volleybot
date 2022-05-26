@@ -61,7 +61,7 @@ func WithReserveRepository(rrep reserve.ReserveRepository) OrderConfiguration {
 }
 
 func WithMemoryReserveRepository() OrderConfiguration {
-	rrep := reserve.NewMemoryRepository(nil, reserve.Reserve{})
+	rrep := reserve.NewMemoryRepository(nil, reserve.Reserve{}, false)
 	return WithReserveRepository(&rrep)
 }
 
@@ -110,8 +110,8 @@ func (serv *OrderService) CancelOrder(r reserve.Reserve, rchan chan error) (err 
 	return
 }
 
-func (serv *OrderService) List(filter reserve.Reserve, rchan chan ReserveListResult) (rlist map[uuid.UUID]reserve.Reserve, err error) {
-	rlist, err = serv.Reserves.GetByFilter(filter)
+func (serv *OrderService) List(filter reserve.Reserve, ordered bool, rchan chan ReserveListResult) (rlist map[uuid.UUID]reserve.Reserve, err error) {
+	rlist, err = serv.Reserves.GetByFilter(filter, ordered)
 	if rchan != nil {
 		rchan <- ReserveListResult{Reserves: rlist, Err: err}
 	}

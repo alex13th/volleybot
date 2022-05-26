@@ -14,7 +14,7 @@ type MemoryRepository struct {
 	sync.Mutex
 }
 
-func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve) (mr MemoryRepository) {
+func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve, ordered bool) (mr MemoryRepository) {
 	if reserves == nil {
 		return MemoryRepository{
 			reserves: make(map[uuid.UUID]Reserve),
@@ -44,6 +44,11 @@ func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve) (mr Me
 				continue
 			}
 		}
+		if ordered {
+			if !res.Orderd() {
+				continue
+			}
+		}
 
 		mr.reserves[id] = res
 	}
@@ -57,8 +62,8 @@ func (mr *MemoryRepository) Get(id uuid.UUID) (Reserve, error) {
 	return Reserve{}, ErrReserveNotFound
 }
 
-func (rep *MemoryRepository) GetByFilter(filter Reserve) (res map[uuid.UUID]Reserve, err error) {
-	newrep := NewMemoryRepository(&rep.reserves, filter)
+func (rep *MemoryRepository) GetByFilter(filter Reserve, ordered bool) (res map[uuid.UUID]Reserve, err error) {
+	newrep := NewMemoryRepository(&rep.reserves, filter, ordered)
 	return newrep.reserves, nil
 }
 
