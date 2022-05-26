@@ -2,6 +2,7 @@ package reserve
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"volleybot/pkg/domain/person"
@@ -21,6 +22,7 @@ func AddWhereParam(wsql *string, params *[]interface{}, param interface{}, cond 
 func NewPgRepository(url string) (rep PgRepository, err error) {
 	rep.TableName = "reserves"
 	rep.PersonsTableName = "persons"
+	rep.LocationsTableName = "locations"
 	rep.PlayersTableName = "reserve_players"
 	rep.ViewName = "vw_reserves"
 	rep.PlayerSpName = "sp_reserve_player_update"
@@ -35,28 +37,31 @@ func NewPgRepository(url string) (rep PgRepository, err error) {
 }
 
 type PgRepository struct {
-	dbpool           *pgxpool.Pool
-	TableName        string
-	PersonsTableName string
-	PlayersTableName string
-	ViewName         string
-	PlayerSpName     string
+	dbpool             *pgxpool.Pool
+	TableName          string
+	PersonsTableName   string
+	LocationsTableName string
+	PlayersTableName   string
+	ViewName           string
+	PlayerSpName       string
 }
 
 func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %[1]s " +
-		"(reserve_id UUID PRIMARY KEY, person_id UUID, " +
+		"(reserve_id UUID PRIMARY KEY, person_id UUID, location_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
 		"min_level INT, court_count INT, max_players INT, " +
 		"ordered BOOL, approved BOOL, canceled BOOL);"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
-		"SELECT reserve_id, r.person_id, start_time, end_time, " +
+		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
 		"price, min_level, court_count, max_players, ordered, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname " +
+		"telegram_id, firstname, lastname, fullname, " +
+		"l.location_id AS location_id, location_name " +
 		"FROM %[1]s AS r " +
-		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id; "
+		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id " +
+		"LEFT OUTER JOIN %[6]s AS l ON r.location_id = l.location_id; "
 	sp_sql := "CREATE OR REPLACE PROCEDURE " +
 		"%[5]s(res_id UUID, per_id UUID, c INT) " +
 		"LANGUAGE plpgsql AS $$ " +
@@ -74,7 +79,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"END CASE;\n" +
 		"END;$$;"
 	sql = fmt.Sprintf(sql+pl_sql+vw_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PersonsTableName,
-		rep.ViewName, rep.PlayerSpName)
+		rep.ViewName, rep.PlayerSpName, rep.LocationsTableName)
 	_, err = rep.dbpool.Exec(context.Background(), sql)
 
 	if err != nil {
@@ -109,20 +114,25 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 }
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
-	sql := "SELECT reserve_id, r.person_id, start_time, end_time, price, " +
+	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, ordered, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname " +
-		"FROM %s AS r " +
-		"INNER JOIN %s AS p ON r.person_id = p.person_id " +
+		"telegram_id, firstname, lastname, fullname, " +
+		"location_id, location_name " +
+		"FROM %s " +
 		"WHERE reserve_id = $1"
-	sql = fmt.Sprintf(sql, rep.TableName, rep.PersonsTableName)
-	row := rep.dbpool.QueryRow(context.Background(), sql, rid)
+	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
+	row := rep.dbpool.QueryRow(context.Background(), sql_str, rid)
 
+	var lname sql.NullString
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
-		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname)
+		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
+		&res.Location.Id, &lname)
 	if err != nil {
 		return
+	}
+	if lname.Valid {
+		res.Location.Name = lname.String
 	}
 	pmap, err := rep.GetPlayers(res.Id)
 	res.Players = pmap
@@ -130,12 +140,12 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 }
 
 func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve, err error) {
-	sql := "SELECT reserve_id, r.person_id, start_time, end_time, price, " +
+	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, ordered, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname " +
-		"FROM %s AS r " +
-		"INNER JOIN %s AS p ON r.person_id = p.person_id "
-	sql = fmt.Sprintf(sql, rep.TableName, rep.PersonsTableName)
+		"telegram_id, firstname, lastname, fullname, " +
+		"location_id, location_name " +
+		"FROM %s "
+	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
 	wheresql := ""
 
 	params := []interface{}{}
@@ -157,7 +167,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 	if len(params) > 0 {
 		wheresql = " WHERE" + wheresql
 	}
-	squery := sql + wheresql
+	squery := sql_str + wheresql
 	rows, err := rep.dbpool.Query(context.Background(), squery, params...)
 	if err != nil {
 		return rmap, err
@@ -166,10 +176,16 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 
 	for rows.Next() {
 		res := Reserve{}
-		if err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
+		var lname sql.NullString
+		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Ordered, &res.Approved, &res.Canceled,
-			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname); err != nil {
+			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
+			&res.Location.Id, &lname)
+		if err != nil {
 			return
+		}
+		if lname.Valid {
+			res.Location.Name = lname.String
 		}
 		res.Players, err = rep.GetPlayers(res.Id)
 		rmap[res.Id] = res
@@ -179,15 +195,15 @@ func (rep *PgRepository) GetByFilter(filter Reserve) (rmap map[uuid.UUID]Reserve
 
 func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql := "INSERT INTO %s " +
-		"(reserve_id, person_id, start_time, end_time, price, " +
+		"(reserve_id, person_id, location_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, ordered, canceled) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
-		r.Id, r.Person.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel, r.CourtCount,
-		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled)
+		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel,
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered, r.Canceled)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -203,15 +219,15 @@ func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 
 func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql := "UPDATE %s SET " +
-		"person_id = $1, start_time = $2, end_time = $3, price = $4, " +
-		"min_level = $5, court_count = $6, max_players = $7, " +
-		"approved = $8, ordered = $9, canceled = $10 " +
-		"WHERE reserve_id = $11"
+		"person_id = $1, location_id = $2, start_time = $3, end_time = $4, " +
+		"price = $5, min_level = $6, court_count = $7, max_players = $8, " +
+		"approved = $9, ordered = $10, canceled = $11 " +
+		"WHERE reserve_id = $12"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
-		r.Person.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel, r.CourtCount,
-		r.MaxPlayers, r.Approved, r.Ordered, r.Canceled, r.Id)
+		r.Person.Id, r.Location.Id, r.StartTime, r.EndTime, r.Price, r.MinLevel,
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered, r.Canceled, r.Id)
 	if err != nil {
 		return
 	}

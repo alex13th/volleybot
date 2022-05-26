@@ -1,6 +1,7 @@
 package services
 
 import (
+	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
 
@@ -18,8 +19,9 @@ type ReserveResult struct {
 }
 
 type OrderService struct {
-	Persons  person.PersonRepository
-	Reserves reserve.ReserveRepository
+	Persons   person.PersonRepository
+	Reserves  reserve.ReserveRepository
+	Locations location.LocationRepository
 }
 
 func NewOrderService(cfgs ...OrderConfiguration) (*OrderService, error) {
@@ -67,6 +69,19 @@ func WithPgReserveRepository(url string) OrderConfiguration {
 	rrep, _ := reserve.NewPgRepository(url)
 	rrep.UpdateDB()
 	return WithReserveRepository(&rrep)
+}
+
+func WithLocationRepository(rep location.LocationRepository) OrderConfiguration {
+	return func(os *OrderService) error {
+		os.Locations = rep
+		return nil
+	}
+}
+
+func WithPgLocationRepository(url string) OrderConfiguration {
+	rep, _ := location.NewPgRepository(url)
+	rep.UpdateDB()
+	return WithLocationRepository(&rep)
 }
 
 func (serv *OrderService) CreateOrder(r reserve.Reserve, rchan chan ReserveResult) (res reserve.Reserve, err error) {

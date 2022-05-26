@@ -3,6 +3,7 @@ package reserve
 import (
 	"errors"
 	"time"
+	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/person"
 
 	"github.com/google/uuid"
@@ -71,6 +72,7 @@ func (pl PlayerLevel) String() string {
 type Reserve struct {
 	Id         uuid.UUID            `json:"id"`
 	Person     person.Person        `json:"person"`
+	Location   location.Location    `json:"location"`
 	StartTime  time.Time            `json:"start_time"`
 	EndTime    time.Time            `json:"end_time"`
 	MinLevel   int                  `json:"min_level"`

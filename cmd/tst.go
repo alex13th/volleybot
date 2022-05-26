@@ -11,7 +11,10 @@ import (
 func main() {
 
 	url := os.Getenv("PGURL")
-	oservice, _ := services.NewOrderService(services.WithPgPersonRepository(url), services.WithPgReserveRepository(url))
+	oservice, _ := services.NewOrderService(
+		services.WithPgPersonRepository(url),
+		services.WithPgLocationRepository(url),
+		services.WithPgReserveRepository(url))
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
 

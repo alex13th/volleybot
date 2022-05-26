@@ -35,13 +35,3 @@ jobs:
         source: build/*
         target: /tmp/vbot
         strip_components: 1
-
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   environment: Beget
-  #   needs: build
-  #   steps:
-
-  #   - name: Download the build output
-  #     uses: actions/download-artifact@v2
-
