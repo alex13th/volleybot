@@ -35,3 +35,12 @@ jobs:
         source: build/*
         target: /tmp/vbot
         strip_components: 1
+
+    - name: Run playbook
+      uses: dawidd6/action-ansible-playbook@v2
+      with:
+        playbook: deploy.yml
+        directory: ansible
+        key: ${{secrets.SSH2}}
+        inventory: ${{secrets.BEGET_INVENTORY}}
+...
