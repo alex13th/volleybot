@@ -1,0 +1,44 @@
+---
+- hosts: all
+  gather_facts: no
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Create service file
+      copy:
+        dest: /etc/systemd/system/{{ bot_name }}.service
+        content: |
+          [Unit]
+          Description=Volley bot
+          After=network.target
+          Wants=postgresql.service
+          [Service]
+          EnvironmentFile=/etc/vbot/{{ bot_name }}.env
+          ExecStart=/usr/sbin/vbot/{{ bot_name }}
+
+    - name: Create service envinronment file
+      copy:
+        dest: /etc/vbot/{{ bot_name }}.env
+        mode: "0644"
+        content: |
+          PGURL={{ pg_url }}
+          TOKEN={{ token }}
+
+    - name: Stop bot service
+      ansible.builtin.systemd:
+        name: "{{ bot_name }}"
+        state: stopped
+    
+    - name: Copy bot executable
+      copy:
+        src: "{{ src_path }}/{{ bot_name }}"
+        dest: "/usr/sbin/vbot/{{ bot_name }}"
+        remote_src: true
+        mode: "0700" 
+
+    - name: Start bot service
+      ansible.builtin.systemd:
+        name: "{{ bot_name }}"
+        state: started
+...
