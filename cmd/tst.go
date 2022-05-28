@@ -18,7 +18,7 @@ func main() {
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
 
-	orderHandler := handlers.NewOrderHandler(tb, oservice)
+	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.DefaultResourceLoader{})
 	lp, _ := tb.NewPoller()
 	lp.UpdateHandlers[0].AppendMessageHandler(&orderHandler)
 	lp.UpdateHandlers[0].AppendCallbackHandler(&orderHandler)
