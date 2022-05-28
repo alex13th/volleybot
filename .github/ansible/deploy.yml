@@ -40,5 +40,5 @@
     - name: Change bot service to requested state
       ansible.builtin.systemd:
         name: "{{ bot_name }}"
-        state: "{{ bot_state | d('running') }}"
+        state: "{{ bot_state | d('started') }}"
 ...
