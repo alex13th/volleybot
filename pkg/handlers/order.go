@@ -215,13 +215,15 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 
 func (oh *OrderBotHandler) ProceedMessage(msg *telegram.Message) (result telegram.MessageResponse, err error) {
 	if len(oh.MessageHandlers) == 0 {
-		order_cmd := telegram.CommandHandler{Command: oh.OrderCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
-			return oh.CreateOrder(m, nil)
-		}}
+		order_cmd := telegram.CommandHandler{
+			Command: oh.OrderCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
+				return oh.CreateOrder(m, nil)
+			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &order_cmd)
-		list_cmd := telegram.CommandHandler{Command: oh.ListCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
-			return oh.ListOrders(m, nil), nil
-		}}
+		list_cmd := telegram.CommandHandler{
+			Command: oh.ListCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
+				return oh.ListOrders(m, nil), nil
+			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &list_cmd)
 	}
 	for _, handler := range oh.MessageHandlers {
