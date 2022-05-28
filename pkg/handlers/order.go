@@ -31,6 +31,8 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService) (oh OrderBotHa
 	oh.SetsHelper = telegram.NewCountKeyboardHelper("❓Количество часов❓", "ordersets", 1, 4)
 	oh.PlayerCountHelper = telegram.NewCountKeyboardHelper("❓Максимальное количество игроков❓", "orderplayers", 4, 32)
 	oh.JoinCountHelper = telegram.NewCountKeyboardHelper("❓Сколько игроков записать❓", "orderjoin", 1, 32)
+	oh.PriceCountHelper = telegram.NewCountKeyboardHelper("❓Почем будет поигать❓", "orderprice", 0, 1200)
+	oh.PriceCountHelper.Step = 200
 
 	return
 }
@@ -48,6 +50,7 @@ type OrderBotHandler struct {
 	SetsHelper         telegram.CountKeyboardHelper
 	PlayerCountHelper  telegram.CountKeyboardHelper
 	JoinCountHelper    telegram.CountKeyboardHelper
+	PriceCountHelper   telegram.CountKeyboardHelper
 	OrderActionsHelper telegram.ActionsKeyboardHelper
 	MessageHandlers    []telegram.MessageHandler
 	CallbackHandlers   []telegram.CallbackHandler
@@ -69,6 +72,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "ordersets", Handler: oh.SetsCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderplayers", Handler: oh.MaxPlayersCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderprice", Handler: oh.PriceCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderjoin", Handler: oh.JoinCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
@@ -228,6 +233,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderminlevel", Text: "💪 Уровень"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercourts", Text: "🏐 Площадки"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderplayers", Text: "😀 Мест"})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "orderprice", Text: "💳 Стоимость"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{Prefix: "ordercancel", Text: "💥Отменить"})
 	}
 
@@ -413,6 +419,28 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 	}
 	if ch.Action == "set" {
 		res.MaxPlayers = ch.Count
+		return oh.UpdateReserveCQ(res, cq)
+	} else {
+		mr := oh.GetReserveEditMR(res, &ch)
+		mr.ChatId = cq.Message.Chat.Id
+		cq.Message.EditText(oh.Bot, "", &mr)
+		return cq.Answer(oh.Bot, "Ok", nil), nil
+	}
+}
+
+func (oh *OrderBotHandler) PriceCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ch := oh.PriceCountHelper
+	err = ch.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(ch.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	if ch.Action == "set" {
+		res.Price = ch.Count
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
 		mr := oh.GetReserveEditMR(res, &ch)

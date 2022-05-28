@@ -192,7 +192,7 @@ func (kh *TimeKeyboardHelper) Parse(Data string) (err error) {
 }
 
 func NewCountKeyboardHelper(msg string, prefix string, min int, max int) CountKeyboardHelper {
-	return CountKeyboardHelper{Min: min, Max: max, step: 1,
+	return CountKeyboardHelper{Min: min, Max: max, Step: 1,
 		Columns: 4, Msg: msg, Prefix: prefix}
 }
 
@@ -205,7 +205,7 @@ type CountKeyboardHelper struct {
 	Data     string
 	Min      int
 	Max      int
-	step     int
+	Step     int
 	Columns  int
 }
 
@@ -229,7 +229,7 @@ func (kh CountKeyboardHelper) GetBtnData(val interface{}) string {
 func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
-	for i := kh.Min; i <= kh.Max; i = i + kh.step {
+	for i := kh.Min; i <= kh.Max; i = i + kh.Step {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: strconv.Itoa(i), CallbackData: kh.GetBtnData(i)})
 		count++
 		if count%kh.Columns == 0 {
