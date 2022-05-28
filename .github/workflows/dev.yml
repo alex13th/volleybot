@@ -1,0 +1,69 @@
+name: Dev
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+env:
+  BOT_NAME: devbot
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - uses: ./.github/build
+      with: 
+        bot_name: ${{ env.BOT_NAME }}
+
+  deliver:
+    runs-on: ubuntu-latest
+    environment: Beget
+    needs: ['build']
+    steps:
+    - name: Download a single artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: vbot-bin
+        path: build
+
+    - name: Deliver bot executable
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: build/${{ env.BOT_NAME }}
+        target: ${{ secrets.DELIVER_PATH }}
+        strip_components: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+    needs: ['deliver']
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Run playbook
+      uses: dawidd6/action-ansible-playbook@v2
+      with:
+        playbook: deploy.yml
+        directory: ./.github/ansible
+        key: ${{ secrets.SSH_KEY }}
+        inventory: |
+          [all:vars]
+          src_path=${{ secrets.DELIVER_PATH }}
+          pg_url=${{ secrets.PG_URL }}
+          token=${{ secrets.TOKEN }}
+
+          [all]
+          ${{ secrets.HOST }} ansible_user=${{ secrets.DEPLOY_USER }}
+        options: --extra-vars bot_name=${{ env.BOT_NAME}}
+...
