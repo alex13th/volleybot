@@ -1,0 +1,27 @@
+  inputs:
+  bot_name:
+    description: 'Bot name'
+    default: 'devbot'
+
+runs:
+  using: "composite"  
+  steps:
+  - uses: actions/checkout@v2
+
+  - name: Set up Go
+    uses: actions/setup-go@v2
+    with:
+      go-version: 1.17
+
+  - name: Build
+    run: |
+      mkdir build
+      env GOOS=linux GOARCH=amd64 go build -o build/${{ inputs.bot_name }} -v cmd/tst.go
+
+  - name: 'Upload Artifact'
+    uses: actions/upload-artifact@v3
+    with:
+      name: vbot-bin
+      path: build/${{ inputs.bot_name }}
+      retention-days: 1
+...

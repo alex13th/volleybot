@@ -1,0 +1,27 @@
+  inputs:
+  bot_name:
+    description: 'Bot name'
+    default: 'devbot'
+
+runs:
+  using: "composite"  
+  steps:
+  - name: Checkout source code
+    uses: actions/checkout@v2
+
+  - name: Run playbook
+    uses: dawidd6/action-ansible-playbook@v2
+    with:
+      playbook: deploy.yml
+      directory: ansible
+      key: ${{ secrets.SSH_KEY }}
+      inventory: |
+        [all:vars]
+        src_path=${{ secrets.DELIVER_PATH }}
+        pg_url=${{ secrets.PG_URL }}
+        token=${{ secrets.TOKEN }}
+
+        [all]
+        ${{ secrets.HOST }} ansible_user=${{ secrets.DEPLOY_USER }}
+      options: --extra-vars bot_name=${{ inputs.bot_name }}
+...

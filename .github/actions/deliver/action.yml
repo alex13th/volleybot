@@ -1,0 +1,25 @@
+  inputs:
+  bot_name:
+    description: 'Bot name'
+    default: 'devbot'
+
+runs:
+  using: "composite"  
+  steps:
+  - name: Download a single artifact
+    uses: actions/download-artifact@v3
+    with:
+      name: vbot-bin
+      path: build
+
+  - name: Deliver bot executable
+    uses: appleboy/scp-action@master
+    with:
+      host: ${{ secrets.HOST }}
+      username: ${{ secrets.SSH_USER }}
+      key: ${{ secrets.SSH_KEY }}
+      port: ${{ secrets.SSH_PORT }}
+      source: build/${{ inputs.bot_name }}
+      target: ${{ secrets.DELIVER_PATH }}
+      strip_components: 1
+...

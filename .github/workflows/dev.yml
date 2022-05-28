@@ -1,0 +1,35 @@
+name: Dev
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: volleybot/build@v1
+      with: 
+        bot_name: dev_bot
+
+  deliver:
+    runs-on: ubuntu-latest
+    environment: Beget
+    needs: ['build']
+    steps:
+    - uses: actions/deliver@v1
+      with: 
+        bot_name: dev_bot
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.env_name }}
+    needs: ['deliver']
+    steps:
+    - uses: actions/deploy@v1
+      with: 
+        bot_name: dev_bot
+...
