@@ -57,7 +57,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
 		"price, min_level, court_count, max_players, ordered, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname, " +
+		"telegram_id, firstname, lastname, fullname, roles, " +
 		"l.location_id AS location_id, location_name " +
 		"FROM %[1]s AS r " +
 		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id " +
@@ -90,7 +90,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 }
 
 func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, err error) {
-	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname " +
+	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname, roles " +
 		"FROM %s AS pl " +
 		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
 		"WHERE reserve_id = $1;"
@@ -98,16 +98,16 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	pmap = make(map[uuid.UUID]Player)
 	var (
-		Count, TelegramId             int
-		PersonId                      uuid.UUID
-		FirstName, LastName, FullName string
+		Count, TelegramId                    int
+		PersonId                             uuid.UUID
+		FirstName, LastName, FullName, Roles string
 	)
 
 	for rows.Next() {
-		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName)
+		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName, &Roles)
 		pmap[PersonId] = Player{
 			Person: person.Person{Id: PersonId, TelegramId: TelegramId,
-				Firstname: FirstName, Lastname: LastName, Fullname: FullName},
+				Firstname: FirstName, Lastname: LastName, Fullname: FullName, Roles: Roles},
 			Count: Count}
 	}
 	return
@@ -116,7 +116,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname, " +
+		"telegram_id, firstname, lastname, fullname, roles, " +
 		"location_id, location_name " +
 		"FROM %s " +
 		"WHERE reserve_id = $1"
@@ -127,7 +127,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
 		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-		&res.Location.Id, &lname)
+		&res.Person.Roles, &res.Location.Id, &lname)
 	if err != nil {
 		return
 	}
@@ -142,7 +142,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uuid.UUID]Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, " +
-		"telegram_id, firstname, lastname, fullname, " +
+		"telegram_id, firstname, lastname, fullname, roles, " +
 		"location_id, location_name " +
 		"FROM %s "
 	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
@@ -180,7 +180,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
 			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-			&res.Location.Id, &lname)
+			&res.Person.Roles, &res.Location.Id, &lname)
 		if err != nil {
 			return
 		}
