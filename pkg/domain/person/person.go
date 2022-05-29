@@ -32,6 +32,7 @@ type Person struct {
 	Firstname  string    `json:"firstname"`
 	Lastname   string    `json:"lastname"`
 	Fullname   string    `json:"fullname"`
+	Roles      string    `json:"roles"`
 }
 
 func (user *Person) GetDisplayname() string {
