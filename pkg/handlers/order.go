@@ -415,8 +415,10 @@ func (oh *OrderBotHandler) StartDateCallback(cq *telegram.CallbackQuery) (result
 		if err != nil {
 			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 		}
+		dur := res.GetDuration()
 		res.StartTime = dh.Date.Add(time.Duration(res.StartTime.Hour()*int(time.Hour) +
 			res.StartTime.Minute()*int(time.Minute)))
+		res.EndTime = res.StartTime.Add(dur)
 
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
