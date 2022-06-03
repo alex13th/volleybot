@@ -35,9 +35,9 @@ func (tgv *TelegramView) GetText() (text string) {
 	if tgv.Reserve.Canceled {
 		tt = tgv.CancelLabel + "\n"
 	}
-	tt += "*%s*\n%s"
+	tt += "[%s](tg://user?id=%d)\n%s"
 	text = fmt.Sprintf(
-		tt, tgv.Reserve.Person.GetDisplayname(),
+		tt, tgv.Reserve.Person.GetDisplayname(), tgv.Reserve.Person.TelegramId,
 		tgv.GetTimeText())
 
 	if tgv.Reserve.MinLevel > 0 {
@@ -62,9 +62,11 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 	count := 0
 	for _, pl := range tgv.Reserve.Players {
 		if pl.Count > 1 {
-			text += fmt.Sprintf("\n%d. %s+%d", count+1, pl.Person.GetDisplayname(), pl.Count-1)
+			text += fmt.Sprintf("\n%d. [%s](tg://user?id=%d)+%d",
+				count+1, pl.Person.GetDisplayname(), pl.Person.TelegramId, pl.Count-1)
 		} else {
-			text += fmt.Sprintf("\n%d. %s", count+1, pl.Person.GetDisplayname())
+			text += fmt.Sprintf("\n%d. [%s](tg://user?id=%d)",
+				count+1, pl.Person.GetDisplayname(), pl.Person.TelegramId)
 		}
 		count += pl.Count
 	}
