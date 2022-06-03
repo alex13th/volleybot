@@ -97,12 +97,12 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.DateTime.TimeButton = "⏰ Время"
 	or.Level.Message = "❓Какой минимальный уровень игроков❓"
 	or.Level.Button = "💪 Уровень"
-	or.Court.Message = "❓Сколько нужно кортов❓"
-	or.Court.Button = "🏐 Площадки"
-	or.Court.Max = 4
 	or.Set.Message = "❓Количество часов❓"
 	or.Set.Button = "⏱ Кол-во часов"
-	or.Court.Max = 4
+	or.Set.Max = 12
+	or.Court.Message = "❓Сколько нужно кортов❓"
+	or.Court.Button = "🏐 Площадки"
+	or.Court.Max = 12
 	or.Court.MaxPlayers = 6
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
 	or.MaxPlayer.Button = "👫 Мест"
