@@ -701,6 +701,14 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, *cq.From))
 	cq.Message.EditText(oh.Bot, "", &mr)
 
+	for _, pl := range res.Players {
+		if pl.Person.TelegramId != cq.From.Id {
+			mr := oh.GetReserveMR(res, nil)
+			mr.ChatId = pl.Person.TelegramId
+			oh.Bot.SendMessage(&mr)
+		}
+	}
+
 	return cq.Answer(oh.Bot, "Ok", nil), nil
 }
 
