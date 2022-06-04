@@ -30,16 +30,30 @@ type TelegramView struct {
 	ParseMode   string
 }
 
-func (tgv *TelegramView) GetText() (text string) {
-	tt := ""
-	if tgv.Reserve.Canceled {
-		tt = tgv.CancelLabel + "\n"
+func (tgv *TelegramView) String() string {
+	plcount := 0
+	for _, pl := range tgv.Reserve.Players {
+		plcount += pl.Count
 	}
-	tt += "[%s](tg://user?id=%d)\n%s"
-	text = fmt.Sprintf(
-		tt, tgv.Reserve.Person.GetDisplayname(), tgv.Reserve.Person.TelegramId,
-		tgv.GetTimeText())
+	return fmt.Sprintf("%s %s (%d/%d)",
+		monday.Format(tgv.Reserve.StartTime, "Mon, 02.01", tgv.Locale),
+		tgv.GetTimeText(), plcount, tgv.Reserve.MaxPlayers)
+}
 
+func (tgv *TelegramView) GetText() (text string) {
+	if tgv.Reserve.Canceled {
+		text = tgv.CancelLabel + "\n"
+	}
+	var uname string
+	if tgv.Reserve.Person.TelegramId != 0 {
+		uname = "[%s](tg://user?id=%d)"
+		uname = fmt.Sprintf(uname, tgv.Reserve.Person.GetDisplayname(), tgv.Reserve.Person.TelegramId)
+	} else {
+		uname = fmt.Sprintf("*%s*", tgv.Reserve.Person.GetDisplayname())
+	}
+	text += fmt.Sprintf("%s\n%s %s\n%s %s", uname,
+		tgv.DateLabel, monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale),
+		tgv.TimeLabel, tgv.GetTimeText())
 	if tgv.Reserve.MinLevel > 0 {
 		text += fmt.Sprintf("\n💪*Уровень*: %s", PlayerLevel(tgv.Reserve.MinLevel))
 	}
@@ -61,12 +75,18 @@ func (tgv *TelegramView) GetText() (text string) {
 func (tgv *TelegramView) GetPlayersText() (text string) {
 	count := 0
 	for _, pl := range tgv.Reserve.Players {
-		if pl.Count > 1 {
-			text += fmt.Sprintf("\n%d. [%s](tg://user?id=%d)+%d",
-				count+1, pl.Person.GetDisplayname(), pl.Person.TelegramId, pl.Count-1)
+		var uname string
+		if pl.Person.TelegramId != 0 {
+			uname = "[%s](tg://user?id=%d)"
+			uname = fmt.Sprintf(uname, pl.Person.GetDisplayname(), pl.Person.TelegramId)
 		} else {
-			text += fmt.Sprintf("\n%d. [%s](tg://user?id=%d)",
-				count+1, pl.Person.GetDisplayname(), pl.Person.TelegramId)
+			uname = pl.Person.GetDisplayname()
+		}
+
+		if pl.Count > 1 {
+			text += fmt.Sprintf("\n%d. %s+%d", count+1, uname, pl.Count-1)
+		} else {
+			text += fmt.Sprintf("\n%d. %s", count+1, uname)
 		}
 		count += pl.Count
 	}
@@ -81,11 +101,8 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 }
 
 func (tgv *TelegramView) GetTimeText() (text string) {
-	text = fmt.Sprintf("%s %s", tgv.DateLabel,
-		monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale))
 	if !tgv.Reserve.StartTime.IsZero() {
-		text += fmt.Sprintf("\n%s %s", tgv.TimeLabel,
-			tgv.Reserve.StartTime.Format("15:04"))
+		text += tgv.Reserve.StartTime.Format("15:04")
 		if !tgv.Reserve.GetEndTime().IsZero() {
 			text += fmt.Sprintf("-%s", tgv.Reserve.EndTime.Format("15:04"))
 		}

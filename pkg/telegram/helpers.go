@@ -275,6 +275,7 @@ func (kh *CountKeyboardHelper) Parse(Data string) (err error) {
 
 type ActionButton struct {
 	Text   string
+	Data   string
 	Prefix string
 }
 
@@ -300,10 +301,17 @@ func (kh *ActionsKeyboardHelper) SetData(data string) {
 
 func (kh ActionsKeyboardHelper) GetBtnData(val interface{}) string {
 	act := val.(ActionButton)
-	return fmt.Sprintf("%s_%s", act.Prefix, kh.Data)
+	data := kh.Data
+	if act.Data != "" {
+		data = act.Data
+	}
+	return fmt.Sprintf("%s_%s", act.Prefix, data)
 }
 
 func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+	if kh.Columns == 0 {
+		kh.Columns = 1
+	}
 	kbdRow := []InlineKeyboardButton{}
 	for i, act := range kh.Actions {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: act.Text, CallbackData: kh.GetBtnData(act)})

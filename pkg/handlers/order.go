@@ -10,6 +10,7 @@ import (
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 
+	"github.com/goodsign/monday"
 	"github.com/google/uuid"
 )
 
@@ -71,6 +72,8 @@ type CancelResources struct {
 }
 
 type OrderResources struct {
+	BackBtn           string
+	Locale            monday.Locale
 	DateTime          DateTimeResources
 	Court             CourtResources
 	Level             PlayerLevelResources
@@ -79,6 +82,7 @@ type OrderResources struct {
 	JoinPlayer        JoinPlayerResources
 	Price             PriceResources
 	Cancel            CancelResources
+	ReservesMessage   string
 	NoReservesMessage string
 	NoReservesAnswer  string
 	OkAnswer          string
@@ -91,6 +95,8 @@ type OrderResourceLoader interface {
 type DefaultResourceLoader struct{}
 
 func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
+	or.BackBtn = "Назад"
+	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
 	or.DateTime.DateButton = "📆 Дата"
 	or.DateTime.TimeMessage = "❓В какое время❓"
@@ -120,7 +126,8 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.Cancel.Message = "\n🧨*ВНИМАНИЕ!!!*🧨\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться опцией кнопкой \"😞 Не хочу\""
 	or.Cancel.Confirm = "🧨 Уверен"
 	or.Cancel.Abort = "👌 Передумал"
-	or.NoReservesMessage = "На эту дату нет доступных записей."
+	or.ReservesMessage = "❓Какую запись показать ❓"
+	or.NoReservesMessage = "На дату %s нет доступных записей."
 	or.NoReservesAnswer = "Резервы отсутствуют"
 	or.OkAnswer = "Ok"
 
@@ -206,6 +213,9 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "ordercancelcomfirm", Handler: oh.CancelComfirmCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordershow", Handler: oh.ShowCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderlist", Handler: oh.ListOrdersCallback})
+
 	}
 	for _, handler := range oh.CallbackHandlers {
 		result, err = handler.ProceedCallback(cq)
@@ -316,6 +326,18 @@ func (oh *OrderBotHandler) ListOrders(msg *telegram.Message, chanr chan telegram
 	return result
 }
 
+func (oh *OrderBotHandler) ListOrdersCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	var kbd telegram.InlineKeyboardMarkup
+	kbd.InlineKeyboard = oh.ListDateHelper.GetKeyboard()
+	mr := &telegram.EditMessageTextRequest{
+		ChatId:      cq.Message.Chat.Id,
+		MessageId:   cq.Message.MessageId,
+		Text:        oh.ListDateHelper.Msg,
+		ReplyMarkup: kbd}
+	result = oh.Bot.SendMessage(mr)
+	return
+}
+
 func (oh *OrderBotHandler) GetDataReserve(data string,
 	rchan chan services.ReserveResult) (r reserve.Reserve, err error) {
 	var id uuid.UUID
@@ -384,21 +406,32 @@ func (oh *OrderBotHandler) ListDateCallback(cq *telegram.CallbackQuery) (result 
 		StartTime: oh.ListDateHelper.Date,
 		EndTime:   oh.ListDateHelper.Date.Add(time.Duration(time.Hour * 24))}, true, nil)
 
+	mr := telegram.EditMessageTextRequest{ChatId: cq.Message.Chat.Id, MessageId: cq.Message.MessageId}
 	if len(rlist) == 0 {
 		cq.Answer(oh.Bot, oh.Resources.NoReservesAnswer, nil)
-		result = oh.Bot.SendMessage(&telegram.MessageRequest{
-			Text:   oh.Resources.NoReservesMessage,
-			ChatId: cq.Message.Chat.Id})
+		mr.Text = fmt.Sprintf(oh.Resources.NoReservesMessage,
+			monday.Format(oh.ListDateHelper.Date, "Monday, 02.01.2006", oh.Resources.Locale))
+		mr.ReplyMarkup = telegram.InlineKeyboardMarkup{InlineKeyboard: oh.ListDateHelper.GetKeyboard()}
+
+		result = oh.Bot.SendMessage(&mr)
 		return
 
 	}
+	ah := telegram.ActionsKeyboardHelper{Columns: 1}
+	prefix := "ordershow"
 	for _, res := range rlist {
-		kh := oh.GetReserveActions(res, *cq.From)
-		kh.SetData(res.Id.String())
-		mr := oh.GetReserveMR(res, kh)
-		mr.ChatId = cq.Message.Chat.Id
-		result = oh.Bot.SendMessage(&mr)
+		tgv := reserve.NewTelegramViewRu(res)
+		ab := telegram.ActionButton{
+			Prefix: prefix, Data: res.Id.String(), Text: tgv.String()}
+		ah.Actions = append(ah.Actions, ab)
 	}
+	ah.Actions = append(ah.Actions, telegram.ActionButton{
+		Prefix: "orderlist", Text: oh.Resources.BackBtn})
+
+	mr.Text = oh.Resources.ReservesMessage
+	mr.ReplyMarkup = telegram.InlineKeyboardMarkup{InlineKeyboard: ah.GetKeyboard()}
+	result = oh.Bot.SendMessage(&mr)
+
 	cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil)
 	return
 }

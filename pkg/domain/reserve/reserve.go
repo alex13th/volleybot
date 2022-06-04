@@ -84,43 +84,43 @@ type Reserve struct {
 	Players    map[uuid.UUID]Player `json:"players"`
 }
 
-func (reserve *Reserve) GetPerson() person.Person {
-	return reserve.Person
+func (res *Reserve) GetPerson() person.Person {
+	return res.Person
 }
 
-func (reserve *Reserve) GetStartTime() time.Time {
-	return reserve.StartTime
+func (res *Reserve) GetStartTime() time.Time {
+	return res.StartTime
 }
 
-func (r *Reserve) GetEndTime() time.Time {
-	return r.EndTime
+func (res *Reserve) GetEndTime() time.Time {
+	return res.EndTime
 }
 
-func (reserve *Reserve) GetDuration() time.Duration {
-	result := reserve.EndTime.Sub(reserve.StartTime)
+func (res *Reserve) GetDuration() time.Duration {
+	result := res.EndTime.Sub(res.StartTime)
 	return result
 }
 
-func (reserve *Reserve) CheckConflicts(other Reserve) bool {
+func (res *Reserve) CheckConflicts(other Reserve) bool {
 
 	OtherStartTime := other.GetStartTime()
-	if reserve.StartTime == OtherStartTime {
+	if res.StartTime == OtherStartTime {
 		return true
 	}
 
-	if reserve.StartTime.Before(OtherStartTime) && OtherStartTime.Before(reserve.GetEndTime()) {
+	if res.StartTime.Before(OtherStartTime) && OtherStartTime.Before(res.GetEndTime()) {
 		return true
 	}
 
-	if reserve.StartTime.After(OtherStartTime) && reserve.StartTime.Before(other.GetEndTime()) {
+	if res.StartTime.After(OtherStartTime) && res.StartTime.Before(other.GetEndTime()) {
 		return true
 	}
 
 	return false
 }
 
-func (r Reserve) Orderd() (ordered bool) {
-	ordered = (!r.StartTime.IsZero() && r.GetDuration() > 0 &&
-		r.CourtCount > 0 && r.MaxPlayers > 0 && !r.Canceled)
+func (res Reserve) Orderd() (ordered bool) {
+	ordered = (!res.StartTime.IsZero() && res.GetDuration() > 0 &&
+		res.CourtCount > 0 && res.MaxPlayers > 0 && !res.Canceled)
 	return
 }
