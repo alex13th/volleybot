@@ -6,6 +6,7 @@ import (
 	"volleybot/pkg/domain/reserve"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type OrderConfiguration func(os *OrderService) error
@@ -47,8 +48,8 @@ func WithMemoryPersonRepository() OrderConfiguration {
 	return WithPersonRepository(pr)
 }
 
-func WithPgPersonRepository(url string) OrderConfiguration {
-	pr, _ := person.NewPgRepository(url)
+func WithPgPersonRepository(dbpool *pgxpool.Pool) OrderConfiguration {
+	pr, _ := person.NewPgRepository(dbpool)
 	pr.UpdateDB()
 	return WithPersonRepository(&pr)
 }
@@ -65,8 +66,8 @@ func WithMemoryReserveRepository() OrderConfiguration {
 	return WithReserveRepository(&rrep)
 }
 
-func WithPgReserveRepository(url string) OrderConfiguration {
-	rrep, _ := reserve.NewPgRepository(url)
+func WithPgReserveRepository(dbpool *pgxpool.Pool) OrderConfiguration {
+	rrep, _ := reserve.NewPgRepository(dbpool)
 	rrep.UpdateDB()
 	return WithReserveRepository(&rrep)
 }
@@ -78,8 +79,8 @@ func WithLocationRepository(rep location.LocationRepository) OrderConfiguration 
 	}
 }
 
-func WithPgLocationRepository(url string) OrderConfiguration {
-	rep, _ := location.NewPgRepository(url)
+func WithPgLocationRepository(dbpool *pgxpool.Pool) OrderConfiguration {
+	rep, _ := location.NewPgRepository(dbpool)
 	rep.UpdateDB()
 	return WithLocationRepository(&rep)
 }

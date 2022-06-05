@@ -13,9 +13,8 @@ type PgRepository struct {
 	TableName string
 }
 
-func NewPgRepository(url string) (pgrep PgRepository, err error) {
+func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 	pgrep.TableName = "locations"
-	dbpool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		return
 	}

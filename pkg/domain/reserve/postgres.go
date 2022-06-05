@@ -19,7 +19,7 @@ func AddWhereParam(wsql *string, params *[]interface{}, param interface{}, cond 
 	*wsql += " " + cond + " $" + strconv.Itoa(len(*params))
 }
 
-func NewPgRepository(url string) (rep PgRepository, err error) {
+func NewPgRepository(dbpool *pgxpool.Pool) (rep PgRepository, err error) {
 	rep.TableName = "reserves"
 	rep.PersonsTableName = "persons"
 	rep.LocationsTableName = "locations"
@@ -27,7 +27,6 @@ func NewPgRepository(url string) (rep PgRepository, err error) {
 	rep.ViewName = "vw_reserves"
 	rep.PlayerSpName = "sp_reserve_player_update"
 
-	dbpool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		return
 	}

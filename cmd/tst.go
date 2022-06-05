@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"volleybot/pkg/handlers"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type StartHandler struct {
@@ -33,14 +36,20 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 func main() {
 
 	url := os.Getenv("PGURL")
+	dbpool, err := pgxpool.Connect(context.Background(), url)
+	if err != nil {
+		return
+	}
+
 	oservice, _ := services.NewOrderService(
-		services.WithPgPersonRepository(url),
-		services.WithPgLocationRepository(url),
-		services.WithPgReserveRepository(url))
+		services.WithPgPersonRepository(dbpool),
+		services.WithPgLocationRepository(dbpool),
+		services.WithPgReserveRepository(dbpool))
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
 
 	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.DefaultResourceLoader{})
+	orderHandler.StateRepository = telegram.NewMemoryStateRepository()
 	if os.Getenv("LOCATION") != "" {
 		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
 	} else {
@@ -63,7 +72,7 @@ func main() {
 	cmds := []telegram.BotCommand{sh.Command}
 	cmds = append(cmds, orderHandler.GetCommands()...)
 
-	_, err := tb.SendRequest(&telegram.SetMyCommandsRequest{
+	_, err = tb.SendRequest(&telegram.SetMyCommandsRequest{
 		Commands: cmds, Scope: telegram.BotCommandScope{Type: "all_private_chats"}})
 	if err == nil {
 		lp.Run()
