@@ -805,8 +805,12 @@ func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result
 		}
 		ch.Min = 1
 		ch.Max = res.MaxPlayers - pl_count
-
-		mr := oh.GetReserveEditMR(res, &ch)
+		var mr telegram.EditMessageTextRequest
+		if ch.Max > 1 {
+			mr = oh.GetReserveEditMR(res, &ch)
+		} else {
+			oh.GetReserveActions(res, cq.Message.Chat.Id)
+		}
 		mr.ChatId = cq.Message.Chat.Id
 		cq.Message.EditText(oh.Bot, "", &mr)
 		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
