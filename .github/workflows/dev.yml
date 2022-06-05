@@ -62,6 +62,7 @@ jobs:
           src_path=${{ secrets.DELIVER_PATH }}
           pg_url=${{ secrets.PG_URL }}
           token=${{ secrets.TOKEN }}
+          location=${{ secrets.LOCATION }}
           bot_state=started
 
           [all]
