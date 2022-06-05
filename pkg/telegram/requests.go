@@ -158,3 +158,33 @@ func (req *AnswerCallbackQueryRequest) GetParams() (val url.Values, method strin
 	defer req.mu.RUnlock()
 	return
 }
+
+type SetMyCommandsRequest struct {
+	mu           sync.RWMutex
+	Commands     []BotCommand `json:"commands"`
+	Scope        interface{}  `json:"scope"`
+	LanguageCode string       `json:"language_code"`
+}
+
+func (req *SetMyCommandsRequest) GetParams() (val url.Values, method string, err error) {
+	method = "setMyCommands"
+	val = url.Values{}
+	req.mu.RLock()
+	data, err := json.Marshal(req.Commands)
+	if err != nil {
+		return nil, "", err
+	}
+	val.Add("commands", string(data))
+
+	if req.Scope != nil {
+		data, err := json.Marshal(req.Scope)
+		if err != nil {
+			return nil, "", err
+		}
+		val.Add("scope", string(data))
+	}
+
+	val.Add("language_code", req.LanguageCode)
+	defer req.mu.RUnlock()
+	return
+}

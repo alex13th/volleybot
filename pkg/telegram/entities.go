@@ -203,3 +203,12 @@ type Update struct {
 	EditedChannelPost *Message       `json:"edited_channel_post"`
 	CallbackQuery     *CallbackQuery `json:"callback_query"`
 }
+
+type BotCommand struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+type BotCommandScope struct {
+	Type string `json:"type"`
+}

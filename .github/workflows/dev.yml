@@ -62,7 +62,8 @@ jobs:
           src_path=${{ secrets.DELIVER_PATH }}
           pg_url=${{ secrets.PG_URL }}
           token=${{ secrets.TOKEN }}
-          bot_state=stopped
+          location=${{ secrets.LOCATION }}
+          bot_state=started
 
           [all]
           ${{ secrets.HOST }} ansible_user=${{ secrets.DEPLOY_USER }}
