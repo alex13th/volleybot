@@ -5,6 +5,13 @@
   become_user: root
 
   tasks:
+    - name: Copy binary to temp directory
+      copy:
+        src: "{{ bot_name }}"
+        dest: "{{ src_path }}/{{ bot_name }}"
+      notify:
+        - update_binary
+
     - name: Create service file
       copy:
         dest: /etc/systemd/system/{{ bot_name }}.service
@@ -16,6 +23,8 @@
           [Service]
           EnvironmentFile=/etc/vbot/{{ bot_name }}.env
           ExecStart=/usr/sbin/vbot/{{ bot_name }}
+      notify:
+        - restart_service
 
     - name: Create service envinronment file
       copy:
@@ -25,21 +34,27 @@
           PGURL={{ pg_url }}
           TOKEN={{ token }}
           LOCATION={{ location }}
+      notify:
+        - restart_service
 
+  handlers:
     - name: Stop bot service
       ansible.builtin.systemd:
         name: "{{ bot_name }}"
         state: stopped
+      listen: restart_service
     
-    - name: Copy bot executable
+    - name: Update bot binary
       copy:
         src: "{{ src_path }}/{{ bot_name }}"
         dest: "/usr/sbin/vbot/{{ bot_name }}"
         remote_src: true
         mode: "0700" 
+      listen: update_binary
 
     - name: Change bot service to requested state
       ansible.builtin.systemd:
         name: "{{ bot_name }}"
         state: "{{ bot_state | d('started') }}"
+      listen: restart_service
 ...
