@@ -591,7 +591,7 @@ func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result t
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	kbd := oh.GetReserveActions(res, cq.Message.Chat.Id)
+	kbd := oh.GetReserveActions(res, res.Location.ChatId)
 	mr := oh.GetReserveMR(res, kbd)
 	mr.ChatId = res.Location.ChatId
 	oh.Bot.SendMessage(&mr)
