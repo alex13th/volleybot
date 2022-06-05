@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strconv"
 	"sync"
@@ -41,7 +42,7 @@ func (req *UpdatesRequest) GetParams() (val url.Values, method string, err error
 
 type MessageRequest struct {
 	mu                       sync.RWMutex
-	ChatId                   int             `json:"chat_id"`
+	ChatId                   interface{}     `json:"chat_id"`
 	Text                     string          `json:"text"`
 	ParseMode                string          `json:"parse_mode"`
 	Entities                 []MessageEntity `json:"entities"`
@@ -56,7 +57,7 @@ func (req *MessageRequest) GetParams() (val url.Values, method string, err error
 	req.mu.RLock()
 	method = "sendMessage"
 	val = url.Values{}
-	val.Add("chat_id", strconv.Itoa(req.ChatId))
+	val.Add("chat_id", fmt.Sprint(req.ChatId))
 	val.Add("text", req.Text)
 	if req.ParseMode != "" {
 		val.Add("parse_mode", req.ParseMode)
@@ -94,7 +95,7 @@ func (req *MessageRequest) GetParams() (val url.Values, method string, err error
 
 type EditMessageTextRequest struct {
 	mu                    sync.RWMutex
-	ChatId                int             `json:"chat_id"`
+	ChatId                interface{}     `json:"chat_id"`
 	MessageId             int             `json:"message_id"`
 	InlineMessageId       int             `json:"inline_message_id"`
 	Text                  string          `json:"text"`
@@ -108,7 +109,7 @@ func (req *EditMessageTextRequest) GetParams() (val url.Values, method string, e
 	method = "editMessageText"
 	val = url.Values{}
 	req.mu.RLock()
-	val.Add("chat_id", strconv.Itoa(req.ChatId))
+	val.Add("chat_id", fmt.Sprint(req.ChatId))
 	val.Add("message_id", strconv.Itoa(req.MessageId))
 	val.Add("inline_message_id", strconv.Itoa(req.InlineMessageId))
 	val.Add("text", req.Text)
