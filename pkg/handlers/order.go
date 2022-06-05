@@ -668,13 +668,11 @@ func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result te
 func (oh *OrderBotHandler) DescriptionState(msg *telegram.Message, state telegram.State) (result telegram.MessageResponse, err error) {
 	res, err := oh.GetDataReserve(state.Data, nil)
 	if err != nil {
+		oh.StateRepository.Clear(state.ChatId)
 		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 	res.Description = msg.Text
-	oh.StateRepository.Set(telegram.State{
-		State:  "",
-		ChatId: msg.Chat.Id,
-	})
+	oh.StateRepository.Clear(state.ChatId)
 	return oh.UpdateReserveMsg(res, msg, state.MessageId)
 }
 
@@ -706,6 +704,7 @@ func (oh *OrderBotHandler) MaxPlayersState(msg *telegram.Message, state telegram
 	count, err := strconv.Atoi(msg.Text)
 	if err != nil {
 		herr := telegram.HelperError{Msg: err.Error(), AnswerMsg: "Maximum players count message convert error"}
+		oh.StateRepository.Clear(state.ChatId)
 		return oh.SendMessageError(msg, herr, nil)
 	}
 
@@ -714,10 +713,7 @@ func (oh *OrderBotHandler) MaxPlayersState(msg *telegram.Message, state telegram
 		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 	res.CourtCount = count
-	oh.StateRepository.Set(telegram.State{
-		State:  "",
-		ChatId: msg.Chat.Id,
-	})
+	oh.StateRepository.Clear(state.ChatId)
 	return oh.UpdateReserveMsg(res, msg, state.MessageId)
 }
 
@@ -734,6 +730,7 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 	}
 	if ch.Action == "set" {
 		res.MaxPlayers = ch.Count
+		oh.StateRepository.Clear(cq.Message.Chat.Id)
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
 		oh.StateRepository.Set(telegram.State{
@@ -904,7 +901,7 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 
 	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, cq.Message.Chat.Id))
 	cq.Message.EditText(oh.Bot, "", &mr)
-	oh.NotifyPlayers(res, cq.Message.Chat.Id)
+	oh.NotifyPlayers(res, cq.From.Id)
 
 	return cq.Answer(oh.Bot, "Ok", nil), nil
 }
@@ -922,7 +919,7 @@ func (oh *OrderBotHandler) UpdateReserveMsg(res reserve.Reserve, msg *telegram.M
 		mr.MessageId = mid
 	}
 	resp := oh.Bot.SendMessage(&mr)
-	oh.NotifyPlayers(res, msg.Chat.Id)
+	oh.NotifyPlayers(res, msg.From.Id)
 
 	return resp, nil
 }

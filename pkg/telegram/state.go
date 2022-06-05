@@ -21,6 +21,7 @@ type State struct {
 type StateRepository interface {
 	Get(ChatId int) (State, error)
 	Set(State) error
+	Clear(ChatId int)
 }
 
 func NewMemoryStateRepository() StateRepository {
@@ -49,4 +50,8 @@ func (rep *MemoryStateRepository) Set(s State) (err error) {
 	rep.states[s.ChatId] = s
 	rep.Unlock()
 	return
+}
+
+func (rep *MemoryStateRepository) Clear(ChatId int) {
+	delete(rep.states, ChatId)
 }
