@@ -26,7 +26,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: foxvolley
-    needs: ['deliver']
+    needs: ['build']
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
