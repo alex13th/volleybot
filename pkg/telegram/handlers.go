@@ -85,7 +85,12 @@ type CommandHandler struct {
 	Bot      *Bot
 	Handler  MessageFunc
 	Command  string
+	Commands []BotCommand
 	IsRegexp bool
+}
+
+func (h *CommandHandler) GetCommands() []BotCommand {
+	return h.Commands
 }
 
 func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {

@@ -9,12 +9,16 @@ import (
 )
 
 type StartHandler struct {
-	Bot *telegram.Bot
+	Bot     *telegram.Bot
+	Command telegram.BotCommand
 }
 
 func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
+	if msg.Chat.Id <= 0 {
+		return
+	}
 	text := "*Привет!*\n" +
-		"Я достаточно молодой волейбольный бот, но кое что я могу.\n\n" +
+		"Я достаточно молодой волейбольный бот, но кое-что я могу.\n\n" +
 		"*Вот те команды, которые я уже понимаю:*\n" +
 		"/list - можно просмотреть список уже заказанных площадок;\n" +
 		"/order - забронировать площадки для себя и друзей;\n" +
@@ -48,5 +52,14 @@ func main() {
 		}}
 	lp.UpdateHandlers[0].AppendMessageHandler(&startcmd)
 
-	lp.Run()
+	sh.Command.Command = "start"
+	sh.Command.Description = "начать работу с ботом"
+	cmds := []telegram.BotCommand{sh.Command}
+	cmds = append(cmds, orderHandler.GetCommands()...)
+
+	_, err := tb.SendRequest(&telegram.SetMyCommandsRequest{
+		Commands: cmds, Scope: telegram.BotCommandScope{Type: "all_private_chats"}})
+	if err == nil {
+		lp.Run()
+	}
 }

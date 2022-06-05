@@ -223,3 +223,56 @@ func TestGetUpdatesParams(t *testing.T) {
 	}
 
 }
+
+func TestGetSetMyCommandsRequestParams(t *testing.T) {
+	tests := map[string]struct {
+		request *SetMyCommandsRequest
+		want    map[string]string
+	}{
+		"Commands without Scope": {
+			request: &SetMyCommandsRequest{
+				Commands: []BotCommand{
+					{Command: "start", Description: "Start description"},
+					{Command: "help", Description: "Help description"},
+				},
+			},
+			want: map[string]string{
+				"commands": `[{"command":"start","description":"Start description"},{"command":"help","description":"Help description"}]`,
+			},
+		},
+		"Commands with BotCommandScopeAllPrivateChats": {
+			request: &SetMyCommandsRequest{
+				Commands: []BotCommand{
+					{Command: "start", Description: "Start description"},
+					{Command: "help", Description: "Help description"},
+				},
+				Scope: BotCommandScope{Type: "all_private_chats"},
+			},
+			want: map[string]string{
+				"commands": `[{"command":"start","description":"Start description"},{"command":"help","description":"Help description"}]`,
+				"scope":    `{"type":"all_private_chats"}`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			values, method, err := test.request.GetParams()
+
+			if err != nil {
+				t.Fail()
+			}
+
+			if method != "setMyCommands" {
+				t.Fail()
+			}
+
+			for name, val := range test.want {
+				valStr := values.Get(name)
+				if valStr != val {
+					t.Fail()
+				}
+			}
+		})
+	}
+}

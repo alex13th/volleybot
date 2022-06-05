@@ -73,6 +73,8 @@ type CancelResources struct {
 
 type OrderResources struct {
 	BackBtn           string
+	ListCommand       telegram.BotCommand
+	OrderCommand      telegram.BotCommand
 	Locale            monday.Locale
 	DateTime          DateTimeResources
 	Court             CourtResources
@@ -95,6 +97,10 @@ type OrderResourceLoader interface {
 type DefaultResourceLoader struct{}
 
 func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
+	or.ListCommand.Command = "list"
+	or.ListCommand.Description = "поиск подходящей площадки"
+	or.OrderCommand.Command = "order"
+	or.OrderCommand.Description = "заказать площадку(и)"
 	or.BackBtn = "Назад"
 	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
@@ -136,8 +142,6 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 
 func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResourceLoader) (oh OrderBotHandler) {
 	oh = OrderBotHandler{Bot: tb, OrderService: os}
-	oh.OrderCommand = "order"
-	oh.ListCommand = "list"
 	oh.Resources = rl.GetResource()
 
 	oh.DateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderdate")
@@ -167,8 +171,6 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 
 type OrderBotHandler struct {
 	Resources          OrderResources
-	OrderCommand       string
-	ListCommand        string
 	Bot                *telegram.Bot
 	OrderService       *services.OrderService
 	DateHelper         telegram.DateKeyboardHelper
@@ -183,6 +185,12 @@ type OrderBotHandler struct {
 	OrderActionsHelper telegram.ActionsKeyboardHelper
 	MessageHandlers    []telegram.MessageHandler
 	CallbackHandlers   []telegram.CallbackHandler
+}
+
+func (oh *OrderBotHandler) GetCommands() (cmds []telegram.BotCommand) {
+	cmds = append(cmds, oh.Resources.ListCommand)
+	cmds = append(cmds, oh.Resources.OrderCommand)
+	return
 }
 
 func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
@@ -224,14 +232,17 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 }
 
 func (oh *OrderBotHandler) ProceedMessage(msg *telegram.Message) (result telegram.MessageResponse, err error) {
+	if msg.Chat.Id <= 0 {
+		return
+	}
 	if len(oh.MessageHandlers) == 0 {
 		order_cmd := telegram.CommandHandler{
-			Command: oh.OrderCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
+			Command: oh.Resources.OrderCommand.Command, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
 				return oh.CreateOrder(m, nil)
 			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &order_cmd)
 		list_cmd := telegram.CommandHandler{
-			Command: oh.ListCommand, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
+			Command: oh.Resources.ListCommand.Command, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
 				return oh.ListOrders(m, nil), nil
 			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &list_cmd)
