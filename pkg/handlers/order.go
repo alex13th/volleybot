@@ -51,6 +51,11 @@ type MaxPlayerResources struct {
 	Max     int
 }
 
+type DescriptionResources struct {
+	Message string
+	Button  string
+}
+
 type JoinPlayerResources struct {
 	Message     string
 	Button      string
@@ -81,6 +86,7 @@ type OrderResources struct {
 	ListCommand       telegram.BotCommand
 	OrderCommand      telegram.BotCommand
 	Locale            monday.Locale
+	Description       DescriptionResources
 	DateTime          DateTimeResources
 	Court             CourtResources
 	Level             PlayerLevelResources
@@ -109,6 +115,8 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.BackBtn = "Назад"
 	or.RefreshBtn = "Обновить"
 	or.PublishBtn = "Опубликовать"
+	or.Description.Button = "Описание"
+	or.Description.Message = "❓Каким будет описание❓"
 	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
 	or.DateTime.DateButton = "📆 Дата"
@@ -236,6 +244,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "orderlist", Handler: oh.ListOrdersCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderpub", Handler: oh.PublishCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderdesc", Handler: oh.DescriptionCallback})
 
 	}
 	for _, handler := range oh.CallbackHandlers {
@@ -259,9 +269,12 @@ func (oh *OrderBotHandler) ProceedMessage(msg *telegram.Message) (result telegra
 				return oh.ListOrders(m, nil), nil
 			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &list_cmd)
-		court_state := telegram.StateMessageHandler{State: "orderplayers", StateRepository: oh.StateRepository,
+		players_state := telegram.StateMessageHandler{State: "orderplayers", StateRepository: oh.StateRepository,
 			Handler: oh.MaxPlayersState}
-		oh.MessageHandlers = append(oh.MessageHandlers, &court_state)
+		oh.MessageHandlers = append(oh.MessageHandlers, &players_state)
+		desc_state := telegram.StateMessageHandler{State: "orderdesc", StateRepository: oh.StateRepository,
+			Handler: oh.DescriptionState}
+		oh.MessageHandlers = append(oh.MessageHandlers, &desc_state)
 	}
 	for _, handler := range oh.MessageHandlers {
 		result, err = handler.ProceedMessage(msg)
@@ -443,6 +456,8 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, id int) (h tel
 			Prefix: "orderplayers", Text: oh.Resources.MaxPlayer.Button})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "orderprice", Text: oh.Resources.Price.Button})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{
+			Prefix: "orderdesc", Text: oh.Resources.Description.Button})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "ordercancel", Text: oh.Resources.Cancel.Button})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
@@ -648,6 +663,43 @@ func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result te
 		cq.Message.EditText(oh.Bot, "", &mr)
 		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
 	}
+}
+
+func (oh *OrderBotHandler) DescriptionState(msg *telegram.Message, state telegram.State) (result telegram.MessageResponse, err error) {
+	res, err := oh.GetDataReserve(state.Data, nil)
+	if err != nil {
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
+	}
+	res.Description = msg.Text
+	oh.StateRepository.Set(telegram.State{
+		State:  "",
+		ChatId: msg.Chat.Id,
+	})
+	return oh.UpdateReserveMsg(res, msg, state.MessageId)
+}
+
+func (oh *OrderBotHandler) DescriptionCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ah := oh.OrderActionsHelper
+	ah.Msg = oh.Resources.Description.Message
+	err = ah.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(ah.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	oh.StateRepository.Set(telegram.State{
+		State:     "orderdesc",
+		ChatId:    cq.Message.Chat.Id,
+		Data:      res.Id.String(),
+		MessageId: cq.Message.MessageId,
+	})
+	mr := oh.GetReserveEditMR(res, &ah)
+	mr.ChatId = cq.Message.Chat.Id
+	cq.Message.EditText(oh.Bot, "", &mr)
+	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
 }
 
 func (oh *OrderBotHandler) MaxPlayersState(msg *telegram.Message, state telegram.State) (result telegram.MessageResponse, err error) {

@@ -97,6 +97,9 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 			text += fmt.Sprintf("\n%d.", i)
 		}
 	}
+	if tgv.Reserve.Description != "" {
+		text += "\n\n" + tgv.Reserve.Description
+	}
 	return
 }
 

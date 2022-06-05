@@ -50,12 +50,12 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, location_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
 		"min_level INT, court_count INT, max_players INT, " +
-		"ordered BOOL, approved BOOL, canceled BOOL);"
+		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(100));"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
-		"price, min_level, court_count, max_players, ordered, approved, canceled, " +
+		"price, min_level, court_count, max_players, ordered, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, roles, " +
 		"l.location_id AS location_id, location_name, location_descr, location_chat_id " +
 		"FROM %[1]s AS r " +
@@ -114,7 +114,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, " +
+		"min_level, court_count, max_players, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, roles, " +
 		"location_id, location_name, location_descr, location_chat_id " +
 		"FROM %s " +
@@ -128,7 +128,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	)
 
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
 		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 		&res.Person.Roles, &res.Location.Id, &lname, &ldescr, &lchatid)
 	if err != nil {
@@ -146,7 +146,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 
 func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uuid.UUID]Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, " +
+		"min_level, court_count, max_players, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, roles, " +
 		"location_id, location_name, location_descr, location_chat_id " +
 		"FROM %s "
@@ -186,7 +186,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 			lchatid       sql.NullInt64
 		)
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
 			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 			&res.Person.Roles, &res.Location.Id, &lname, &ldescr, &lchatid)
 		if err != nil {
@@ -206,14 +206,14 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql := "INSERT INTO %s " +
 		"(reserve_id, person_id, location_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, ordered, canceled) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) " +
+		"min_level, court_count, max_players, approved, ordered, canceled, description) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Description)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -231,13 +231,13 @@ func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql := "UPDATE %s SET " +
 		"person_id = $1, location_id = $2, start_time = $3, end_time = $4, " +
 		"price = $5, min_level = $6, court_count = $7, max_players = $8, " +
-		"approved = $9, ordered = $10, canceled = $11 " +
-		"WHERE reserve_id = $12"
+		"approved = $9, ordered = $10, canceled = $11, description = $12 " +
+		"WHERE reserve_id = $13"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
 		r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Id)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Description, r.Id)
 	if err != nil {
 		return
 	}
