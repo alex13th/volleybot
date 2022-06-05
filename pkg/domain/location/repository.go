@@ -6,6 +6,7 @@ import (
 
 type LocationRepository interface {
 	Get(uuid.UUID) (Location, error)
+	GetByName(string) (Location, error)
 	Add(Location) (Location, error)
 	Update(Location) error
 }

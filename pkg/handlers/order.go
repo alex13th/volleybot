@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
 	"volleybot/pkg/services"
@@ -54,6 +55,7 @@ type JoinPlayerResources struct {
 	Message     string
 	Button      string
 	LeaveButton string
+	MultiButton string
 }
 
 type PriceResources struct {
@@ -72,7 +74,9 @@ type CancelResources struct {
 }
 
 type OrderResources struct {
+	Location          location.Location
 	BackBtn           string
+	PublishBtn        string
 	ListCommand       telegram.BotCommand
 	OrderCommand      telegram.BotCommand
 	Locale            monday.Locale
@@ -102,6 +106,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.OrderCommand.Command = "order"
 	or.OrderCommand.Description = "заказать площадку(и)"
 	or.BackBtn = "Назад"
+	or.PublishBtn = "Опубликовать"
 	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
 	or.DateTime.DateButton = "📆 Дата"
@@ -121,8 +126,9 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.MaxPlayer.Min = 4
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
 	or.JoinPlayer.Message = "❓Сколько игроков записать❓"
-	or.JoinPlayer.Button = "😀 Хочу"
-	or.JoinPlayer.LeaveButton = "😞 Не хочу"
+	or.JoinPlayer.Button = "😀 Буду"
+	or.JoinPlayer.MultiButton = "🤩 Буду не один"
+	or.JoinPlayer.LeaveButton = "😞 Не смогу"
 	or.Price.Message = "❓Почем будет поигать❓"
 	or.Price.Button = "💳 Стоимость"
 	or.Price.Min = 0
@@ -161,7 +167,7 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 	oh.PlayerCountHelper = telegram.NewCountKeyboardHelper(
 		oh.Resources.MaxPlayer.Message, "orderplayers", oh.Resources.MaxPlayer.Min, oh.Resources.MaxPlayer.Max)
 	oh.JoinCountHelper = telegram.NewCountKeyboardHelper(
-		oh.Resources.JoinPlayer.Message, "orderjoin", oh.Resources.MaxPlayer.Min, oh.Resources.MaxPlayer.Max)
+		oh.Resources.JoinPlayer.Message, "orderjoinmult", oh.Resources.MaxPlayer.Min, oh.Resources.MaxPlayer.Max)
 	oh.PriceCountHelper = telegram.NewCountKeyboardHelper(
 		oh.Resources.Price.Message, "orderprice", oh.Resources.Price.Min, oh.Resources.Price.Max)
 	oh.PriceCountHelper.Step = oh.Resources.Price.Step
@@ -214,6 +220,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderjoin", Handler: oh.JoinCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderjoinmult", Handler: oh.JoinMultiCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderleave", Handler: oh.LeaveCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordercancel", Handler: oh.CancelCallback})
@@ -223,6 +231,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "ordershow", Handler: oh.ShowCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderlist", Handler: oh.ListOrdersCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderpub", Handler: oh.PublishCallback})
 
 	}
 	for _, handler := range oh.CallbackHandlers {
@@ -288,8 +298,28 @@ func (oh *OrderBotHandler) GetPerson(tuser *telegram.User) (p person.Person, err
 	return
 }
 
+func (oh *OrderBotHandler) GetLocation(lname string) (l location.Location, err error) {
+	l, err = oh.OrderService.Locations.GetByName(lname)
+	if err != nil {
+		log.Println(err.Error())
+		l, _ = location.NewLocation(lname)
+		l, err = oh.OrderService.Locations.Add(l)
+	}
+	if err != nil {
+		err = telegram.HelperError{
+			Msg:       fmt.Sprintf("getting location error: %s", err.Error()),
+			AnswerMsg: "Can't get location"}
+	}
+	return
+}
+
 func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
 	p, err := oh.GetPerson(msg.From)
+	if err != nil {
+		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
+	}
+
+	l, err := oh.GetLocation(oh.Resources.Location.Name)
 	if err != nil {
 		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
 	}
@@ -298,7 +328,8 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(), 8, 0, 0, 0, currTime.Location())
 	etime := stime.Add(time.Duration(time.Hour))
 
-	res, err := oh.OrderService.CreateOrder(reserve.Reserve{Person: p, StartTime: stime, EndTime: etime}, nil)
+	res, err := oh.OrderService.CreateOrder(reserve.Reserve{
+		Person: p, StartTime: stime, EndTime: etime, Location: l}, nil)
 	if err != nil {
 		err = telegram.HelperError{
 			Msg:       fmt.Sprintf("creating order error: %s", err.Error()),
@@ -307,7 +338,7 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 	}
 
 	var kbd telegram.InlineKeyboardMarkup
-	kh := oh.GetReserveActions(res, *msg.From)
+	kh := oh.GetReserveActions(res, msg.Chat.Id)
 	kh.SetData(res.Id.String())
 	kbd.InlineKeyboard = kh.GetKeyboard()
 	rview := reserve.NewTelegramViewRu(res)
@@ -373,19 +404,25 @@ func (oh *OrderBotHandler) GetDataReserve(data string,
 	return
 }
 
-func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.User) (h telegram.KeyboardHelper) {
+func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, id int) (h telegram.KeyboardHelper) {
 	ah := telegram.ActionsKeyboardHelper{Data: res.Id.String()}
 	if res.Canceled {
 		return &ah
 	}
 	ah.Columns = 2
 	if res.Orderd() {
+		if id < 0 || !res.HasPlayerByTelegramId(id) {
+			ah.Actions = append(ah.Actions, telegram.ActionButton{
+				Prefix: "orderjoin", Text: oh.Resources.JoinPlayer.Button})
+		}
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "orderjoin", Text: oh.Resources.JoinPlayer.Button})
-		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "orderleave", Text: oh.Resources.JoinPlayer.LeaveButton})
+			Prefix: "orderjoinmult", Text: oh.Resources.JoinPlayer.MultiButton})
+		if id < 0 || res.HasPlayerByTelegramId(id) {
+			ah.Actions = append(ah.Actions, telegram.ActionButton{
+				Prefix: "orderleave", Text: oh.Resources.JoinPlayer.LeaveButton})
+		}
 	}
-	if res.Person.TelegramId == user.Id {
+	if res.Person.TelegramId == id {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "orderdate", Text: oh.Resources.DateTime.DateButton})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
@@ -402,6 +439,8 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, user telegram.
 			Prefix: "orderprice", Text: oh.Resources.Price.Button})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "ordercancel", Text: oh.Resources.Cancel.Button})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{
+			Prefix: "orderpub", Text: oh.Resources.PublishBtn})
 	}
 
 	return &ah
@@ -531,10 +570,27 @@ func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (result tele
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	kbd := oh.GetReserveActions(res, *cq.From)
+	kbd := oh.GetReserveActions(res, cq.Message.Chat.Id)
 	mr := oh.GetReserveEditMR(res, kbd)
 	mr.ChatId = cq.Message.Chat.Id
 	cq.Message.EditText(oh.Bot, "", &mr)
+	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+}
+
+func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ch := oh.OrderActionsHelper
+	err = ch.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	res, err := oh.GetDataReserve(ch.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	kbd := oh.GetReserveActions(res, cq.Message.Chat.Id)
+	mr := oh.GetReserveMR(res, kbd)
+	mr.ChatId = res.Location.ChatId
+	oh.Bot.SendMessage(&mr)
 	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
 }
 
@@ -631,6 +687,15 @@ func (oh *OrderBotHandler) PriceCallback(cq *telegram.CallbackQuery) (result tel
 }
 
 func (oh *OrderBotHandler) JoinCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ah := oh.OrderActionsHelper
+	err = ah.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	return oh.JoinPlayer(cq, ah.Data, 1)
+}
+
+func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
 	p, err := oh.GetPerson(cq.From)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
@@ -742,7 +807,7 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 
-	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, *cq.From))
+	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, cq.Message.Chat.Id))
 	cq.Message.EditText(oh.Bot, "", &mr)
 
 	for _, pl := range res.Players {

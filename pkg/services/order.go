@@ -93,6 +93,7 @@ func (serv *OrderService) CreateOrder(r reserve.Reserve, rchan chan ReserveResul
 		res, err = reserve.NewReserve(res.Person, r.StartTime, r.EndTime)
 	}
 	if err == nil {
+		res.Location = r.Location
 		serv.Reserves.Add(res)
 	}
 	if rchan != nil {

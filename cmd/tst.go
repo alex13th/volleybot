@@ -41,6 +41,12 @@ func main() {
 	tb.Client = &http.Client{}
 
 	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.DefaultResourceLoader{})
+	if os.Getenv("LOCATION") != "" {
+		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
+	} else {
+		orderHandler.Resources.Location.Name = "default"
+	}
+
 	lp, _ := tb.NewPoller()
 	lp.UpdateHandlers[0].AppendMessageHandler(&orderHandler)
 	lp.UpdateHandlers[0].AppendCallbackHandler(&orderHandler)

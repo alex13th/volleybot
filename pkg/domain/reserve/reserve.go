@@ -101,6 +101,15 @@ func (res *Reserve) GetDuration() time.Duration {
 	return result
 }
 
+func (res *Reserve) HasPlayerByTelegramId(id int) bool {
+	for _, pl := range res.Players {
+		if pl.Person.TelegramId == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (res *Reserve) CheckConflicts(other Reserve) bool {
 
 	OtherStartTime := other.GetStartTime()

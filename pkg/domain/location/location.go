@@ -26,6 +26,8 @@ func NewLocation(name string) (location Location, err error) {
 }
 
 type Location struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	Id          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	ChatId      int       `json:"chat_id"`
 }
