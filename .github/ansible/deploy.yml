@@ -10,6 +10,7 @@
         src: "{{ bot_name }}"
         dest: "{{ src_path }}/{{ bot_name }}"
       notify:
+        - restart_service
         - update_binary
 
     - name: Create service file
