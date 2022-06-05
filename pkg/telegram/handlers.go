@@ -8,6 +8,7 @@ import (
 
 type CallbackQueryFunc func(cq *CallbackQuery) (MessageResponse, error)
 type MessageFunc func(m *Message) (MessageResponse, error)
+type MessageStateFunc func(m *Message, state State) (MessageResponse, error)
 
 type UpdateHandler interface {
 	ProceedUpdate(tb *Bot, update Update)
@@ -107,6 +108,21 @@ func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err
 	}
 	if m.GetCommand() == h.Command {
 		return h.Handler(m)
+	}
+	return
+}
+
+type StateMessageHandler struct {
+	Bot             *Bot
+	Handler         MessageStateFunc
+	State           string
+	StateRepository StateRepository
+}
+
+func (h *StateMessageHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+	state, err := h.StateRepository.Get(m.Chat.Id)
+	if state.State == h.State {
+		return h.Handler(m, state)
 	}
 	return
 }

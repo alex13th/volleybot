@@ -121,7 +121,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.Set.Max = 12
 	or.Court.Message = "❓Сколько нужно кортов❓"
 	or.Court.Button = "🏐 Площадки"
-	or.Court.Max = 12
+	or.Court.Max = 6
 	or.Court.MaxPlayers = 6
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
 	or.MaxPlayer.Button = "👫 Мест"
@@ -178,6 +178,7 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 }
 
 type OrderBotHandler struct {
+	StateRepository    telegram.StateRepository
 	Resources          OrderResources
 	Bot                *telegram.Bot
 	OrderService       *services.OrderService
@@ -258,6 +259,9 @@ func (oh *OrderBotHandler) ProceedMessage(msg *telegram.Message) (result telegra
 				return oh.ListOrders(m, nil), nil
 			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &list_cmd)
+		court_state := telegram.StateMessageHandler{State: "orderplayers", StateRepository: oh.StateRepository,
+			Handler: oh.MaxPlayersState}
+		oh.MessageHandlers = append(oh.MessageHandlers, &court_state)
 	}
 	for _, handler := range oh.MessageHandlers {
 		result, err = handler.ProceedMessage(msg)
@@ -274,7 +278,7 @@ func (oh *OrderBotHandler) SendCallbackError(cq *telegram.CallbackQuery, cq_err 
 	return result, cq_err
 }
 
-func (oh *OrderBotHandler) SendNessageError(msg *telegram.Message, m_err telegram.HelperError, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
+func (oh *OrderBotHandler) SendMessageError(msg *telegram.Message, m_err telegram.HelperError, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
 	log.Println(m_err.Error())
 	result = msg.Reply(oh.Bot, m_err.AnswerMsg, nil)
 	if chanr != nil {
@@ -318,12 +322,12 @@ func (oh *OrderBotHandler) GetLocation(lname string) (l location.Location, err e
 func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
 	p, err := oh.GetPerson(msg.From)
 	if err != nil {
-		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 
 	l, err := oh.GetLocation(oh.Resources.Location.Name)
 	if err != nil {
-		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 
 	currTime := time.Now()
@@ -336,7 +340,7 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 		err = telegram.HelperError{
 			Msg:       fmt.Sprintf("creating order error: %s", err.Error()),
 			AnswerMsg: "Can't create order"}
-		return oh.SendNessageError(msg, err.(telegram.HelperError), nil)
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 
 	var kbd telegram.InlineKeyboardMarkup
@@ -646,6 +650,25 @@ func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result te
 	}
 }
 
+func (oh *OrderBotHandler) MaxPlayersState(msg *telegram.Message, state telegram.State) (result telegram.MessageResponse, err error) {
+	count, err := strconv.Atoi(msg.Text)
+	if err != nil {
+		herr := telegram.HelperError{Msg: err.Error(), AnswerMsg: "Maximum players count message convert error"}
+		return oh.SendMessageError(msg, herr, nil)
+	}
+
+	res, err := oh.GetDataReserve(state.Data, nil)
+	if err != nil {
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
+	}
+	res.CourtCount = count
+	oh.StateRepository.Set(telegram.State{
+		State:  "",
+		ChatId: msg.Chat.Id,
+	})
+	return oh.UpdateReserveMsg(res, msg, state.MessageId)
+}
+
 func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
 	ch := oh.PlayerCountHelper
 	err = ch.Parse(cq.Data)
@@ -661,6 +684,12 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 		res.MaxPlayers = ch.Count
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
+		oh.StateRepository.Set(telegram.State{
+			State:     "orderplayers",
+			ChatId:    cq.Message.Chat.Id,
+			Data:      res.Id.String(),
+			MessageId: cq.Message.MessageId,
+		})
 		mr := oh.GetReserveEditMR(res, &ch)
 		mr.ChatId = cq.Message.Chat.Id
 		cq.Message.EditText(oh.Bot, "", &mr)
@@ -804,6 +833,16 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 	return oh.UpdateReserveCQ(res, cq)
 }
 
+func (oh *OrderBotHandler) NotifyPlayers(res reserve.Reserve, id int) {
+	for _, pl := range res.Players {
+		if pl.Person.TelegramId != id {
+			mr := oh.GetReserveMR(res, nil)
+			mr.ChatId = pl.Person.TelegramId
+			oh.Bot.SendMessage(&mr)
+		}
+	}
+}
+
 func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.CallbackQuery) (telegram.MessageResponse, error) {
 
 	res, err := oh.UpdateReserve(res)
@@ -813,16 +852,27 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 
 	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, cq.Message.Chat.Id))
 	cq.Message.EditText(oh.Bot, "", &mr)
-
-	for _, pl := range res.Players {
-		if pl.Person.TelegramId != cq.From.Id {
-			mr := oh.GetReserveMR(res, nil)
-			mr.ChatId = pl.Person.TelegramId
-			oh.Bot.SendMessage(&mr)
-		}
-	}
+	oh.NotifyPlayers(res, cq.Message.Chat.Id)
 
 	return cq.Answer(oh.Bot, "Ok", nil), nil
+}
+
+func (oh *OrderBotHandler) UpdateReserveMsg(res reserve.Reserve, msg *telegram.Message, mid int) (telegram.MessageResponse, error) {
+
+	res, err := oh.UpdateReserve(res)
+	if err != nil {
+		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
+	}
+
+	mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, msg.Chat.Id))
+	if mid > 0 {
+		mr.ChatId = msg.Chat.Id
+		mr.MessageId = mid
+	}
+	resp := oh.Bot.SendMessage(&mr)
+	oh.NotifyPlayers(res, msg.Chat.Id)
+
+	return resp, nil
 }
 
 func (oh *OrderBotHandler) GetReserveEditMR(res reserve.Reserve, kh telegram.KeyboardHelper) (mer telegram.EditMessageTextRequest) {
