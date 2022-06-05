@@ -76,6 +76,7 @@ type CancelResources struct {
 type OrderResources struct {
 	Location          location.Location
 	BackBtn           string
+	RefreshBtn        string
 	PublishBtn        string
 	ListCommand       telegram.BotCommand
 	OrderCommand      telegram.BotCommand
@@ -106,6 +107,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.OrderCommand.Command = "order"
 	or.OrderCommand.Description = "заказать площадку(и)"
 	or.BackBtn = "Назад"
+	or.RefreshBtn = "Обновить"
 	or.PublishBtn = "Опубликовать"
 	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
@@ -442,6 +444,8 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, id int) (h tel
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "orderpub", Text: oh.Resources.PublishBtn})
 	}
+	ah.Actions = append(ah.Actions, telegram.ActionButton{
+		Prefix: "ordershow", Text: oh.Resources.RefreshBtn})
 
 	return &ah
 }
