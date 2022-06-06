@@ -24,7 +24,7 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 		"Я достаточно молодой волейбольный бот, но кое-что я могу.\n\n" +
 		"*Вот те команды, которые я уже понимаю:*\n" +
 		"/list - можно просмотреть список уже заказанных площадок;\n" +
-		"/order - забронировать площадки для себя и друзей;\n" +
+		// "/order - забронировать площадки для себя и друзей;\n" +
 		"/start - посмотреть это приветствие"
 	mr := &telegram.MessageRequest{
 		ChatId:    msg.Chat.Id,
