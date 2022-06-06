@@ -23,7 +23,7 @@ func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve, ordere
 
 	mr.reserves = make(map[uuid.UUID]Reserve)
 	for id, res := range *reserves {
-		if filter.Person != (person.Person{}) && res.Person.Id != filter.Person.Id {
+		if filter.Person.Id != uuid.Nil && res.Person.Id != filter.Person.Id {
 			continue
 		}
 

@@ -70,18 +70,19 @@ func (pl PlayerLevel) String() string {
 }
 
 type Reserve struct {
-	Id         uuid.UUID            `json:"id"`
-	Person     person.Person        `json:"person"`
-	Location   location.Location    `json:"location"`
-	StartTime  time.Time            `json:"start_time"`
-	EndTime    time.Time            `json:"end_time"`
-	MinLevel   int                  `json:"min_level"`
-	Price      int                  `json:"price"`
-	CourtCount int                  `json:"court_count"`
-	MaxPlayers int                  `json:"max_players"`
-	Approved   bool                 `json:"approved"`
-	Canceled   bool                 `json:"canceled"`
-	Players    map[uuid.UUID]Player `json:"players"`
+	Id          uuid.UUID            `json:"id"`
+	Person      person.Person        `json:"person"`
+	Location    location.Location    `json:"location"`
+	StartTime   time.Time            `json:"start_time"`
+	EndTime     time.Time            `json:"end_time"`
+	MinLevel    int                  `json:"min_level"`
+	Price       int                  `json:"price"`
+	CourtCount  int                  `json:"court_count"`
+	MaxPlayers  int                  `json:"max_players"`
+	Approved    bool                 `json:"approved"`
+	Canceled    bool                 `json:"canceled"`
+	Players     map[uuid.UUID]Player `json:"players"`
+	Description string               `json:"description"`
 }
 
 func (res *Reserve) GetPerson() person.Person {

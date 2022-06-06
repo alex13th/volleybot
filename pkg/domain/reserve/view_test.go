@@ -34,6 +34,21 @@ func TestTelegramView(t *testing.T) {
 				"💪*Уровень*: Средний\n💳 600\n*Игроков:* 6\n1.\n.\n.\n6.",
 			str: "Сб, 04.12 15:00-17:00 (0/6)",
 		},
+		"With description": {
+			res: Reserve{
+				Person:      pl1,
+				StartTime:   time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
+				EndTime:     time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
+				MinLevel:    int(Middle),
+				MaxPlayers:  6,
+				Price:       600,
+				Description: "Some description.",
+			},
+			text: "*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
+				"💪*Уровень*: Средний\n💳 600\n*Игроков:* 6\n1.\n.\n.\n6." +
+				"\n\nSome description.",
+			str: "Сб, 04.12 15:00-17:00 (0/6)",
+		},
 		"4 max": {
 			res: Reserve{
 				Person:     pl1,
