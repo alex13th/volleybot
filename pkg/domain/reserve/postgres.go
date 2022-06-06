@@ -97,13 +97,13 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, e
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	pmap = make(map[uuid.UUID]Player)
 	var (
-		Count, TelegramId                    int
-		PersonId                             uuid.UUID
-		FirstName, LastName, FullName, Roles string
+		Count, TelegramId             int
+		PersonId                      uuid.UUID
+		FirstName, LastName, FullName string
 	)
 
 	for rows.Next() {
-		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName, &Roles)
+		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName)
 		pmap[PersonId] = Player{
 			Person: person.Person{Id: PersonId, TelegramId: TelegramId,
 				Firstname: FirstName, Lastname: LastName, Fullname: FullName},
