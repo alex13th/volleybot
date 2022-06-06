@@ -613,10 +613,6 @@ func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (result tele
 }
 
 func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
-	p, err := oh.GetPerson(cq.Message.Chat)
-	if err != nil {
-		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
-	}
 	ch := oh.OrderActionsHelper
 	err = ch.Parse(cq.Data)
 	if err != nil {
@@ -626,7 +622,7 @@ func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result t
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	kbd := oh.GetReserveActions(res, p)
+	kbd := oh.GetReserveActions(res, person.Person{})
 	mr := oh.GetReserveMR(res, kbd)
 	mr.ChatId = res.Location.ChatId
 	oh.Bot.SendMessage(&mr)
