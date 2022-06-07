@@ -139,11 +139,11 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.JoinPlayer.Button = "😀 Буду"
 	or.JoinPlayer.MultiButton = "🤩 Буду не один"
 	or.JoinPlayer.LeaveButton = "😞 Не смогу"
-	or.Price.Message = "❓Почем будет поигать❓"
-	or.Price.Button = "💳 Стоимость"
+	or.Price.Message = "❓Почем будет поиграть❓"
+	or.Price.Button = "💰 Стоимость"
 	or.Price.Min = 0
-	or.Price.Max = 1200
-	or.Price.Step = 200
+	or.Price.Max = 2000
+	or.Price.Step = 100
 	or.Cancel.Button = "💥Отменить"
 	or.Cancel.Message = fmt.Sprintf("\n🧨*ВНИМАНИЕ!!!*🧨\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться кнопкой \"%s\"",
 		or.JoinPlayer.LeaveButton)
@@ -167,8 +167,6 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 
 	levels := []telegram.EnumItem{}
 	for i := 0; i <= 80; i += 10 {
-		oh.Resources.Price.Step = 200
-
 		levels = append(levels, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.PlayerLevel(i)})
 	}
 	oh.MinLevelHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Level.Message, "orderminlevel", levels)

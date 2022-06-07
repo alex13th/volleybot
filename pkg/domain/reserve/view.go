@@ -59,7 +59,7 @@ func (tgv *TelegramView) GetText() (text string) {
 	}
 
 	if tgv.Reserve.Price > 0 {
-		text += fmt.Sprintf("\n💳 %d", tgv.Reserve.Price)
+		text += fmt.Sprintf("\n💰 %d ₽", tgv.Reserve.Price)
 	}
 
 	if tgv.Reserve.CourtCount > 0 {
