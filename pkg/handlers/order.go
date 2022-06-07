@@ -437,13 +437,13 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, p person.Perso
 	}
 	ah.Columns = 2
 	if res.Orderd() {
-		if p.TelegramId <= 0 || !res.HasPlayerByTelegramId(p.TelegramId) {
+		if chid <= 0 || !res.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "orderjoin", Text: oh.Resources.JoinPlayer.Button})
 		}
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Prefix: "orderjoinmult", Text: oh.Resources.JoinPlayer.MultiButton})
-		if p.TelegramId <= 0 || res.HasPlayerByTelegramId(p.TelegramId) {
+		if chid <= 0 || res.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "orderleave", Text: oh.Resources.JoinPlayer.LeaveButton})
 		}
