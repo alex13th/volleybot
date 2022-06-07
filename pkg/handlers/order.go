@@ -905,9 +905,12 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 func (oh *OrderBotHandler) NotifyPlayers(res reserve.Reserve, id int) {
 	for _, pl := range res.Players {
 		if pl.Person.TelegramId != id {
-			mr := oh.GetReserveMR(res, nil)
-			mr.ChatId = pl.Person.TelegramId
-			oh.Bot.SendMessage(&mr)
+			p, _ := oh.OrderService.Persons.GetByTelegramId(pl.Person.TelegramId)
+			if param, ok := p.Settings["notify"]; ok && param == "on" {
+				mr := oh.GetReserveMR(res, nil)
+				mr.ChatId = pl.Person.TelegramId
+				oh.Bot.SendMessage(&mr)
+			}
 		}
 	}
 }

@@ -133,7 +133,7 @@ func (rep *PgRepository) GetRoles(pid uuid.UUID) (pmap map[uuid.UUID][]string, e
 }
 
 func (rep *PgRepository) GetSettings(pid uuid.UUID) (pmap map[string]string, err error) {
-	sql := "SELECT params.person_id, params.param_name, params.param_value " +
+	sql := "SELECT params.param_name, params.param_value " +
 		"FROM %s AS params " +
 		"INNER JOIN %s AS p ON params.person_id = p.person_id " +
 		"WHERE params.person_id = $1;"
