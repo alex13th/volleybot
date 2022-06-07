@@ -85,7 +85,7 @@ func (rep *PgRepository) Update(p Person) (err error) {
 
 func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s " +
-		"(person_id UUID PRIMARY KEY, telegram_id int, " +
+		"(person_id UUID PRIMARY KEY, telegram_id bigint, " +
 		"firstname varchar(20), lastname varchar(20), fullname varchar(60), " +
 		"roles varchar(250));"
 	sql += "CREATE TABLE IF NOT EXISTS %s " +
