@@ -350,7 +350,8 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 
 	}
 	currTime := time.Now()
-	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(), 8, 0, 0, 0, currTime.Location())
+	stime := time.Date(currTime.Year(), currTime.Month(), currTime.Day(),
+		currTime.Hour()+1, 0, 0, 0, currTime.Location())
 	etime := stime.Add(time.Duration(time.Hour))
 
 	res, err := oh.OrderService.CreateOrder(reserve.Reserve{
@@ -411,7 +412,7 @@ func (oh *OrderBotHandler) GetDataReserve(data string,
 	id, err = uuid.Parse(data)
 	if err != nil {
 		err = telegram.HelperError{
-			Msg:       fmt.Sprintf("order CourtsCallback getting reserve error: %s", err.Error()),
+			Msg:       fmt.Sprintf("order getting reserve error: %s", err.Error()),
 			AnswerMsg: "Parse reserve id error"}
 
 	} else {
@@ -671,6 +672,7 @@ func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result te
 		res.CourtCount = ch.Count
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
+		ch.Max = res.Location.CourtCount
 		mr := oh.GetReserveEditMR(res, &ch)
 		mr.ChatId = cq.Message.Chat.Id
 		cq.Message.EditText(oh.Bot, "", &mr)
@@ -746,6 +748,7 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 		oh.StateRepository.Clear(cq.Message.Chat.Id)
 		return oh.UpdateReserveCQ(res, cq)
 	} else {
+		ch.Max = res.CourtCount * 12
 		oh.StateRepository.Set(telegram.State{
 			State:     "orderplayers",
 			ChatId:    cq.Message.Chat.Id,
@@ -902,9 +905,12 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 func (oh *OrderBotHandler) NotifyPlayers(res reserve.Reserve, id int) {
 	for _, pl := range res.Players {
 		if pl.Person.TelegramId != id {
-			mr := oh.GetReserveMR(res, nil)
-			mr.ChatId = pl.Person.TelegramId
-			oh.Bot.SendMessage(&mr)
+			p, _ := oh.OrderService.Persons.GetByTelegramId(pl.Person.TelegramId)
+			if param, ok := p.Settings["notify"]; ok && param == "on" {
+				mr := oh.GetReserveMR(res, nil)
+				mr.ChatId = pl.Person.TelegramId
+				oh.Bot.SendMessage(&mr)
+			}
 		}
 	}
 }

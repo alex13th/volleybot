@@ -57,7 +57,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
 		"price, min_level, court_count, max_players, ordered, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, " +
-		"l.location_id AS location_id, location_name, location_descr, location_chat_id " +
+		"l.location_id AS location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %[1]s AS r " +
 		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id " +
 		"LEFT OUTER JOIN %[6]s AS l ON r.location_id = l.location_id; "
@@ -116,21 +116,21 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, " +
-		"location_id, location_name, location_descr, location_chat_id " +
+		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s " +
 		"WHERE reserve_id = $1"
 	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
 	row := rep.dbpool.QueryRow(context.Background(), sql_str, rid)
 
 	var (
-		lname, ldescr sql.NullString
-		lchatid       sql.NullInt64
+		lname, ldescr    sql.NullString
+		lchatid, lcourts sql.NullInt64
 	)
 
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
 		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-		&res.Location.Id, &lname, &ldescr, &lchatid)
+		&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
 	if err != nil {
 		return
 	}
@@ -138,6 +138,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 		res.Location.Name = lname.String
 		res.Location.Description = ldescr.String
 		res.Location.ChatId = int(lchatid.Int64)
+		res.Location.CourtCount = int(lcourts.Int64)
 	}
 	pmap, err := rep.GetPlayers(res.Id)
 	res.Players = pmap
@@ -148,7 +149,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, " +
-		"location_id, location_name, location_descr, location_chat_id " +
+		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s "
 	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
 	wheresql := ""
@@ -182,13 +183,13 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 	for rows.Next() {
 		res := Reserve{}
 		var (
-			lname, ldescr sql.NullString
-			lchatid       sql.NullInt64
+			lname, ldescr    sql.NullString
+			lchatid, lcourts sql.NullInt64
 		)
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
 			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
 			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-			&res.Location.Id, &lname, &ldescr, &lchatid)
+			&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
 		if err != nil {
 			return
 		}
@@ -196,6 +197,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 			res.Location.Name = lname.String
 			res.Location.Description = ldescr.String
 			res.Location.ChatId = int(lchatid.Int64)
+			res.Location.CourtCount = int(lcourts.Int64)
 		}
 		res.Players, err = rep.GetPlayers(res.Id)
 		rmap[res.Id] = res

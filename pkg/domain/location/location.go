@@ -30,4 +30,5 @@ type Location struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	ChatId      int       `json:"chat_id"`
+	CourtCount  int       `json:"court_count"`
 }

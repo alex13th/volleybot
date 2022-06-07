@@ -9,14 +9,16 @@ import (
 )
 
 type PgRepository struct {
-	dbpool         *pgxpool.Pool
-	TableName      string
-	RolesTableName string
+	dbpool            *pgxpool.Pool
+	TableName         string
+	RolesTableName    string
+	SettingsTableName string
 }
 
 func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 	pgrep.TableName = "persons"
 	pgrep.RolesTableName = "person_roles"
+	pgrep.SettingsTableName = "person_params"
 	if err != nil {
 		return
 	}
@@ -36,6 +38,10 @@ func (rep *PgRepository) Get(pid uuid.UUID) (p Person, err error) {
 		return
 	}
 	p.LocationRoles, err = rep.GetRoles(p.Id)
+	if err != nil {
+		return
+	}
+	p.Settings, err = rep.GetSettings(p.Id)
 	return
 }
 
@@ -50,6 +56,10 @@ func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
 		return
 	}
 	p.LocationRoles, err = rep.GetRoles(p.Id)
+	if err != nil {
+		return
+	}
+	p.Settings, err = rep.GetSettings(p.Id)
 	return
 }
 
@@ -85,12 +95,14 @@ func (rep *PgRepository) Update(p Person) (err error) {
 
 func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s " +
-		"(person_id UUID PRIMARY KEY, telegram_id int, " +
+		"(person_id UUID PRIMARY KEY, telegram_id bigint, " +
 		"firstname varchar(20), lastname varchar(20), fullname varchar(60), " +
 		"roles varchar(250));"
 	sql += "CREATE TABLE IF NOT EXISTS %s " +
 		"(person_id UUID, location_id UUID, role varchar(30));"
-	sql = fmt.Sprintf(sql, rep.TableName, rep.RolesTableName)
+	sql += "CREATE TABLE IF NOT EXISTS %s " +
+		"(person_id UUID, param_name varchar(20), param_value varchar(250));"
+	sql = fmt.Sprintf(sql, rep.TableName, rep.RolesTableName, rep.SettingsTableName)
 	_, err = rep.dbpool.Exec(context.Background(), sql)
 
 	if err != nil {
@@ -116,6 +128,23 @@ func (rep *PgRepository) GetRoles(pid uuid.UUID) (pmap map[uuid.UUID][]string, e
 	for rows.Next() {
 		rows.Scan(&PersonId, &LocationId, &Role)
 		pmap[LocationId] = append(pmap[LocationId], Role)
+	}
+	return
+}
+
+func (rep *PgRepository) GetSettings(pid uuid.UUID) (pmap map[string]string, err error) {
+	sql := "SELECT params.param_name, params.param_value " +
+		"FROM %s AS params " +
+		"INNER JOIN %s AS p ON params.person_id = p.person_id " +
+		"WHERE params.person_id = $1;"
+	sql = fmt.Sprintf(sql, rep.SettingsTableName, rep.TableName)
+	rows, err := rep.dbpool.Query(context.Background(), sql, pid)
+	pmap = make(map[string]string)
+	var Param, Value string
+
+	for rows.Next() {
+		rows.Scan(&Param, &Value)
+		pmap[Param] = Value
 	}
 	return
 }
