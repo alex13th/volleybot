@@ -34,6 +34,7 @@ type Person struct {
 	Lastname      string                 `json:"lastname"`
 	Fullname      string                 `json:"fullname"`
 	LocationRoles map[uuid.UUID][]string `json:"roles"`
+	Settings      map[string]string      `json:"settings"`
 }
 
 func (user *Person) GetDisplayname() string {
