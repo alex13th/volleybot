@@ -322,10 +322,13 @@ func (oh *OrderBotHandler) GetPerson(tuser *telegram.User) (p person.Person, err
 	p, err = oh.OrderService.Persons.GetByTelegramId(tuser.Id)
 	if err != nil {
 		log.Println(err.Error())
-		p, _ = person.NewPerson(tuser.FirstName)
-		p.TelegramId = tuser.Id
-		p.Lastname = tuser.LastName
-		p, err = oh.OrderService.Persons.Add(p)
+		_, ok := err.(person.ErrorPersonNotFound)
+		if ok {
+			p, _ = person.NewPerson(tuser.FirstName)
+			p.TelegramId = tuser.Id
+			p.Lastname = tuser.LastName
+			p, err = oh.OrderService.Persons.Add(p)
+		}
 	}
 	if err != nil {
 		err = telegram.HelperError{

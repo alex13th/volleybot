@@ -53,6 +53,10 @@ func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
 
 	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname)
 	if err != nil {
+		if err.Error() == "no rows in result set" {
+			err = ErrPersonNotFound
+			return
+		}
 		return
 	}
 	p.LocationRoles, err = rep.GetRoles(p.Id)
