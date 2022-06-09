@@ -71,7 +71,7 @@ func TestTelegramView(t *testing.T) {
 					pl2.Id: {Person: pl2, Count: 3},
 					pl3.Id: {Person: pl3, Count: 1}}},
 			text: "*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
-				"*Игроков:* 12\n1. Elly+1\n3. Steve+2\n6. [Tina](tg://user?id=123456)\n7.\n.\n.\n12.",
+				"*Игроков:* 12\n1-2. Elly\n3-5. Steve\n6. [Tina](tg://user?id=123456)\n7.\n.\n.\n12.",
 			str: "Сб, 04.12 15:00-17:00 (6/12)",
 		},
 		"Canceled": {
@@ -85,7 +85,7 @@ func TestTelegramView(t *testing.T) {
 					pl1.Id: {Person: pl1, Count: 2},
 				}},
 			text: "🔥*ОТМЕНА*🔥\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
-				"*Игроков:* 12\n1. Elly+1\n3.\n.\n.\n12.",
+				"*Игроков:* 12\n1-2. Elly\n3.\n.\n.\n12.",
 			str: "Сб, 04.12 15:00-17:00 (2/12)",
 		},
 	}

@@ -16,6 +16,7 @@ import (
 )
 
 type DateTimeResources struct {
+	DayCount    int
 	DateMessage string
 	DateButton  string
 	TimeMessage string
@@ -126,6 +127,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.Locale = monday.LocaleRuRU
 	or.DateTime.DateMessage = "❓Какая дата❓"
 	or.DateTime.DateButton = "📆 Дата"
+	or.DateTime.DayCount = 30
 	or.DateTime.TimeMessage = "❓В какое время❓"
 	or.DateTime.TimeButton = "⏰ Время"
 	or.Level.Message = "❓Какой минимальный уровень игроков❓"
@@ -168,6 +170,8 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 	oh.Resources = rl.GetResource()
 
 	oh.DateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderdate")
+	oh.DateHelper.Days = oh.Resources.DateTime.DayCount
+	oh.DateHelper.Columns = 3
 	oh.ListDateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderlistdate")
 	oh.TimeHelper = telegram.NewTimeKeyboardHelper(oh.Resources.DateTime.TimeMessage, "ordertime")
 
