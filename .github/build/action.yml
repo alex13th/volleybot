@@ -19,10 +19,6 @@ runs:
       mkdir build
       env GOOS=linux GOARCH=amd64 go build -o build/${{ inputs.bot_name }} -v cmd/tst.go
 
-  - name: Test
-    shell: sh
-    run: go test -v ./...
-
   - name: 'Upload Artifact'
     uses: actions/upload-artifact@v3
     with:

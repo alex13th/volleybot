@@ -8,8 +8,16 @@ import (
 	uuid "github.com/google/uuid"
 )
 
+type ErrorPersonNotFound struct {
+	msg string
+}
+
+func (e ErrorPersonNotFound) Error() string {
+	return e.msg
+}
+
 var (
-	ErrPersonNotFound    = errors.New("the person was not found in the repository")
+	ErrPersonNotFound    = ErrorPersonNotFound{msg: "the person was not found in the repository"}
 	ErrFailedToAddPerson = errors.New("failed to add the person to the repository")
 	ErrUpdatePerson      = errors.New("failed to update the person in the repository")
 	ErrInvalidPerson     = errors.New("a person has to have an valid name")
