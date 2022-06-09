@@ -2,8 +2,10 @@ package reserve
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/goodsign/monday"
+	"github.com/google/uuid"
 )
 
 type ReserveView interface {
@@ -74,8 +76,16 @@ func (tgv *TelegramView) GetText() (text string) {
 
 func (tgv *TelegramView) GetPlayersText() (text string) {
 	count := 0
-	for _, pl := range tgv.Reserve.Players {
+	keys := make([]string, 0, len(tgv.Reserve.Players))
+	for k := range tgv.Reserve.Players {
+		keys = append(keys, k.String())
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		var uname string
+		id, _ := uuid.Parse(k)
+		pl := tgv.Reserve.Players[id]
 		if pl.Person.TelegramId != 0 {
 			uname = "[%s](tg://user?id=%d)"
 			uname = fmt.Sprintf(uname, pl.Person.GetDisplayname(), pl.Person.TelegramId)

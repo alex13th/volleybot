@@ -9,12 +9,12 @@ import (
 )
 
 func TestTelegramView(t *testing.T) {
-	plid, _ := uuid.Parse("da10db9a-490b-4010-9d8c-561cca979dd0")
+	plid, _ := uuid.Parse("14a959fe-b3bb-4538-b7eb-feabc2f5c2c8")
 	pl1 := person.Person{Id: plid, Firstname: "Elly"}
 	person.NewPerson("Elly")
-	plid, _ = uuid.Parse("14a959fe-b3bb-4538-b7eb-feabc2f5c2c8")
-	pl2 := person.Person{Id: plid, Firstname: "Steve"}
 	plid, _ = uuid.Parse("80155587-168c-4255-82ec-991119f3e110")
+	pl2 := person.Person{Id: plid, Firstname: "Steve"}
+	plid, _ = uuid.Parse("da10db9a-490b-4010-9d8c-561cca979dd0")
 	pl3 := person.Person{Id: plid, Firstname: "Tina", TelegramId: 123456}
 	tests := map[string]struct {
 		res  Reserve
