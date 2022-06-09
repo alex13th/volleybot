@@ -46,10 +46,11 @@ type SetResources struct {
 }
 
 type MaxPlayerResources struct {
-	Message string
-	Button  string
-	Min     int
-	Max     int
+	Message    string
+	CountError string
+	Button     string
+	Min        int
+	Max        int
 }
 
 type DescriptionResources struct {
@@ -140,6 +141,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.Court.Max = 6
 	or.Court.MaxPlayers = 6
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
+	or.MaxPlayer.CountError = "Ошибка количества игроков!"
 	or.MaxPlayer.Button = "👫 Мест"
 	or.MaxPlayer.Min = 4
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
@@ -279,9 +281,6 @@ func (oh *OrderBotHandler) ProceedMessage(msg *telegram.Message) (result telegra
 				return oh.ListOrders(m, nil), nil
 			}}
 		oh.MessageHandlers = append(oh.MessageHandlers, &list_cmd)
-		players_state := telegram.StateMessageHandler{State: "orderplayers", StateRepository: oh.StateRepository,
-			Handler: oh.MaxPlayersState}
-		oh.MessageHandlers = append(oh.MessageHandlers, &players_state)
 		desc_state := telegram.StateMessageHandler{State: "orderdesc", StateRepository: oh.StateRepository,
 			Handler: oh.DescriptionState}
 		oh.MessageHandlers = append(oh.MessageHandlers, &desc_state)
@@ -769,27 +768,9 @@ func (oh *OrderBotHandler) DescriptionCallback(cq *telegram.CallbackQuery) (resu
 	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
 }
 
-func (oh *OrderBotHandler) MaxPlayersState(msg *telegram.Message, state telegram.State) (result telegram.MessageResponse, err error) {
-	count, err := strconv.Atoi(msg.Text)
-	if err != nil {
-		herr := telegram.HelperError{Msg: err.Error(), AnswerMsg: "Maximum players count message convert error"}
-		oh.StateRepository.Clear(state.ChatId)
-		return oh.SendMessageError(msg, herr, nil)
-	}
-
-	res, err := oh.GetDataReserve(state.Data, nil)
-	if err != nil {
-		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
-	}
-	res.CourtCount = count
-	oh.StateRepository.Clear(state.ChatId)
-	return oh.UpdateReserveMsg(res, msg, state.MessageId)
-}
-
-func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
 	ch := oh.PlayerCountHelper
-	err = ch.Parse(cq.Data)
-	if err != nil {
+	if err = ch.Parse(cq.Data); err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 
@@ -798,6 +779,10 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resul
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 	if ch.Action == "set" {
+		if ch.Count < res.PlayerCount(uuid.Nil) {
+			err = telegram.HelperError{Msg: "Max player count error.", AnswerMsg: oh.Resources.MaxPlayer.CountError}
+			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+		}
 		res.MaxPlayers = ch.Count
 		oh.StateRepository.Clear(cq.Message.Chat.Id)
 		return oh.UpdateReserveCQ(res, cq)
@@ -867,12 +852,7 @@ func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result
 	if ch.Action == "set" {
 		return oh.JoinPlayer(cq, ch.Data, ch.Count)
 	} else {
-		pl_count := 0
-		for pl_id, pl := range res.Players {
-			if pl_id != p.Id {
-				pl_count += pl.Count
-			}
-		}
+		pl_count := res.PlayerCount(p.Id)
 		ch.Min = 1
 		ch.Max = res.MaxPlayers - pl_count
 		var mr telegram.EditMessageTextRequest

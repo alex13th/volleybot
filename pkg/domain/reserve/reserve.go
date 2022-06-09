@@ -140,3 +140,12 @@ func (res Reserve) Ordered() (ordered bool) {
 		res.CourtCount > 0 && res.MaxPlayers > 0 && !res.Canceled)
 	return
 }
+
+func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
+	for pl_id, pl := range res.Players {
+		if pl_id != pid {
+			count += pl.Count
+		}
+	}
+	return
+}
