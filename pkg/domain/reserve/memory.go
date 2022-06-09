@@ -45,7 +45,7 @@ func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve, ordere
 			}
 		}
 		if ordered {
-			if !res.Orderd() {
+			if !res.Ordered() {
 				continue
 			}
 		}

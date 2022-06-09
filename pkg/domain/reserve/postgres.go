@@ -215,7 +215,7 @@ func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Description)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -223,8 +223,7 @@ func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	if err != nil {
 		return
 	}
-	res = r
-	res.Id = ReserveId
+	res, err = rep.Get(ReserveId)
 
 	return
 }
@@ -239,7 +238,7 @@ func (rep *PgRepository) Update(r Reserve) (err error) {
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
 		r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Orderd(), r.Canceled, r.Description, r.Id)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Id)
 	if err != nil {
 		return
 	}

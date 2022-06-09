@@ -111,6 +111,12 @@ func (res *Reserve) HasPlayerByTelegramId(id int) bool {
 	return false
 }
 
+func (res *Reserve) Copy() (result Reserve) {
+	result = *res
+	result.Id = uuid.New()
+	return
+}
+
 func (res *Reserve) CheckConflicts(other Reserve) bool {
 
 	OtherStartTime := other.GetStartTime()
@@ -129,7 +135,7 @@ func (res *Reserve) CheckConflicts(other Reserve) bool {
 	return false
 }
 
-func (res Reserve) Orderd() (ordered bool) {
+func (res Reserve) Ordered() (ordered bool) {
 	ordered = (!res.StartTime.IsZero() && res.GetDuration() > 0 &&
 		res.CourtCount > 0 && res.MaxPlayers > 0 && !res.Canceled)
 	return
