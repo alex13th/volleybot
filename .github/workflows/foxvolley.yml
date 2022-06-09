@@ -8,9 +8,18 @@ env:
   BOT_NAME: foxbot
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Test
+      run: go test -v ./...
 
   build:
     runs-on: ubuntu-latest
+    needs: ['test']
     steps:
     - name: Check out repository
       uses: actions/checkout@v3
