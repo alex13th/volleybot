@@ -145,7 +145,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	return
 }
 
-func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uuid.UUID]Reserve, err error) {
+func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool, sorted bool) (rmap []Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, description, " +
 		"telegram_id, firstname, lastname, fullname, " +
@@ -174,11 +174,14 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 		wheresql = " WHERE" + wheresql
 	}
 	squery := sql_str + wheresql
+	if sorted {
+		squery += " ORDER BY start_time"
+	}
 	rows, err := rep.dbpool.Query(context.Background(), squery, params...)
 	if err != nil {
 		return rmap, err
 	}
-	rmap = make(map[uuid.UUID]Reserve)
+	rmap = []Reserve{}
 
 	for rows.Next() {
 		res := Reserve{}
@@ -200,7 +203,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool) (rmap map[uu
 			res.Location.CourtCount = int(lcourts.Int64)
 		}
 		res.Players, err = rep.GetPlayers(res.Id)
-		rmap[res.Id] = res
+		rmap = append(rmap, res)
 	}
 	return
 }

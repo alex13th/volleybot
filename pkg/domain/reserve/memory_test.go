@@ -39,10 +39,7 @@ func CreateTestReserves() (repo *MemoryRepository, pl []person.Person, rl []Rese
 	)
 
 	repo = &MemoryRepository{}
-	repo.reserves = map[uuid.UUID]Reserve{}
-	for _, res := range rl {
-		repo.reserves[res.Id] = res
-	}
+	repo.reserves = rl
 	return
 }
 
@@ -63,7 +60,7 @@ func TestMemory_GetReserve(t *testing.T) {
 	id := res.Id
 
 	repo := MemoryRepository{
-		reserves: map[uuid.UUID]Reserve{res.Id: res},
+		reserves: []Reserve{res},
 	}
 
 	testCases := []testCase{
@@ -107,7 +104,7 @@ func TestMemory_AddReserve(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := MemoryRepository{
-				reserves: map[uuid.UUID]Reserve{},
+				reserves: []Reserve{},
 			}
 
 			duration, _ := time.ParseDuration(tc.duration)
@@ -145,33 +142,33 @@ func TestMemory_GetByFilter(t *testing.T) {
 		p     person.Person
 		start time.Time
 		end   time.Time
-		want  map[uuid.UUID]Reserve
+		want  []Reserve
 	}{
 		"Date 05 list": {
 			start: time.Date(2021, 12, 04, 0, 0, 0, 0, time.UTC),
 			end:   time.Date(2021, 12, 04, 23, 59, 0, 0, time.UTC),
-			want:  map[uuid.UUID]Reserve{rl[0].Id: rl[0], rl[1].Id: rl[1]},
+			want:  []Reserve{rl[0], rl[1]},
 		},
 		"Date 04 list": {
 			start: time.Date(2021, 12, 05, 0, 0, 0, 0, time.UTC),
 			end:   time.Date(2021, 12, 05, 23, 59, 0, 0, time.UTC),
-			want:  map[uuid.UUID]Reserve{rl[2].Id: rl[2], rl[3].Id: rl[3]},
+			want:  []Reserve{rl[2], rl[3]},
 		},
 		"Date greater 04 list": {
 			start: time.Date(2021, 12, 04, 0, 0, 0, 0, time.UTC),
-			want:  map[uuid.UUID]Reserve{rl[0].Id: rl[0], rl[1].Id: rl[1], rl[2].Id: rl[2], rl[3].Id: rl[3]},
+			want:  []Reserve{rl[0], rl[1], rl[2], rl[3]},
 		},
 		"Date less 04 list": {
 			end:  time.Date(2021, 12, 04, 23, 59, 0, 0, time.UTC),
-			want: map[uuid.UUID]Reserve{rl[0].Id: rl[0], rl[1].Id: rl[1]},
+			want: []Reserve{rl[0], rl[1]},
 		},
 		"Person 0 list": {
 			p:    pl[0],
-			want: map[uuid.UUID]Reserve{rl[0].Id: rl[0], rl[2].Id: rl[2]},
+			want: []Reserve{rl[0], rl[2]},
 		},
 		"Person 1 list": {
 			p:    pl[1],
-			want: map[uuid.UUID]Reserve{rl[1].Id: rl[1], rl[3].Id: rl[3]},
+			want: []Reserve{rl[1], rl[3]},
 		},
 	}
 
