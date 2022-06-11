@@ -5,13 +5,12 @@ import (
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type OrderConfiguration func(os *OrderService) error
 type ReserveListResult struct {
-	Reserves map[uuid.UUID]reserve.Reserve
+	Reserves []reserve.Reserve
 	Err      error
 }
 type ReserveResult struct {
@@ -112,8 +111,8 @@ func (serv *OrderService) CancelOrder(r reserve.Reserve, rchan chan error) (err 
 	return
 }
 
-func (serv *OrderService) List(filter reserve.Reserve, ordered bool, rchan chan ReserveListResult) (rlist map[uuid.UUID]reserve.Reserve, err error) {
-	rlist, err = serv.Reserves.GetByFilter(filter, ordered)
+func (serv *OrderService) List(filter reserve.Reserve, ordered bool, rchan chan ReserveListResult) (rlist []reserve.Reserve, err error) {
+	rlist, err = serv.Reserves.GetByFilter(filter, ordered, true)
 	if rchan != nil {
 		rchan <- ReserveListResult{Reserves: rlist, Err: err}
 	}

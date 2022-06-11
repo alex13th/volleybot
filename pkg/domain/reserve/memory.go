@@ -10,19 +10,19 @@ import (
 )
 
 type MemoryRepository struct {
-	reserves map[uuid.UUID]Reserve
+	reserves []Reserve
 	sync.Mutex
 }
 
-func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve, ordered bool) (mr MemoryRepository) {
+func NewMemoryRepository(reserves *[]Reserve, filter Reserve, ordered bool) (mr MemoryRepository) {
 	if reserves == nil {
 		return MemoryRepository{
-			reserves: make(map[uuid.UUID]Reserve),
+			reserves: []Reserve{},
 		}
 	}
 
-	mr.reserves = make(map[uuid.UUID]Reserve)
-	for id, res := range *reserves {
+	mr.reserves = []Reserve{}
+	for _, res := range *reserves {
 		if filter.Person.Id != uuid.Nil && res.Person.Id != filter.Person.Id {
 			continue
 		}
@@ -50,19 +50,21 @@ func NewMemoryRepository(reserves *map[uuid.UUID]Reserve, filter Reserve, ordere
 			}
 		}
 
-		mr.reserves[id] = res
+		mr.reserves = append(mr.reserves, res)
 	}
 	return
 }
 
 func (mr *MemoryRepository) Get(id uuid.UUID) (Reserve, error) {
-	if reserve, ok := mr.reserves[id]; ok {
-		return reserve, nil
+	for _, res := range mr.reserves {
+		if res.Id == id {
+			return res, nil
+		}
 	}
 	return Reserve{}, ErrReserveNotFound
 }
 
-func (rep *MemoryRepository) GetByFilter(filter Reserve, ordered bool) (res map[uuid.UUID]Reserve, err error) {
+func (rep *MemoryRepository) GetByFilter(filter Reserve, ordered bool, sorted bool) (res []Reserve, err error) {
 	newrep := NewMemoryRepository(&rep.reserves, filter, ordered)
 	return newrep.reserves, nil
 }
@@ -70,29 +72,33 @@ func (rep *MemoryRepository) GetByFilter(filter Reserve, ordered bool) (res map[
 func (rep *MemoryRepository) Add(r Reserve) (res Reserve, err error) {
 	if rep.reserves == nil {
 		rep.Lock()
-		rep.reserves = make(map[uuid.UUID]Reserve)
+		rep.reserves = []Reserve{}
 		rep.Unlock()
 	}
 
-	if _, ok := rep.reserves[r.Id]; ok {
-		err = fmt.Errorf("reserve already exists: %w", ErrFailedToAddReserve)
-		return
+	for _, rr := range rep.reserves {
+		if rr.Id == r.Id {
+			err = fmt.Errorf("reserve already exists: %w", ErrFailedToAddReserve)
+			return
+		}
 	}
 	rep.Lock()
-	rep.reserves[r.Id] = r
+	rep.reserves = append(rep.reserves, r)
 	res = r
 	rep.Unlock()
 	return
 }
 
 func (mr *MemoryRepository) Update(memr Reserve) error {
-	if _, ok := mr.reserves[memr.Id]; !ok {
-		return fmt.Errorf("reserve does not exist: %w", ErrUpdateReserve)
+	for idx, res := range mr.reserves {
+		if res.Id == memr.Id {
+			mr.Lock()
+			mr.reserves[idx] = memr
+			mr.Unlock()
+			return nil
+		}
 	}
-	mr.Lock()
-	mr.reserves[memr.Id] = memr
-	mr.Unlock()
-	return nil
+	return fmt.Errorf("reserve does not exist: %w", ErrUpdateReserve)
 }
 
 func (mr *MemoryRepository) AddPlayer(r Reserve, pl person.Person, count int) (Reserve, error) {

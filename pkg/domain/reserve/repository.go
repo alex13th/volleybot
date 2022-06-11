@@ -7,10 +7,10 @@ import (
 )
 
 type ReserveRepository interface {
-	Get(uuid.UUID) (Reserve, error)
-	GetByFilter(Reserve, bool) (map[uuid.UUID]Reserve, error)
 	Add(Reserve) (Reserve, error)
 	AddPlayer(Reserve, person.Person, int) (Reserve, error)
+	Get(uuid.UUID) (Reserve, error)
+	GetByFilter(res Reserve, oredered bool, sorted bool) ([]Reserve, error)
 	UpdatePlayer(Reserve, person.Person, int) (Reserve, error)
 	Update(Reserve) error
 }
