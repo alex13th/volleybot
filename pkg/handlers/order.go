@@ -143,7 +143,7 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
 	or.MaxPlayer.CountError = "Ошибка количества игроков!"
 	or.MaxPlayer.Button = "👫 Мест"
-	or.MaxPlayer.Min = 4
+	or.MaxPlayer.Min = 1
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
 	or.JoinPlayer.Message = "❓Сколько игроков записать❓"
 	or.JoinPlayer.Button = "😀 Буду"
