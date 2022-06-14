@@ -133,6 +133,10 @@ func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) {
 	tb.SendMessage(msg.CreateMessageRequest(Text, mr))
 }
 
+func (msg *Message) DeleteMessage(tb *Bot) {
+	tb.SendMessage(&DeleteMessageRequest{ChatId: msg.Chat.Id, MessageId: msg.MessageId})
+}
+
 func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }

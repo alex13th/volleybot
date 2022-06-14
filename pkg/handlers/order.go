@@ -949,6 +949,7 @@ func (oh *OrderBotHandler) NotifyPlayers(res reserve.Reserve, id int) {
 				mr := oh.GetReserveMR(res, nil)
 				mr.ChatId = pl.Person.TelegramId
 				oh.Bot.SendMessage(&mr)
+				return
 			}
 		}
 	}
@@ -968,7 +969,7 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 	if renew && cq.Message.Chat.Id < 0 {
 		mr := oh.GetReserveMR(res, oh.GetReserveActions(res, p, cq.Message.Chat.Id))
 		cq.Message.SendMessage(oh.Bot, "", &mr)
-		cq.Message.EditText(oh.Bot, oh.Resources.RenewMessage, nil)
+		cq.Message.DeleteMessage(oh.Bot)
 
 	} else {
 		mr := oh.GetReserveEditMR(res, oh.GetReserveActions(res, p, cq.Message.Chat.Id))

@@ -276,3 +276,36 @@ func TestGetSetMyCommandsRequestParams(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteMessageRequestParams(t *testing.T) {
+	tests := map[string]struct {
+		request *DeleteMessageRequest
+		want    map[string]string
+	}{
+		"Commands without Scope": {
+			request: &DeleteMessageRequest{ChatId: 12345, MessageId: 54321},
+			want:    map[string]string{"chat_id": "12345", "message_id": "54321"},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			values, method, err := test.request.GetParams()
+
+			if err != nil {
+				t.Fail()
+			}
+
+			if method != "deleteMessage" {
+				t.Fail()
+			}
+
+			for name, val := range test.want {
+				valStr := values.Get(name)
+				if valStr != val {
+					t.Fail()
+				}
+			}
+		})
+	}
+}
