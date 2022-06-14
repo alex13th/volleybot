@@ -92,11 +92,9 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 		} else {
 			uname = pl.Person.GetDisplayname()
 		}
-
-		if pl.Count > 1 {
-			text += fmt.Sprintf("\n%d-%d. %s", count+1, count+pl.Count, uname)
-		} else {
-			text += fmt.Sprintf("\n%d. %s", count+1, uname)
+		text += fmt.Sprintf("\n%d. %s", count+1, uname)
+		for i := 1; i < pl.Count; i++ {
+			text += fmt.Sprintf("\n%d. %s+%d", count+i+1, uname, i)
 		}
 		count += pl.Count
 	}

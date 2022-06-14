@@ -50,7 +50,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, location_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
 		"min_level INT, court_count INT, max_players INT, " +
-		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(100));"
+		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000));"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
