@@ -189,3 +189,19 @@ func (req *SetMyCommandsRequest) GetParams() (val url.Values, method string, err
 	defer req.mu.RUnlock()
 	return
 }
+
+type DeleteMessageRequest struct {
+	mu        sync.RWMutex
+	ChatId    interface{} `json:"chat_id"`
+	MessageId int         `json:"message_id"`
+}
+
+func (req *DeleteMessageRequest) GetParams() (val url.Values, method string, err error) {
+	req.mu.RLock()
+	method = "deleteMessage"
+	val = url.Values{}
+	val.Add("chat_id", fmt.Sprint(req.ChatId))
+	val.Add("message_id", fmt.Sprint(req.MessageId))
+	defer req.mu.RUnlock()
+	return
+}
