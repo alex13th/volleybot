@@ -150,7 +150,7 @@ func (msg *Message) CreateMessageRequest(Text string, mr *MessageRequest) (resul
 		result = mr
 	}
 	result.ChatId = msg.Chat.Id
-	result.Text = Text
+	result.Text += Text
 
 	return
 }
