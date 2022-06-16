@@ -237,8 +237,21 @@ type OrderBotHandler struct {
 	CallbackHandlers   []telegram.CallbackHandler
 }
 
-func (oh *OrderBotHandler) GetCommands() (cmds []telegram.BotCommand) {
+func (oh *OrderBotHandler) GetCommands(tuser *telegram.User) (cmds []telegram.BotCommand) {
 	cmds = append(cmds, oh.Resources.ListCommand)
+	p, err := oh.GetPerson(tuser)
+	if err != nil {
+		return
+	}
+	l, err := oh.GetLocation(oh.Resources.Location.Name)
+
+	if err != nil {
+		return
+	}
+
+	if p.CheckLocationRole(l, "admin") || p.CheckLocationRole(l, "order") {
+		cmds = append(cmds, oh.Resources.OrderCommand)
+	}
 	return
 }
 

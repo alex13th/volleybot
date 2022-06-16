@@ -216,3 +216,8 @@ type BotCommand struct {
 type BotCommandScope struct {
 	Type string `json:"type"`
 }
+
+type BotCommandScopeChat struct {
+	Type   string      `json:"type"`
+	ChatId interface{} `json:"chat_id"`
+}

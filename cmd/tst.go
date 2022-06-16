@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"volleybot/pkg/handlers"
@@ -12,8 +13,9 @@ import (
 )
 
 type StartHandler struct {
-	Bot     *telegram.Bot
-	Command telegram.BotCommand
+	Bot          *telegram.Bot
+	Command      telegram.BotCommand
+	orderHandler *handlers.OrderBotHandler
 }
 
 func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
@@ -22,10 +24,15 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 	}
 	text := "*Привет!*\n" +
 		"Я достаточно молодой волейбольный бот, но кое-что я могу.\n\n" +
-		"*Вот те команды, которые я уже понимаю:*\n" +
-		"/list - можно просмотреть список уже заказанных площадок;\n" +
-		// "/order - забронировать площадки для себя и друзей;\n" +
-		"/start - посмотреть это приветствие"
+		"*Вот те команды, которые я уже понимаю:*"
+	cmds := []telegram.BotCommand{h.Command}
+	cmds = append(cmds, h.orderHandler.GetCommands(msg.From)...)
+	for _, cmd := range cmds {
+		text += fmt.Sprintf("\n/%s - %s", cmd.Command, cmd.Description)
+	}
+	h.Bot.SendRequest(&telegram.SetMyCommandsRequest{
+		Commands: cmds, Scope: telegram.BotCommandScopeChat{Type: "chat", ChatId: msg.From.Id}})
+
 	mr := &telegram.MessageRequest{
 		ChatId:    msg.Chat.Id,
 		Text:      text,
@@ -67,10 +74,10 @@ func main() {
 		}}
 	lp.UpdateHandlers[0].AppendMessageHandler(&startcmd)
 
+	sh.orderHandler = &orderHandler
 	sh.Command.Command = "start"
 	sh.Command.Description = "начать работу с ботом"
 	cmds := []telegram.BotCommand{sh.Command}
-	cmds = append(cmds, orderHandler.GetCommands()...)
 
 	_, err = tb.SendRequest(&telegram.SetMyCommandsRequest{
 		Commands: cmds, Scope: telegram.BotCommandScope{Type: "all_private_chats"}})
