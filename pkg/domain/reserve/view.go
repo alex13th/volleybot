@@ -12,22 +12,26 @@ type ReserveView interface {
 
 func NewTelegramViewRu(res Reserve) TelegramView {
 	return TelegramView{
-		Reserve:     res,
-		CancelLabel: "🔥*ОТМЕНА*🔥",
-		DateLabel:   "📆",
-		TimeLabel:   "⏰",
-		Locale:      monday.LocaleRuRU,
-		ParseMode:   "Markdown",
+		Reserve:       res,
+		CancelLabel:   "🔥 *ОТМЕНА* 🔥",
+		GameLabel:     "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
+		TrainingLabel: "‼️ *ТРЕНИРОВКА* ‼️",
+		DateLabel:     "📆",
+		TimeLabel:     "⏰",
+		Locale:        monday.LocaleRuRU,
+		ParseMode:     "Markdown",
 	}
 }
 
 type TelegramView struct {
-	Reserve     Reserve
-	CancelLabel string
-	DateLabel   string
-	TimeLabel   string
-	Locale      monday.Locale
-	ParseMode   string
+	Reserve       Reserve
+	CancelLabel   string
+	GameLabel     string
+	TrainingLabel string
+	DateLabel     string
+	TimeLabel     string
+	Locale        monday.Locale
+	ParseMode     string
 }
 
 func (tgv *TelegramView) String() string {
@@ -42,7 +46,11 @@ func (tgv *TelegramView) String() string {
 
 func (tgv *TelegramView) GetText() (text string) {
 	if tgv.Reserve.Canceled {
-		text = tgv.CancelLabel + "\n"
+		text = tgv.CancelLabel + "\n\n"
+	} else if tgv.Reserve.Activity == 10 {
+		text = tgv.TrainingLabel + "\n\n"
+	} else {
+		text = tgv.GameLabel + "\n\n"
 	}
 	var uname string
 	if tgv.Reserve.Person.TelegramId != 0 {
@@ -87,7 +95,7 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 		count++
 		if !over && count > tgv.Reserve.MaxPlayers {
 			over = true
-			text += "\n*Резерв:*"
+			text += "\n\n*Резерв:*"
 			count = 1
 		}
 		for i := 1; i < pl.Count; i++ {
