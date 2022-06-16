@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	ErrReserveInvalidPeriod = errors.New("the reserve was not found in the repository")
-	ErrFailedToAddReserve   = errors.New("failed to add the reserve to the repository")
-	ErrUpdateReserve        = errors.New("failed to update the reserve in the repository")
-	ErrReserveNotFound      = errors.New("a reserve has to have an valid person")
+	ErrReserveInvalidPeriod  = errors.New("the reserve was not found in the repository")
+	ErrFailedToAddReserve    = errors.New("failed to add the reserve to the repository")
+	ErrUpdateReserve         = errors.New("failed to update the reserve in the repository")
+	ErrReserveNotFound       = errors.New("a reserve has to have an valid person")
+	ErrReservePlayerNotFound = errors.New("a reserve has to have an valid player")
 )
 
 func NewPreReserve(p person.Person) Reserve {
@@ -22,7 +23,7 @@ func NewPreReserve(p person.Person) Reserve {
 		Person:     p,
 		CourtCount: 1,
 		MaxPlayers: 6,
-		Players:    make(map[uuid.UUID]Player)}
+		Players:    []Player{}}
 }
 
 func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve, err error) {
@@ -37,8 +38,8 @@ func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve, e
 }
 
 type Player struct {
-	Person person.Person
-	Count  int
+	person.Person
+	Count int
 }
 
 type PlayerLevel int
@@ -69,20 +70,35 @@ func (pl PlayerLevel) String() string {
 	return lnames[int(pl)]
 }
 
+type Activity int
+
+const (
+	Game     PlayerLevel = 0
+	Training PlayerLevel = 10
+)
+
+func (a Activity) String() string {
+	lnames := make(map[int]string)
+	lnames[0] = "Игры"
+	lnames[10] = "Тренировка"
+	return lnames[int(a)]
+}
+
 type Reserve struct {
-	Id          uuid.UUID            `json:"id"`
-	Person      person.Person        `json:"person"`
-	Location    location.Location    `json:"location"`
-	StartTime   time.Time            `json:"start_time"`
-	EndTime     time.Time            `json:"end_time"`
-	MinLevel    int                  `json:"min_level"`
-	Price       int                  `json:"price"`
-	CourtCount  int                  `json:"court_count"`
-	MaxPlayers  int                  `json:"max_players"`
-	Approved    bool                 `json:"approved"`
-	Canceled    bool                 `json:"canceled"`
-	Players     map[uuid.UUID]Player `json:"players"`
-	Description string               `json:"description"`
+	Id          uuid.UUID         `json:"id"`
+	Activity    int               `json:"activity"`
+	Person      person.Person     `json:"person"`
+	Location    location.Location `json:"location"`
+	StartTime   time.Time         `json:"start_time"`
+	EndTime     time.Time         `json:"end_time"`
+	MinLevel    int               `json:"min_level"`
+	Price       int               `json:"price"`
+	CourtCount  int               `json:"court_count"`
+	MaxPlayers  int               `json:"max_players"`
+	Approved    bool              `json:"approved"`
+	Canceled    bool              `json:"canceled"`
+	Players     []Player          `json:"players"`
+	Description string            `json:"description"`
 }
 
 func (res *Reserve) GetPerson() person.Person {
@@ -142,10 +158,28 @@ func (res Reserve) Ordered() (ordered bool) {
 }
 
 func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
-	for pl_id, pl := range res.Players {
-		if pl_id != pid {
+	for i, pl := range res.Players {
+		if res.Players[i].Id != pid {
 			count += pl.Count
 		}
 	}
 	return
+}
+
+func (res *Reserve) GetPlayer(pid uuid.UUID) (pl Player) {
+	for _, pl := range res.Players {
+		if pl.Id != pid {
+			return pl
+		}
+	}
+	return
+}
+
+func (res *Reserve) JoinPlayer(pl Player) {
+	for i, p := range res.Players {
+		if p.Id == pl.Id {
+			res.Players[i] = pl
+		}
+	}
+	res.Players = append(res.Players, pl)
 }

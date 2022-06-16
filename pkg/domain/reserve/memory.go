@@ -102,11 +102,22 @@ func (mr *MemoryRepository) Update(memr Reserve) error {
 }
 
 func (mr *MemoryRepository) AddPlayer(r Reserve, pl person.Person, count int) (Reserve, error) {
-	r.Players[pl.Id] = Player{Person: pl, Count: count}
+	for i, p := range r.Players {
+		if p.Id == pl.Id {
+			r.Players[i] = Player{Person: pl, Count: count}
+			return r, nil
+		}
+	}
+	r.Players = append(r.Players, Player{Person: pl, Count: count})
 	return r, nil
 }
 
 func (mr *MemoryRepository) UpdatePlayer(r Reserve, pl person.Person, count int) (Reserve, error) {
-	r.Players[pl.Id] = Player{Person: pl, Count: count}
-	return r, nil
+	for i, p := range r.Players {
+		if p.Id == pl.Id {
+			r.Players[i] = Player{Person: pl, Count: count}
+			return r, nil
+		}
+	}
+	return r, ErrReservePlayerNotFound
 }

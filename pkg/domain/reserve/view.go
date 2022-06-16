@@ -2,10 +2,8 @@ package reserve
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/goodsign/monday"
-	"github.com/google/uuid"
 )
 
 type ReserveView interface {
@@ -14,22 +12,26 @@ type ReserveView interface {
 
 func NewTelegramViewRu(res Reserve) TelegramView {
 	return TelegramView{
-		Reserve:     res,
-		CancelLabel: "🔥*ОТМЕНА*🔥",
-		DateLabel:   "📆",
-		TimeLabel:   "⏰",
-		Locale:      monday.LocaleRuRU,
-		ParseMode:   "Markdown",
+		Reserve:       res,
+		CancelLabel:   "🔥 *ОТМЕНА* 🔥",
+		GameLabel:     "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
+		TrainingLabel: "‼️ *ТРЕНИРОВКА* ‼️",
+		DateLabel:     "📆",
+		TimeLabel:     "⏰",
+		Locale:        monday.LocaleRuRU,
+		ParseMode:     "Markdown",
 	}
 }
 
 type TelegramView struct {
-	Reserve     Reserve
-	CancelLabel string
-	DateLabel   string
-	TimeLabel   string
-	Locale      monday.Locale
-	ParseMode   string
+	Reserve       Reserve
+	CancelLabel   string
+	GameLabel     string
+	TrainingLabel string
+	DateLabel     string
+	TimeLabel     string
+	Locale        monday.Locale
+	ParseMode     string
 }
 
 func (tgv *TelegramView) String() string {
@@ -44,7 +46,11 @@ func (tgv *TelegramView) String() string {
 
 func (tgv *TelegramView) GetText() (text string) {
 	if tgv.Reserve.Canceled {
-		text = tgv.CancelLabel + "\n"
+		text = tgv.CancelLabel + "\n\n"
+	} else if tgv.Reserve.Activity == 10 {
+		text = tgv.TrainingLabel + "\n\n"
+	} else {
+		text = tgv.GameLabel + "\n\n"
 	}
 	var uname string
 	if tgv.Reserve.Person.TelegramId != 0 {
@@ -75,33 +81,37 @@ func (tgv *TelegramView) GetText() (text string) {
 }
 
 func (tgv *TelegramView) GetPlayersText() (text string) {
-	count := 0
-	keys := make([]string, 0, len(tgv.Reserve.Players))
-	for k := range tgv.Reserve.Players {
-		keys = append(keys, k.String())
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
+	count := 1
+	over := false
+	for _, pl := range tgv.Reserve.Players {
 		var uname string
-		id, _ := uuid.Parse(k)
-		pl := tgv.Reserve.Players[id]
 		if pl.Person.TelegramId != 0 {
 			uname = "[%s](tg://user?id=%d)"
 			uname = fmt.Sprintf(uname, pl.Person.GetDisplayname(), pl.Person.TelegramId)
 		} else {
 			uname = pl.Person.GetDisplayname()
 		}
-		text += fmt.Sprintf("\n%d. %s", count+1, uname)
-		for i := 1; i < pl.Count; i++ {
-			text += fmt.Sprintf("\n%d. %s+%d", count+i+1, uname, i)
+		text += fmt.Sprintf("\n%d. %s", count, uname)
+		count++
+		if !over && count > tgv.Reserve.MaxPlayers {
+			over = true
+			text += "\n\n*Резерв:*"
+			count = 1
 		}
-		count += pl.Count
+		for i := 1; i < pl.Count; i++ {
+			text += fmt.Sprintf("\n%d. %s+%d", count, uname, i)
+			count++
+			if !over && count > tgv.Reserve.MaxPlayers {
+				over = true
+				text += "\n\n*Резерв:*"
+				count = 1
+			}
+		}
 	}
-	if tgv.Reserve.MaxPlayers-count-1 > 3 {
-		text += fmt.Sprintf("\n%d.\n.\n.\n%d.", count+1, tgv.Reserve.MaxPlayers)
-	} else if tgv.Reserve.MaxPlayers > 0 {
-		for i := count + 1; i <= tgv.Reserve.MaxPlayers; i++ {
+	if !over && tgv.Reserve.MaxPlayers-count > 3 {
+		text += fmt.Sprintf("\n%d.\n.\n.\n%d.", count, tgv.Reserve.MaxPlayers)
+	} else if !over && tgv.Reserve.MaxPlayers > 0 {
+		for i := count; i <= tgv.Reserve.MaxPlayers; i++ {
 			text += fmt.Sprintf("\n%d.", i)
 		}
 	}
