@@ -176,7 +176,11 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 	oh.DateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderdate")
 	oh.DateHelper.Days = oh.Resources.DateTime.DayCount
 	oh.DateHelper.Columns = 3
+
 	oh.ListDateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderlistdate")
+	oh.ListDateHelper.Days = oh.Resources.DateTime.DayCount
+	oh.ListDateHelper.Columns = 3
+
 	oh.TimeHelper = telegram.NewTimeKeyboardHelper(oh.Resources.DateTime.TimeMessage, "ordertime")
 
 	levels := []telegram.EnumItem{}
