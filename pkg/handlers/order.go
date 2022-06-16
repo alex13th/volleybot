@@ -38,6 +38,13 @@ type PlayerLevelResources struct {
 	Max     int
 }
 
+type ActivityResources struct {
+	Message string
+	Button  string
+	Min     int
+	Max     int
+}
+
 type SetResources struct {
 	Message string
 	Button  string
@@ -94,6 +101,7 @@ type OrderResources struct {
 	Description       DescriptionResources
 	DateTime          DateTimeResources
 	Court             CourtResources
+	Activity          ActivityResources
 	Level             PlayerLevelResources
 	Set               SetResources
 	MaxPlayer         MaxPlayerResources
@@ -132,6 +140,8 @@ func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
 	or.DateTime.DayCount = 30
 	or.DateTime.TimeMessage = "❓В какое время❓"
 	or.DateTime.TimeButton = "⏰ Время"
+	or.Activity.Message = "❓Какой будет вид активности❓"
+	or.Activity.Button = "Вид активности"
 	or.Level.Message = "❓Какой минимальный уровень игроков❓"
 	or.Level.Button = "💪 Уровень"
 	or.Set.Message = "❓Количество часов❓"
@@ -188,6 +198,11 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 		levels = append(levels, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.PlayerLevel(i)})
 	}
 	oh.MinLevelHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Level.Message, "orderminlevel", levels)
+	activities := []telegram.EnumItem{}
+	for i := 0; i <= 10; i += 10 {
+		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.Activity(i)})
+	}
+	oh.ActivityHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderactivity", activities)
 
 	oh.CourtsHelper = telegram.NewCountKeyboardHelper(oh.Resources.Court.Message, "ordercourts", 1, oh.Resources.Court.Max)
 	oh.SetsHelper = telegram.NewCountKeyboardHelper(oh.Resources.Set.Message, "ordersets", 1, oh.Resources.Court.Max)
@@ -210,6 +225,7 @@ type OrderBotHandler struct {
 	DateHelper         telegram.DateKeyboardHelper
 	ListDateHelper     telegram.DateKeyboardHelper
 	TimeHelper         telegram.TimeKeyboardHelper
+	ActivityHelper     telegram.EnumKeyboardHelper
 	MinLevelHelper     telegram.EnumKeyboardHelper
 	CourtsHelper       telegram.CountKeyboardHelper
 	SetsHelper         telegram.CountKeyboardHelper
@@ -236,6 +252,8 @@ func (oh *OrderBotHandler) ProceedCallback(cq *telegram.CallbackQuery) (result t
 			&telegram.PrefixCallbackHandler{Prefix: "ordertime", Handler: oh.StartTimeCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "orderminlevel", Handler: oh.MinLevelCallback})
+		oh.CallbackHandlers = append(oh.CallbackHandlers,
+			&telegram.PrefixCallbackHandler{Prefix: "orderactivity", Handler: oh.ActivityCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
 			&telegram.PrefixCallbackHandler{Prefix: "ordercourts", Handler: oh.CourtsCallback})
 		oh.CallbackHandlers = append(oh.CallbackHandlers,
@@ -482,6 +500,8 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, p person.Perso
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "ordertime", Text: oh.Resources.DateTime.TimeButton})
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
+				Prefix: "orderactivity", Text: oh.Resources.Activity.Button})
+			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "ordersets", Text: oh.Resources.Set.Button})
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "orderminlevel", Text: oh.Resources.Level.Button})
@@ -718,6 +738,32 @@ func (oh *OrderBotHandler) MinLevelCallback(cq *telegram.CallbackQuery) (result 
 	}
 }
 
+func (oh *OrderBotHandler) ActivityCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ch := oh.ActivityHelper
+	err = ch.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(ch.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	if ch.Action == "set" {
+		act, err := strconv.Atoi(ch.Choice)
+		res.Activity = act
+		if err != nil {
+			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+		}
+		return oh.UpdateReserveCQ(res, cq, false)
+	} else {
+		mr := oh.GetReserveEditMR(res, &ch)
+		mr.ChatId = cq.Message.Chat.Id
+		cq.Message.EditText(oh.Bot, "", &mr)
+		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+	}
+}
+
 func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
 	ch := oh.CourtsHelper
 	err = ch.Parse(cq.Data)
@@ -862,7 +908,12 @@ func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result
 		return oh.JoinPlayer(cq, ch.Data, ch.Count)
 	} else {
 		ch.Min = 1
-		ch.Max = res.MaxPlayers
+		ch.Max = res.MaxPlayers - res.PlayerCount(p.Id)
+		if ch.Max <= res.GetPlayer(p.Id).Count {
+			ch.Max = res.GetPlayer(p.Id).Count
+		} else if res.GetPlayer(p.Id).Count == 0 {
+			ch.Max = res.MaxPlayers
+		}
 		var mr telegram.EditMessageTextRequest
 		if ch.Max > 1 {
 			mr = oh.GetReserveEditMR(res, &ch)

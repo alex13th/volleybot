@@ -50,12 +50,12 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, location_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
 		"min_level INT, court_count INT, max_players INT, " +
-		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000));"
+		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000), activity INT);"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
-		"price, min_level, court_count, max_players, ordered, approved, canceled, description, " +
+		"price, min_level, court_count, max_players, ordered, approved, canceled, description, activity, " +
 		"telegram_id, firstname, lastname, fullname, " +
 		"l.location_id AS location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %[1]s AS r " +
@@ -66,8 +66,16 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"LANGUAGE plpgsql AS $$ " +
 		"DECLARE cur_count INT;\n" +
 		"BEGIN\n" +
+		"SELECT SUM(count) INTO cur_count " +
+		"FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id; " +
+		"CASE\n" +
+		"WHEN c = 0 THEN\n" +
 		"DELETE FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id;\n" +
+		"WHEN cur_count > 0 THEN\n" +
+		"UPDATE %[2]s SET count = c WHERE reserve_id = res_id AND person_id = per_id;\n" +
+		"ELSE\n" +
 		"INSERT INTO %[2]s (reserve_id, person_id, count) VALUES (res_id, per_id, c);\n" +
+		"END CASE;\n" +
 		"END;$$;"
 	sql = fmt.Sprintf(sql+pl_sql+vw_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PersonsTableName,
 		rep.ViewName, rep.PlayerSpName, rep.LocationsTableName)
@@ -98,7 +106,7 @@ func (rep *PgRepository) GetPlayers(rid uuid.UUID) (plist []Player, err error) {
 
 func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, " +
+		"min_level, court_count, max_players, approved, canceled, description, activity, " +
 		"telegram_id, firstname, lastname, fullname, " +
 		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s " +
@@ -112,7 +120,7 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 	)
 
 	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity,
 		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 		&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
 	if err != nil {
@@ -124,14 +132,14 @@ func (rep *PgRepository) Get(rid uuid.UUID) (res Reserve, err error) {
 		res.Location.ChatId = int(lchatid.Int64)
 		res.Location.CourtCount = int(lcourts.Int64)
 	}
-	pmap, err := rep.GetPlayers(res.Id)
-	res.Players = pmap
+	plist, err := rep.GetPlayers(res.Id)
+	res.Players = plist
 	return
 }
 
 func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool, sorted bool) (rmap []Reserve, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, " +
+		"min_level, court_count, max_players, approved, canceled, description, activity, " +
 		"telegram_id, firstname, lastname, fullname, " +
 		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s "
@@ -174,7 +182,7 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool, sorted bool)
 			lchatid, lcourts sql.NullInt64
 		)
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description,
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity,
 			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
 			&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
 		if err != nil {
@@ -195,14 +203,14 @@ func (rep *PgRepository) GetByFilter(filter Reserve, oredered bool, sorted bool)
 func (rep *PgRepository) Add(r Reserve) (res Reserve, err error) {
 	sql := "INSERT INTO %s " +
 		"(reserve_id, person_id, location_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, ordered, canceled, description) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) " +
+		"min_level, court_count, max_players, approved, ordered, canceled, description, activity) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -219,13 +227,13 @@ func (rep *PgRepository) Update(r Reserve) (err error) {
 	sql := "UPDATE %s SET " +
 		"person_id = $1, location_id = $2, start_time = $3, end_time = $4, " +
 		"price = $5, min_level = $6, court_count = $7, max_players = $8, " +
-		"approved = $9, ordered = $10, canceled = $11, description = $12 " +
-		"WHERE reserve_id = $13"
+		"approved = $9, ordered = $10, canceled = $11, description = $12, activity = $13  " +
+		"WHERE reserve_id = $14"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
 		r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Id)
+		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity, r.Id)
 	if err != nil {
 		return
 	}

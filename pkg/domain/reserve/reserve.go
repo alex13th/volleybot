@@ -70,8 +70,23 @@ func (pl PlayerLevel) String() string {
 	return lnames[int(pl)]
 }
 
+type Activity int
+
+const (
+	Game     PlayerLevel = 0
+	Training PlayerLevel = 10
+)
+
+func (a Activity) String() string {
+	lnames := make(map[int]string)
+	lnames[0] = "Игры"
+	lnames[10] = "Тренировка"
+	return lnames[int(a)]
+}
+
 type Reserve struct {
 	Id          uuid.UUID         `json:"id"`
+	Activity    int               `json:"activity"`
 	Person      person.Person     `json:"person"`
 	Location    location.Location `json:"location"`
 	StartTime   time.Time         `json:"start_time"`
@@ -146,6 +161,15 @@ func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
 	for i, pl := range res.Players {
 		if res.Players[i].Id != pid {
 			count += pl.Count
+		}
+	}
+	return
+}
+
+func (res *Reserve) GetPlayer(pid uuid.UUID) (pl Player) {
+	for _, pl := range res.Players {
+		if pl.Id != pid {
+			return pl
 		}
 	}
 	return
