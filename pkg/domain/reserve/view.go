@@ -16,7 +16,7 @@ func NewTelegramViewRu(res Reserve) TelegramView {
 		CancelLabel:     "🔥 *ОТМЕНА* 🔥",
 		GameLabel:       "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
 		TrainingLabel:   "‼️ *ТРЕНИРОВКА* ‼️",
-		TournamentLabel: "🌟 *ТУРНИР* 🌟",
+		TournamentLabel: "💥🔥 *ТУРНИР* 🔥💥",
 		DateLabel:       "📆",
 		TimeLabel:       "⏰",
 		Locale:          monday.LocaleRuRU,
