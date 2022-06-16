@@ -52,7 +52,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"min_level INT, court_count INT, max_players INT, " +
 		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000));"
 
-	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (reserve_id UUID, person_id UUID, count INT);"
+	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
 		"price, min_level, court_count, max_players, ordered, approved, canceled, description, " +
@@ -66,16 +66,8 @@ func (rep *PgRepository) UpdateDB() (err error) {
 		"LANGUAGE plpgsql AS $$ " +
 		"DECLARE cur_count INT;\n" +
 		"BEGIN\n" +
-		"SELECT SUM(count) INTO cur_count " +
-		"FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id; " +
-		"CASE\n" +
-		"WHEN c = 0 THEN\n" +
 		"DELETE FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id;\n" +
-		"WHEN cur_count > 0 THEN\n" +
-		"UPDATE %[2]s SET count = c WHERE reserve_id = res_id AND person_id = per_id;\n" +
-		"ELSE\n" +
 		"INSERT INTO %[2]s (reserve_id, person_id, count) VALUES (res_id, per_id, c);\n" +
-		"END CASE;\n" +
 		"END;$$;"
 	sql = fmt.Sprintf(sql+pl_sql+vw_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PersonsTableName,
 		rep.ViewName, rep.PlayerSpName, rep.LocationsTableName)
@@ -88,26 +80,18 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	return
 }
 
-func (rep *PgRepository) GetPlayers(rid uuid.UUID) (pmap map[uuid.UUID]Player, err error) {
+func (rep *PgRepository) GetPlayers(rid uuid.UUID) (plist []Player, err error) {
 	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname " +
 		"FROM %s AS pl " +
 		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
-		"WHERE reserve_id = $1;"
+		"WHERE reserve_id = $1 " +
+		"ORDER BY player_id "
 	sql = fmt.Sprintf(sql, rep.PlayersTableName, rep.PersonsTableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
-	pmap = make(map[uuid.UUID]Player)
-	var (
-		Count, TelegramId             int
-		PersonId                      uuid.UUID
-		FirstName, LastName, FullName string
-	)
-
+	pl := Player{}
 	for rows.Next() {
-		rows.Scan(&Count, &PersonId, &TelegramId, &FirstName, &LastName, &FullName)
-		pmap[PersonId] = Player{
-			Person: person.Person{Id: PersonId, TelegramId: TelegramId,
-				Firstname: FirstName, Lastname: LastName, Fullname: FullName},
-			Count: Count}
+		rows.Scan(&pl.Count, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname)
+		plist = append(plist, pl)
 	}
 	return
 }

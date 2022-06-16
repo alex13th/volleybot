@@ -464,7 +464,7 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, p person.Perso
 	}
 	ah.Columns = 2
 	if res.Ordered() {
-		if (res.PlayerCount(uuid.Nil) < res.MaxPlayers) && (chid <= 0 || !res.HasPlayerByTelegramId(p.TelegramId)) {
+		if chid <= 0 || !res.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "orderjoin", Text: oh.Resources.JoinPlayer.Button})
 		}
@@ -685,7 +685,7 @@ func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result t
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	kbd := oh.GetReserveActions(res, person.Person{}, cq.Message.Chat.Id)
+	kbd := oh.GetReserveActions(res, person.Person{}, res.Location.ChatId)
 	mr := oh.GetReserveMR(res, kbd)
 	mr.ChatId = res.Location.ChatId
 	oh.Bot.SendMessage(&mr)
@@ -861,9 +861,8 @@ func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result
 	if ch.Action == "set" {
 		return oh.JoinPlayer(cq, ch.Data, ch.Count)
 	} else {
-		pl_count := res.PlayerCount(p.Id)
 		ch.Min = 1
-		ch.Max = res.MaxPlayers - pl_count
+		ch.Max = res.MaxPlayers
 		var mr telegram.EditMessageTextRequest
 		if ch.Max > 1 {
 			mr = oh.GetReserveEditMR(res, &ch)
@@ -886,7 +885,7 @@ func (oh *OrderBotHandler) JoinPlayer(cq *telegram.CallbackQuery, data string, c
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	res.Players[p.Id] = reserve.Player{Person: p, Count: count}
+	res.JoinPlayer(reserve.Player{Person: p, Count: count})
 	return oh.UpdateReserveCQ(res, cq, true)
 }
 
