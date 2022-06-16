@@ -12,26 +12,28 @@ type ReserveView interface {
 
 func NewTelegramViewRu(res Reserve) TelegramView {
 	return TelegramView{
-		Reserve:       res,
-		CancelLabel:   "🔥 *ОТМЕНА* 🔥",
-		GameLabel:     "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
-		TrainingLabel: "‼️ *ТРЕНИРОВКА* ‼️",
-		DateLabel:     "📆",
-		TimeLabel:     "⏰",
-		Locale:        monday.LocaleRuRU,
-		ParseMode:     "Markdown",
+		Reserve:         res,
+		CancelLabel:     "🔥 *ОТМЕНА* 🔥",
+		GameLabel:       "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
+		TrainingLabel:   "‼️ *ТРЕНИРОВКА* ‼️",
+		TournamentLabel: "🌟 *ТУРНИР* 🌟",
+		DateLabel:       "📆",
+		TimeLabel:       "⏰",
+		Locale:          monday.LocaleRuRU,
+		ParseMode:       "Markdown",
 	}
 }
 
 type TelegramView struct {
-	Reserve       Reserve
-	CancelLabel   string
-	GameLabel     string
-	TrainingLabel string
-	DateLabel     string
-	TimeLabel     string
-	Locale        monday.Locale
-	ParseMode     string
+	Reserve         Reserve
+	CancelLabel     string
+	GameLabel       string
+	TrainingLabel   string
+	TournamentLabel string
+	DateLabel       string
+	TimeLabel       string
+	Locale          monday.Locale
+	ParseMode       string
 }
 
 func (tgv *TelegramView) String() string {
@@ -49,6 +51,8 @@ func (tgv *TelegramView) GetText() (text string) {
 		text = tgv.CancelLabel + "\n\n"
 	} else if tgv.Reserve.Activity == 10 {
 		text = tgv.TrainingLabel + "\n\n"
+	} else if tgv.Reserve.Activity == 20 {
+		text = tgv.TournamentLabel + "\n\n"
 	} else {
 		text = tgv.GameLabel + "\n\n"
 	}

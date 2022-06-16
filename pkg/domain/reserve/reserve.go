@@ -73,14 +73,16 @@ func (pl PlayerLevel) String() string {
 type Activity int
 
 const (
-	Game     PlayerLevel = 0
-	Training PlayerLevel = 10
+	Game       PlayerLevel = 0
+	Training   PlayerLevel = 10
+	Tournament PlayerLevel = 20
 )
 
 func (a Activity) String() string {
 	lnames := make(map[int]string)
 	lnames[0] = "Игры"
 	lnames[10] = "Тренировка"
+	lnames[10] = "Турнир"
 	return lnames[int(a)]
 }
 
