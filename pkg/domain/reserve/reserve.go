@@ -80,9 +80,9 @@ const (
 
 func (a Activity) String() string {
 	lnames := make(map[int]string)
-	lnames[0] = "Игры"
-	lnames[10] = "Тренировка"
-	lnames[10] = "Турнир"
+	lnames[0] = "🏐 Игры"
+	lnames[10] = "‼️ Тренировка"
+	lnames[20] = "🌟 Турнир"
 	return lnames[int(a)]
 }
 
