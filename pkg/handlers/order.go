@@ -1035,6 +1035,7 @@ func (oh *OrderBotHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Cal
 
 	if renew && cq.Message.Chat.Id < 0 {
 		mr := oh.GetReserveMR(res, oh.GetReserveActions(res, p, cq.Message.Chat.Id))
+		mr.DisableNotification = true
 		cq.Message.SendMessage(oh.Bot, "", &mr)
 		cq.Message.DeleteMessage(oh.Bot)
 
