@@ -119,9 +119,9 @@ type OrderResourceLoader interface {
 	GetResource() OrderResources
 }
 
-type DefaultResourceLoader struct{}
+type BaseOrderResourceLoader struct{}
 
-func (rl DefaultResourceLoader) GetResource() (or OrderResources) {
+func (rl BaseOrderResourceLoader) GetResource() (or OrderResources) {
 	or.ListCommand.Command = "list"
 	or.ListCommand.Description = "поиск подходящей площадки"
 	or.OrderCommand.Command = "order"
@@ -195,12 +195,12 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 
 	levels := []telegram.EnumItem{}
 	for i := 0; i <= 80; i += 10 {
-		levels = append(levels, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.PlayerLevel(i)})
+		levels = append(levels, telegram.EnumItem{Id: strconv.Itoa(i), Item: person.PlayerLevel(i).String()})
 	}
 	oh.MinLevelHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Level.Message, "orderminlevel", levels)
 	activities := []telegram.EnumItem{}
 	for i := 0; i <= 20; i += 10 {
-		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.Activity(i)})
+		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.Activity(i).String()})
 	}
 	oh.ActivityHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderactivity", activities)
 
@@ -356,7 +356,7 @@ func (oh *OrderBotHandler) GetPersonCq(cq *telegram.CallbackQuery) (p person.Per
 }
 
 func (oh *OrderBotHandler) GetPerson(tuser *telegram.User) (p person.Person, err error) {
-	p, err = oh.OrderService.Persons.GetByTelegramId(tuser.Id)
+	p, err = oh.OrderService.PersonService.GetByTelegramId(tuser.Id)
 	if err != nil {
 		log.Println(err.Error())
 		_, ok := err.(person.ErrorPersonNotFound)
@@ -364,7 +364,7 @@ func (oh *OrderBotHandler) GetPerson(tuser *telegram.User) (p person.Person, err
 			p, _ = person.NewPerson(tuser.FirstName)
 			p.TelegramId = tuser.Id
 			p.Lastname = tuser.LastName
-			p, err = oh.OrderService.Persons.Add(p)
+			p, err = oh.OrderService.PersonService.Add(p)
 		}
 	}
 	if err != nil {
@@ -949,7 +949,7 @@ func (oh *OrderBotHandler) JoinPlayer(cq *telegram.CallbackQuery, data string, c
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-	res.JoinPlayer(reserve.Player{Person: p, Count: count})
+	res.JoinPlayer(person.Player{Person: p, Count: count})
 	return oh.UpdateReserveCQ(res, cq, true)
 }
 
@@ -1011,7 +1011,7 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 func (oh *OrderBotHandler) NotifyPlayers(res reserve.Reserve, id int) {
 	for _, pl := range res.Players {
 		if pl.Person.TelegramId != id {
-			p, _ := oh.OrderService.Persons.GetByTelegramId(pl.Person.TelegramId)
+			p, _ := oh.OrderService.PersonService.GetByTelegramId(pl.Person.TelegramId)
 			if param, ok := p.Settings["notify"]; ok && param == "on" {
 				mr := oh.GetReserveMR(res, nil)
 				mr.ChatId = pl.Person.TelegramId

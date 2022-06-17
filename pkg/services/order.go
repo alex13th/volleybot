@@ -19,13 +19,14 @@ type ReserveResult struct {
 }
 
 type OrderService struct {
-	Persons   person.PersonRepository
-	Reserves  reserve.ReserveRepository
-	Locations location.LocationRepository
+	PersonService *PersonService
+	Reserves      reserve.ReserveRepository
+	Locations     location.LocationRepository
 }
 
-func NewOrderService(cfgs ...OrderConfiguration) (*OrderService, error) {
+func NewOrderService(pserv *PersonService, cfgs ...OrderConfiguration) (*OrderService, error) {
 	os := &OrderService{}
+	os.PersonService = pserv
 	for _, cfg := range cfgs {
 		err := cfg(os)
 		if err != nil {
@@ -33,24 +34,6 @@ func NewOrderService(cfgs ...OrderConfiguration) (*OrderService, error) {
 		}
 	}
 	return os, nil
-}
-
-func WithPersonRepository(pr person.PersonRepository) OrderConfiguration {
-	return func(os *OrderService) error {
-		os.Persons = pr
-		return nil
-	}
-}
-
-func WithMemoryPersonRepository() OrderConfiguration {
-	pr := person.NewMemoryRepository()
-	return WithPersonRepository(pr)
-}
-
-func WithPgPersonRepository(dbpool *pgxpool.Pool) OrderConfiguration {
-	pr, _ := person.NewPgRepository(dbpool)
-	pr.UpdateDB()
-	return WithPersonRepository(&pr)
 }
 
 func WithReserveRepository(rrep reserve.ReserveRepository) OrderConfiguration {
@@ -85,7 +68,7 @@ func WithPgLocationRepository(dbpool *pgxpool.Pool) OrderConfiguration {
 }
 
 func (serv *OrderService) CreateOrder(r reserve.Reserve, rchan chan ReserveResult) (res reserve.Reserve, err error) {
-	res.Person, err = serv.Persons.Get(r.Person.Id)
+	res.Person, err = serv.PersonService.Get(r.Person.Id)
 	if err != nil {
 		res.Person, err = person.NewPerson(r.Person.Firstname)
 	}

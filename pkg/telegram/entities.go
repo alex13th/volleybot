@@ -129,8 +129,8 @@ func (msg *Message) IsCommand() bool {
 	return msg.GetCommand() != ""
 }
 
-func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) {
-	tb.SendMessage(msg.CreateMessageRequest(Text, mr))
+func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
+	return tb.SendMessage(msg.CreateMessageRequest(Text, mr))
 }
 
 func (msg *Message) DeleteMessage(tb *Bot) {
