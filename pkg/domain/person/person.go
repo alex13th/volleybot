@@ -41,6 +41,8 @@ type Person struct {
 	Firstname     string                 `json:"firstname"`
 	Lastname      string                 `json:"lastname"`
 	Fullname      string                 `json:"fullname"`
+	Sex           Sex                    `json:"sex"`
+	Level         PlayerLevel            `json:"level"`
 	LocationRoles map[uuid.UUID][]string `json:"roles"`
 	Settings      map[string]string      `json:"settings"`
 }
@@ -71,4 +73,69 @@ func (user *Person) CheckLocationRole(l location.Location, role string) bool {
 		}
 	}
 	return false
+}
+
+type Player struct {
+	Person
+	Count int
+}
+
+type Sex int
+
+func (s Sex) String() string {
+	lnames := make(map[int]string)
+	lnames[0] = ""
+	lnames[1] = "мальчик"
+	lnames[2] = "девочка"
+	return lnames[int(s)]
+}
+
+func (s Sex) Emoji() string {
+	lnames := make(map[int]string)
+	lnames[0] = "👤"
+	lnames[1] = "👦🏻"
+	lnames[2] = "👩🏻"
+	return lnames[int(s)]
+}
+
+type PlayerLevel int
+
+const (
+	Nothing      PlayerLevel = 0
+	Novice       PlayerLevel = 10
+	Begginer     PlayerLevel = 20
+	BeginnerPlus PlayerLevel = 30
+	MiddleMinus  PlayerLevel = 40
+	Middle       PlayerLevel = 50
+	MiddlePlus   PlayerLevel = 60
+	Advanced     PlayerLevel = 70
+	Proffesional PlayerLevel = 80
+)
+
+func (pl PlayerLevel) String() string {
+	lnames := make(map[int]string)
+	lnames[0] = "Не определен"
+	lnames[10] = "Новичок"
+	lnames[20] = "Начальный"
+	lnames[30] = "Начальный+"
+	lnames[40] = "Средний-"
+	lnames[50] = "Средний"
+	lnames[60] = "Средний+"
+	lnames[70] = "Уверенный"
+	lnames[80] = "Профи"
+	return lnames[int(pl)]
+}
+
+func (pl PlayerLevel) Emoji() string {
+	lnames := make(map[int]string)
+	lnames[0] = ""
+	lnames[10] = "🙌"
+	lnames[20] = "👏"
+	lnames[30] = "🤝"
+	lnames[40] = "👌"
+	lnames[50] = "👍"
+	lnames[60] = "💪"
+	lnames[70] = "⭐️"
+	lnames[80] = "👑"
+	return lnames[int(pl)]
 }

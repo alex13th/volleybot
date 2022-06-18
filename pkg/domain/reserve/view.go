@@ -2,6 +2,7 @@ package reserve
 
 import (
 	"fmt"
+	"volleybot/pkg/domain/person"
 
 	"github.com/goodsign/monday"
 )
@@ -67,7 +68,7 @@ func (tgv *TelegramView) GetText() (text string) {
 		tgv.DateLabel, monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale),
 		tgv.TimeLabel, tgv.GetTimeText())
 	if tgv.Reserve.MinLevel > 0 {
-		text += fmt.Sprintf("\n💪*Уровень*: %s", PlayerLevel(tgv.Reserve.MinLevel))
+		text += fmt.Sprintf("\n💪*Уровень*: %s", person.PlayerLevel(tgv.Reserve.MinLevel))
 	}
 
 	if tgv.Reserve.Price > 0 {
@@ -88,14 +89,8 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 	count := 1
 	over := false
 	for _, pl := range tgv.Reserve.Players {
-		var uname string
-		if pl.Person.TelegramId != 0 {
-			uname = "[%s](tg://user?id=%d)"
-			uname = fmt.Sprintf(uname, pl.Person.GetDisplayname(), pl.Person.TelegramId)
-		} else {
-			uname = pl.Person.GetDisplayname()
-		}
-		text += fmt.Sprintf("\n%d. %s", count, uname)
+		pvw := person.NewTelegramViewRu(pl.Person)
+		text += fmt.Sprintf("\n%d. %s", count, pvw.String())
 		count++
 		if !over && count > tgv.Reserve.MaxPlayers {
 			over = true
@@ -103,7 +98,7 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 			count = 1
 		}
 		for i := 1; i < pl.Count; i++ {
-			text += fmt.Sprintf("\n%d. %s+%d", count, uname, i)
+			text += fmt.Sprintf("\n%d. %s+%d", count, pl.GetDisplayname(), i)
 			count++
 			if !over && count > tgv.Reserve.MaxPlayers {
 				over = true

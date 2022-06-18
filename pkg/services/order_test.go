@@ -11,10 +11,12 @@ import (
 
 func TestOrder_NewOrderService(t *testing.T) {
 
-	os, err := NewOrderService(
-		WithMemoryPersonRepository(),
-		WithMemoryReserveRepository(),
-	)
+	ps, err := NewPersonService(WithMemoryPersonRepository())
+	if err != nil {
+		t.Error(err)
+	}
+
+	os, err := NewOrderService(ps, WithMemoryReserveRepository())
 
 	if err != nil {
 		t.Error(err)
@@ -25,7 +27,7 @@ func TestOrder_NewOrderService(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = os.Persons.Add(p)
+	_, err = os.PersonService.Add(p)
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,17 +71,18 @@ func CreateTestOrders() (os *OrderService, pl []person.Person, rl []reserve.Rese
 		time.Date(2021, 12, 05, 23, 0, 0, 0, time.UTC),
 	)
 
-	os, err = NewOrderService(
-		WithMemoryPersonRepository(),
-		WithMemoryReserveRepository(),
-	)
+	os, err = NewOrderService(nil, WithMemoryReserveRepository())
+	if err != nil {
+		return
+	}
+	os.PersonService, err = NewPersonService(WithMemoryPersonRepository())
 
 	if err != nil {
 		return
 	}
 
 	for _, p := range pl {
-		os.Persons.Add(p)
+		os.PersonService.Add(p)
 	}
 
 	for _, res := range rl {

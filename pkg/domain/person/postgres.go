@@ -29,11 +29,11 @@ func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 }
 
 func (rep *PgRepository) Get(pid uuid.UUID) (p Person, err error) {
-	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname " +
+	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s " +
 		"WHERE person_id = $1"
 	row := rep.dbpool.QueryRow(context.Background(), fmt.Sprintf(sql, rep.TableName), pid)
-	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname)
+	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname, &p.Sex, &p.Level)
 	if err != nil {
 		return
 	}
@@ -46,12 +46,12 @@ func (rep *PgRepository) Get(pid uuid.UUID) (p Person, err error) {
 }
 
 func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
-	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname " +
+	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s " +
 		"WHERE telegram_id = $1"
 	row := rep.dbpool.QueryRow(context.Background(), fmt.Sprintf(sql, rep.TableName), tid)
 
-	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname)
+	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname, &p.Sex, &p.Level)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			err = ErrPersonNotFound
@@ -69,13 +69,13 @@ func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
 
 func (rep *PgRepository) Add(p Person) (per Person, err error) {
 	sql := "INSERT INTO %s " +
-		"(person_id, telegram_id, firstname, lastname, fullname) " +
-		"VALUES ($1, $2, $3, $4, $5) " +
+		"(person_id, telegram_id, firstname, lastname, fullname, sex, level) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7) " +
 		"RETURNING person_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
-		p.Id, p.TelegramId, p.Firstname, p.Lastname, p.Fullname)
+		p.Id, p.TelegramId, p.Firstname, p.Lastname, p.Fullname, p.Sex, p.Level)
 
 	err = row.Scan(&p.Id)
 	return p, err
@@ -83,12 +83,13 @@ func (rep *PgRepository) Add(p Person) (per Person, err error) {
 
 func (rep *PgRepository) Update(p Person) (err error) {
 	sql := "UPDATE %s SET " +
-		"telegram_id = $1, firstname = $2, lastname = $3, fullname = $4 " +
-		"WHERE person_id = $6"
+		"telegram_id = $1, firstname = $2, lastname = $3, fullname = $4, " +
+		"sex = $5, level = $6 " +
+		"WHERE person_id = $7"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
-		p.TelegramId, p.Firstname, p.Lastname, p.Fullname, p.Id)
+		p.TelegramId, p.Firstname, p.Lastname, p.Fullname, p.Sex, p.Level, p.Id)
 
 	if err != nil {
 		return
@@ -101,6 +102,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s " +
 		"(person_id UUID PRIMARY KEY, telegram_id bigint, " +
 		"firstname varchar(20), lastname varchar(20), fullname varchar(60), " +
+		"sex varchar(20), level INT, " +
 		"roles varchar(250));"
 	sql += "CREATE TABLE IF NOT EXISTS %s " +
 		"(person_id UUID, location_id UUID, role varchar(30));"

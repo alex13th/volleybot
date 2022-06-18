@@ -13,9 +13,10 @@ import (
 )
 
 type StartHandler struct {
-	Bot          *telegram.Bot
-	Command      telegram.BotCommand
-	orderHandler *handlers.OrderBotHandler
+	Bot           *telegram.Bot
+	Command       telegram.BotCommand
+	orderHandler  *handlers.OrderBotHandler
+	personHandler *handlers.PersonBotHandler
 }
 
 func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
@@ -27,6 +28,7 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 		"*Вот те команды, которые я уже понимаю:*"
 	cmds := []telegram.BotCommand{h.Command}
 	cmds = append(cmds, h.orderHandler.GetCommands(msg.From)...)
+	cmds = append(cmds, h.personHandler.GetCommands(msg.From)...)
 	for _, cmd := range cmds {
 		text += fmt.Sprintf("\n/%s - %s", cmd.Command, cmd.Description)
 	}
@@ -48,15 +50,16 @@ func main() {
 		return
 	}
 
-	oservice, _ := services.NewOrderService(
-		services.WithPgPersonRepository(dbpool),
+	pservice, _ := services.NewPersonService(services.WithPgPersonRepository(dbpool))
+	oservice, _ := services.NewOrderService(pservice,
 		services.WithPgLocationRepository(dbpool),
 		services.WithPgReserveRepository(dbpool))
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
 
-	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.DefaultResourceLoader{})
+	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.BaseOrderResourceLoader{})
 	orderHandler.StateRepository = telegram.NewMemoryStateRepository()
+	personHandler := handlers.NewPersonHandler(tb, pservice, handlers.PersonResourceLoader{})
 	if os.Getenv("LOCATION") != "" {
 		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
 	} else {
@@ -66,6 +69,8 @@ func main() {
 	lp, _ := tb.NewPoller()
 	lp.UpdateHandlers[0].AppendMessageHandler(&orderHandler)
 	lp.UpdateHandlers[0].AppendCallbackHandler(&orderHandler)
+	lp.UpdateHandlers[0].AppendMessageHandler(&personHandler)
+	lp.UpdateHandlers[0].AppendCallbackHandler(&personHandler)
 
 	sh := StartHandler{Bot: tb}
 	startcmd := telegram.CommandHandler{
@@ -75,6 +80,7 @@ func main() {
 	lp.UpdateHandlers[0].AppendMessageHandler(&startcmd)
 
 	sh.orderHandler = &orderHandler
+	sh.personHandler = &personHandler
 	sh.Command.Command = "start"
 	sh.Command.Description = "начать работу с ботом"
 	cmds := []telegram.BotCommand{sh.Command}

@@ -88,17 +88,17 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	return
 }
 
-func (rep *PgRepository) GetPlayers(rid uuid.UUID) (plist []Player, err error) {
-	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname " +
+func (rep *PgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player, err error) {
+	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s AS pl " +
 		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
 		"WHERE reserve_id = $1 " +
 		"ORDER BY player_id "
 	sql = fmt.Sprintf(sql, rep.PlayersTableName, rep.PersonsTableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
-	pl := Player{}
+	pl := person.Player{}
 	for rows.Next() {
-		rows.Scan(&pl.Count, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname)
+		rows.Scan(&pl.Count, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname, &pl.Sex, &pl.Level)
 		plist = append(plist, pl)
 	}
 	return
