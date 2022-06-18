@@ -98,7 +98,7 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 			count = 1
 		}
 		for i := 1; i < pl.Count; i++ {
-			text += fmt.Sprintf("\n%d. %s+%d", count, pvw.String(), i)
+			text += fmt.Sprintf("\n%d. %s+%d", count, pl.GetDisplayname(), i)
 			count++
 			if !over && count > tgv.Reserve.MaxPlayers {
 				over = true
