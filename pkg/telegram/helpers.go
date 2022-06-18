@@ -345,7 +345,7 @@ func (tkh *ActionsKeyboardHelper) Parse(Data string) (err error) {
 
 type EnumItem struct {
 	Id   string
-	Item fmt.Stringer
+	Item string
 }
 
 func NewEnumKeyboardHelper(msg string, prefix string, enums []EnumItem) EnumKeyboardHelper {
@@ -384,7 +384,7 @@ func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
 	for _, val := range kh.Enums {
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: val.Item.String(), CallbackData: kh.GetBtnData(val.Id)})
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: val.Item, CallbackData: kh.GetBtnData(val.Id)})
 		count++
 		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)

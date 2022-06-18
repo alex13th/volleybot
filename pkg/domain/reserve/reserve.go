@@ -23,7 +23,7 @@ func NewPreReserve(p person.Person) Reserve {
 		Person:     p,
 		CourtCount: 1,
 		MaxPlayers: 6,
-		Players:    []Player{}}
+		Players:    []person.Player{}}
 }
 
 func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve, err error) {
@@ -37,45 +37,12 @@ func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve, e
 	return
 }
 
-type Player struct {
-	person.Person
-	Count int
-}
-
-type PlayerLevel int
-
-const (
-	Nothing      PlayerLevel = 0
-	Novice       PlayerLevel = 10
-	Begginer     PlayerLevel = 20
-	BeginnerPlus PlayerLevel = 30
-	MiddleMinus  PlayerLevel = 40
-	Middle       PlayerLevel = 50
-	MiddlePlus   PlayerLevel = 60
-	Advanced     PlayerLevel = 70
-	Proffesional PlayerLevel = 80
-)
-
-func (pl PlayerLevel) String() string {
-	lnames := make(map[int]string)
-	lnames[0] = "Не важен"
-	lnames[10] = "Новичок"
-	lnames[20] = "Начальный"
-	lnames[30] = "Начальный+"
-	lnames[40] = "Средний-"
-	lnames[50] = "Средний"
-	lnames[60] = "Средний+"
-	lnames[70] = "Уверенный"
-	lnames[80] = "Профи"
-	return lnames[int(pl)]
-}
-
 type Activity int
 
 const (
-	Game       PlayerLevel = 0
-	Training   PlayerLevel = 10
-	Tournament PlayerLevel = 20
+	Game       Activity = 0
+	Training   Activity = 10
+	Tournament Activity = 20
 )
 
 func (a Activity) String() string {
@@ -99,7 +66,7 @@ type Reserve struct {
 	MaxPlayers  int               `json:"max_players"`
 	Approved    bool              `json:"approved"`
 	Canceled    bool              `json:"canceled"`
-	Players     []Player          `json:"players"`
+	Players     []person.Player   `json:"players"`
 	Description string            `json:"description"`
 }
 
@@ -168,7 +135,7 @@ func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
 	return
 }
 
-func (res *Reserve) GetPlayer(pid uuid.UUID) (pl Player) {
+func (res *Reserve) GetPlayer(pid uuid.UUID) (pl person.Player) {
 	for _, pl := range res.Players {
 		if pl.Id != pid {
 			return pl
@@ -177,7 +144,7 @@ func (res *Reserve) GetPlayer(pid uuid.UUID) (pl Player) {
 	return
 }
 
-func (res *Reserve) JoinPlayer(pl Player) {
+func (res *Reserve) JoinPlayer(pl person.Player) {
 	for i, p := range res.Players {
 		if p.Id == pl.Id {
 			res.Players[i] = pl
