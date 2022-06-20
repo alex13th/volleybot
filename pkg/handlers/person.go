@@ -9,7 +9,7 @@ import (
 )
 
 func NewPersonHandler(tb *telegram.Bot, serv *services.PersonService, rl PersonResourceLoader) (h PersonBotHandler) {
-	h = PersonBotHandler{PersonService: *serv}
+	h.PersonService = serv
 	h.Bot = tb
 	h.Resources = rl.GetResource()
 	levels := []telegram.EnumItem{}
@@ -28,10 +28,9 @@ func NewPersonHandler(tb *telegram.Bot, serv *services.PersonService, rl PersonR
 
 type PersonBotHandler struct {
 	CommonHandler
-	PersonService services.PersonService
-	Resources     PersonResources
-	LevelHelper   telegram.EnumKeyboardHelper
-	SexHelper     telegram.EnumKeyboardHelper
+	Resources   PersonResources
+	LevelHelper telegram.EnumKeyboardHelper
+	SexHelper   telegram.EnumKeyboardHelper
 }
 
 func (h *PersonBotHandler) GetCommands(tuser *telegram.User) (cmds []telegram.BotCommand) {
