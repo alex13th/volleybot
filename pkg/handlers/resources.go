@@ -83,6 +83,8 @@ type CancelResources struct {
 
 type OrderResources struct {
 	Location          location.Location
+	ActionsBtn        string
+	SettingsBtn       string
 	BackBtn           string
 	CopyBtn           string
 	CopyMessage       string
@@ -119,6 +121,8 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.ListCommand.Description = "поиск подходящей площадки"
 	or.OrderCommand.Command = "order"
 	or.OrderCommand.Description = "заказать площадку(и)"
+	or.ActionsBtn = "Действия"
+	or.SettingsBtn = "Настройки"
 	or.BackBtn = "Назад"
 	or.CopyBtn = "🫂 Копировать"
 	or.CopyMessage = "‼️ *КОПИЯ СДЕЛАНА* ‼️"

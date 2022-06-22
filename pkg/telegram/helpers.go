@@ -280,6 +280,7 @@ type ActionButton struct {
 }
 
 type ActionsKeyboardHelper struct {
+	Action   string
 	Msg      string
 	Data     string
 	BackData string
@@ -340,6 +341,7 @@ func (tkh *ActionsKeyboardHelper) Parse(Data string) (err error) {
 		return
 	}
 	tkh.Data = splitedData[1]
+	tkh.Action = splitedData[0]
 	return
 }
 
