@@ -19,7 +19,8 @@ type State struct {
 }
 
 type StateRepository interface {
-	Get(ChatId int) (State, error)
+	Get(ChatId int) ([]State, error)
+	GetByData(Data string) ([]State, error)
 	Set(State) error
 	Clear(State) error
 }
@@ -33,11 +34,22 @@ type MemoryStateRepository struct {
 	sync.Mutex
 }
 
-func (rep *MemoryStateRepository) Get(ChatId int) (st State, err error) {
+func (rep *MemoryStateRepository) Get(ChatId int) (st []State, err error) {
 	if state, ok := rep.states[ChatId]; ok {
-		return state, nil
+		return []State{state}, nil
 	}
-	return State{}, ErrStateNotFound
+	return []State{}, ErrStateNotFound
+}
+
+func (rep *MemoryStateRepository) GetByData(Data string) (slist []State, err error) {
+	rep.Mutex.Lock()
+	for _, s := range rep.states {
+		if s.Data == Data {
+			slist = append(slist, s)
+		}
+	}
+	rep.Mutex.Unlock()
+	return
 }
 
 func (rep *MemoryStateRepository) Set(s State) (err error) {

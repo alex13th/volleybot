@@ -37,33 +37,53 @@ func (rep *StatePgRepository) UpdateDB() (err error) {
 	return
 }
 
-func (rep *StatePgRepository) Get(ChatId int) (st telegram.State, err error) {
+func (rep *StatePgRepository) Get(ChatId int) (slist []telegram.State, err error) {
 	sql := "SELECT chat_id, message_id, state, data " +
 		"FROM %s " +
 		"WHERE chat_id = $1"
-	row := rep.dbpool.QueryRow(context.Background(), fmt.Sprintf(sql, rep.TableName), ChatId)
-	err = row.Scan(&st.ChatId, &st.MessageId, &st.State, &st.Data)
-	if err != nil {
-		return
+	sql = fmt.Sprintf(sql, rep.TableName)
+	rows, err := rep.dbpool.Query(context.Background(), sql, ChatId)
+	if err == nil {
+		defer rows.Close()
+		st := telegram.State{}
+		for rows.Next() {
+			rows.Scan(&st.ChatId, &st.MessageId, &st.State, &st.Data)
+			slist = append(slist, st)
+		}
+	}
+	return
+}
+
+func (rep *StatePgRepository) GetByData(Data string) (slist []telegram.State, err error) {
+	sql := "SELECT chat_id, message_id, state, data " +
+		"FROM %s " +
+		"WHERE data = $1 "
+	sql = fmt.Sprintf(sql, rep.TableName)
+	if rows, err := rep.dbpool.Query(context.Background(), sql, Data); err == nil {
+		defer rows.Close()
+		st := telegram.State{}
+		for rows.Next() {
+			rows.Scan(&st.ChatId, &st.MessageId, &st.State, &st.Data)
+			slist = append(slist, st)
+		}
 	}
 	return
 }
 
 func (rep *StatePgRepository) Set(st telegram.State) (err error) {
 	sql := "UPDATE %s SET " +
-		"state = $1, data = $2, " +
+		"state = $1, data = $2 " +
 		"WHERE (chat_id = $3) AND (message_id = $4)"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
-	rows, err := rep.dbpool.Query(context.Background(), sql,
+	rres, err := rep.dbpool.Exec(context.Background(), sql,
 		st.State, st.Data, st.ChatId, st.MessageId)
-	if rows.CommandTag().RowsAffected() < 1 {
+	if rres.RowsAffected() < 1 {
 		rep.Add(st)
 	}
 	if err != nil {
 		return
 	}
-	defer rows.Close()
 	return
 }
 
@@ -80,11 +100,11 @@ func (rep *StatePgRepository) Add(st telegram.State) error {
 
 func (rep *StatePgRepository) Clear(st telegram.State) error {
 	sql := "DELETE FROM %s " +
-		"(chat_id, message_id, state, data) " +
-		"WHERE (chat_id = $3) AND (message_id = $4);"
+		"WHERE (chat_id = $1) AND (message_id = $2);"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		st.ChatId, st.MessageId)
-	return row.Scan()
+	err := row.Scan()
+	return err
 }
