@@ -2,6 +2,7 @@ package services
 
 import (
 	"volleybot/pkg/domain/person"
+	"volleybot/pkg/postgres"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -21,8 +22,8 @@ func WithMemoryPersonRepository() PersonConfiguration {
 	return WithPersonRepository(pr)
 }
 
-func WithPgPersonRepository(dbpool *pgxpool.Pool) PersonConfiguration {
-	pr, _ := person.NewPgRepository(dbpool)
+func WithPersonPgRepository(dbpool *pgxpool.Pool) PersonConfiguration {
+	pr, _ := postgres.NewPersonPgRepository(dbpool)
 	pr.UpdateDB()
 	return WithPersonRepository(&pr)
 }

@@ -566,10 +566,10 @@ func (oh *OrderBotHandler) CourtsCallback(cq *telegram.CallbackQuery) (result te
 }
 
 func (oh *OrderBotHandler) DescriptionState(msg *telegram.Message, state telegram.State) (resp telegram.MessageResponse, err error) {
-	oh.StateRepository.Clear(state.ChatId)
+	oh.StateRepository.Clear(state)
 	res, err := oh.GetDataReserve(state.Data, nil)
 	if err != nil {
-		oh.StateRepository.Clear(state.ChatId)
+		oh.StateRepository.Clear(state)
 		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 	res.Description = msg.Text
@@ -617,7 +617,7 @@ func (oh *OrderBotHandler) MaxPlayersCallback(cq *telegram.CallbackQuery) (resp 
 			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 		}
 		res.MaxPlayers = ch.Count
-		oh.StateRepository.Clear(cq.Message.Chat.Id)
+		oh.StateRepository.Clear(telegram.State{ChatId: cq.Message.Chat.Id, MessageId: cq.Message.MessageId})
 		return oh.UpdateReserveCQ(res, cq, "ordersettings", false)
 	} else {
 		ch.Max = res.CourtCount * 12
