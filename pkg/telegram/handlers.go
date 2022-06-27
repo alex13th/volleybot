@@ -120,9 +120,11 @@ type StateMessageHandler struct {
 }
 
 func (h *StateMessageHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
-	state, err := h.StateRepository.Get(m.Chat.Id)
-	if state.State == h.State {
-		return h.Handler(m, state)
+	slist, err := h.StateRepository.Get(m.Chat.Id)
+	for _, st := range slist {
+		if st.State == h.State {
+			return h.Handler(m, st)
+		}
 	}
 	return
 }
