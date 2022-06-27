@@ -1,21 +1,22 @@
-package person
+package postgres
 
 import (
 	"context"
 	"fmt"
+	"volleybot/pkg/domain/person"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-type PgRepository struct {
+type PersonPgRepository struct {
 	dbpool            *pgxpool.Pool
 	TableName         string
 	RolesTableName    string
 	SettingsTableName string
 }
 
-func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
+func NewPersonPgRepository(dbpool *pgxpool.Pool) (pgrep PersonPgRepository, err error) {
 	pgrep.TableName = "persons"
 	pgrep.RolesTableName = "person_roles"
 	pgrep.SettingsTableName = "person_params"
@@ -28,7 +29,7 @@ func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 	return
 }
 
-func (rep *PgRepository) Get(pid uuid.UUID) (p Person, err error) {
+func (rep *PersonPgRepository) Get(pid uuid.UUID) (p person.Person, err error) {
 	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s " +
 		"WHERE person_id = $1"
@@ -45,7 +46,7 @@ func (rep *PgRepository) Get(pid uuid.UUID) (p Person, err error) {
 	return
 }
 
-func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
+func (rep *PersonPgRepository) GetByTelegramId(tid int) (p person.Person, err error) {
 	sql := "SELECT person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s " +
 		"WHERE telegram_id = $1"
@@ -54,7 +55,7 @@ func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
 	err = row.Scan(&p.Id, &p.TelegramId, &p.Firstname, &p.Lastname, &p.Fullname, &p.Sex, &p.Level)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			err = ErrPersonNotFound
+			err = person.ErrPersonNotFound
 			return
 		}
 		return
@@ -67,7 +68,7 @@ func (rep *PgRepository) GetByTelegramId(tid int) (p Person, err error) {
 	return
 }
 
-func (rep *PgRepository) Add(p Person) (per Person, err error) {
+func (rep *PersonPgRepository) Add(p person.Person) (per person.Person, err error) {
 	sql := "INSERT INTO %s " +
 		"(person_id, telegram_id, firstname, lastname, fullname, sex, level) " +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7) " +
@@ -81,7 +82,7 @@ func (rep *PgRepository) Add(p Person) (per Person, err error) {
 	return p, err
 }
 
-func (rep *PgRepository) Update(p Person) (err error) {
+func (rep *PersonPgRepository) Update(p person.Person) (err error) {
 	sql := "UPDATE %s SET " +
 		"telegram_id = $1, firstname = $2, lastname = $3, fullname = $4, " +
 		"sex = $5, level = $6 " +
@@ -98,7 +99,7 @@ func (rep *PgRepository) Update(p Person) (err error) {
 	return
 }
 
-func (rep *PgRepository) UpdateDB() (err error) {
+func (rep *PersonPgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s " +
 		"(person_id UUID PRIMARY KEY, telegram_id bigint, " +
 		"firstname varchar(20), lastname varchar(20), fullname varchar(60), " +
@@ -118,7 +119,7 @@ func (rep *PgRepository) UpdateDB() (err error) {
 	return
 }
 
-func (rep *PgRepository) GetRoles(pid uuid.UUID) (pmap map[uuid.UUID][]string, err error) {
+func (rep *PersonPgRepository) GetRoles(pid uuid.UUID) (pmap map[uuid.UUID][]string, err error) {
 	sql := "SELECT roles.person_id, roles.location_id, roles.role " +
 		"FROM %s AS roles " +
 		"INNER JOIN %s AS p ON roles.person_id = p.person_id " +
@@ -138,7 +139,7 @@ func (rep *PgRepository) GetRoles(pid uuid.UUID) (pmap map[uuid.UUID][]string, e
 	return
 }
 
-func (rep *PgRepository) GetSettings(pid uuid.UUID) (pmap map[string]string, err error) {
+func (rep *PersonPgRepository) GetSettings(pid uuid.UUID) (pmap map[string]string, err error) {
 	sql := "SELECT params.param_name, params.param_value " +
 		"FROM %s AS params " +
 		"INNER JOIN %s AS p ON params.person_id = p.person_id " +

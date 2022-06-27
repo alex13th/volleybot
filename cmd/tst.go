@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"volleybot/pkg/handlers"
+	"volleybot/pkg/postgres"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 
@@ -50,16 +51,18 @@ func main() {
 		return
 	}
 
-	pservice, _ := services.NewPersonService(services.WithPgPersonRepository(dbpool))
+	pservice, _ := services.NewPersonService(services.WithPersonPgRepository(dbpool))
 	oservice, _ := services.NewOrderService(pservice,
 		services.WithPgLocationRepository(dbpool),
-		services.WithPgReserveRepository(dbpool))
+		services.WithReservePgRepository(dbpool))
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
 
-	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.BaseOrderResourceLoader{})
-	orderHandler.StateRepository = telegram.NewMemoryStateRepository()
-	personHandler := handlers.NewPersonHandler(tb, pservice, handlers.PersonResourceLoader{})
+	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.StaticOrderResourceLoader{})
+	strep, err := postgres.NewStatePgRepository(dbpool)
+	strep.UpdateDB()
+	orderHandler.StateRepository = &strep
+	personHandler := handlers.NewPersonHandler(tb, pservice, handlers.StaticPersonResourceLoader{})
 	if os.Getenv("LOCATION") != "" {
 		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
 	} else {
@@ -67,17 +70,17 @@ func main() {
 	}
 
 	lp, _ := tb.NewPoller()
-	lp.UpdateHandlers[0].AppendMessageHandler(&orderHandler)
-	lp.UpdateHandlers[0].AppendCallbackHandler(&orderHandler)
-	lp.UpdateHandlers[0].AppendMessageHandler(&personHandler)
-	lp.UpdateHandlers[0].AppendCallbackHandler(&personHandler)
+	lp.UpdateHandlers[0].AppendMessageHandlers(orderHandler.GetMessageHandler()...)
+	lp.UpdateHandlers[0].AppendCallbackHandlers(orderHandler.GetCallbackHandlers()...)
+	lp.UpdateHandlers[0].AppendMessageHandlers(personHandler.GetMessageHandler()...)
+	lp.UpdateHandlers[0].AppendCallbackHandlers(personHandler.GetCallbackHandlers()...)
 
 	sh := StartHandler{Bot: tb}
 	startcmd := telegram.CommandHandler{
 		Command: "start", Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
 			return sh.StartCmd(m, nil)
 		}}
-	lp.UpdateHandlers[0].AppendMessageHandler(&startcmd)
+	lp.UpdateHandlers[0].AppendMessageHandlers(&startcmd)
 
 	sh.orderHandler = &orderHandler
 	sh.personHandler = &personHandler

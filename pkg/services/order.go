@@ -4,6 +4,7 @@ import (
 	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
+	"volleybot/pkg/postgres"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -48,8 +49,8 @@ func WithMemoryReserveRepository() OrderConfiguration {
 	return WithReserveRepository(&rrep)
 }
 
-func WithPgReserveRepository(dbpool *pgxpool.Pool) OrderConfiguration {
-	rrep, _ := reserve.NewPgRepository(dbpool)
+func WithReservePgRepository(dbpool *pgxpool.Pool) OrderConfiguration {
+	rrep, _ := postgres.NewReservePgRepository(dbpool)
 	rrep.UpdateDB()
 	return WithReserveRepository(&rrep)
 }

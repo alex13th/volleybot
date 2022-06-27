@@ -12,8 +12,8 @@ type MessageStateFunc func(m *Message, state State) (MessageResponse, error)
 
 type UpdateHandler interface {
 	ProceedUpdate(tb *Bot, update Update)
-	AppendMessageHandler(mh MessageHandler)
-	AppendCallbackHandler(ch CallbackHandler)
+	AppendMessageHandlers(...MessageHandler)
+	AppendCallbackHandlers(...CallbackHandler)
 }
 
 type BaseUpdateHandler struct {
@@ -21,12 +21,12 @@ type BaseUpdateHandler struct {
 	CallbackHandlers []CallbackHandler
 }
 
-func (handler *BaseUpdateHandler) AppendCallbackHandler(ch CallbackHandler) {
-	handler.CallbackHandlers = append(handler.CallbackHandlers, ch)
+func (handler *BaseUpdateHandler) AppendCallbackHandlers(ch ...CallbackHandler) {
+	handler.CallbackHandlers = append(handler.CallbackHandlers, ch...)
 }
 
-func (handler *BaseUpdateHandler) AppendMessageHandler(mh MessageHandler) {
-	handler.MessageHandlers = append(handler.MessageHandlers, mh)
+func (handler *BaseUpdateHandler) AppendMessageHandlers(mh ...MessageHandler) {
+	handler.MessageHandlers = append(handler.MessageHandlers, mh...)
 }
 
 func (uh BaseUpdateHandler) ProceedUpdate(tb *Bot, update Update) {
@@ -120,9 +120,11 @@ type StateMessageHandler struct {
 }
 
 func (h *StateMessageHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
-	state, err := h.StateRepository.Get(m.Chat.Id)
-	if state.State == h.State {
-		return h.Handler(m, state)
+	slist, err := h.StateRepository.Get(m.Chat.Id)
+	for _, st := range slist {
+		if st.State == h.State {
+			return h.Handler(m, st)
+		}
 	}
 	return
 }
