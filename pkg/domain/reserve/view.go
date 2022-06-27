@@ -18,6 +18,7 @@ func NewTelegramViewRu(res Reserve) TelegramView {
 		GameLabel:       "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐",
 		TrainingLabel:   "‼️ *ТРЕНИРОВКА* ‼️",
 		TournamentLabel: "💥🔥 *ТУРНИР* 🔥💥",
+		TennisLabel:     "🎾 *ТЕННИС* 🎾",
 		DateLabel:       "📆",
 		TimeLabel:       "⏰",
 		Locale:          monday.LocaleRuRU,
@@ -31,6 +32,7 @@ type TelegramView struct {
 	GameLabel       string
 	TrainingLabel   string
 	TournamentLabel string
+	TennisLabel     string
 	DateLabel       string
 	TimeLabel       string
 	Locale          monday.Locale
@@ -54,6 +56,8 @@ func (tgv *TelegramView) GetText() (text string) {
 		text = tgv.TrainingLabel + "\n\n"
 	} else if tgv.Reserve.Activity == 20 {
 		text = tgv.TournamentLabel + "\n\n"
+	} else if tgv.Reserve.Activity == 30 {
+		text = tgv.TennisLabel + "\n\n"
 	} else {
 		text = tgv.GameLabel + "\n\n"
 	}

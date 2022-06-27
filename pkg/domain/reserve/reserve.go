@@ -43,6 +43,7 @@ const (
 	Game       Activity = 0
 	Training   Activity = 10
 	Tournament Activity = 20
+	Tennis     Activity = 30
 )
 
 func (a Activity) String() string {
@@ -50,6 +51,7 @@ func (a Activity) String() string {
 	lnames[0] = "🏐 Игры"
 	lnames[10] = "‼️ Тренировка"
 	lnames[20] = "🌟 Турнир"
+	lnames[30] = "🎾 Теннис"
 	return lnames[int(a)]
 }
 
