@@ -21,6 +21,12 @@ var (
 	ErrFailedToAddPerson = errors.New("failed to add the person to the repository")
 	ErrUpdatePerson      = errors.New("failed to update the person in the repository")
 	ErrInvalidPerson     = errors.New("a person has to have an valid name")
+
+	Params        = []string{"notify", "notify_cancel"}
+	ParamDefaults = map[string]string{
+		"notify":        "off",
+		"notify_cancel": "on",
+	}
 )
 
 func NewPerson(firstname string) (person Person, err error) {

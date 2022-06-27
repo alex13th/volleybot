@@ -81,9 +81,6 @@ func (rep *StatePgRepository) Set(st telegram.State) (err error) {
 	if rres.RowsAffected() < 1 {
 		rep.Add(st)
 	}
-	if err != nil {
-		return
-	}
 	return
 }
 

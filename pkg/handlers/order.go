@@ -777,9 +777,12 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 	res.Canceled = true
 	for _, pl := range res.Players {
 		if pl.Person.TelegramId != cq.From.Id {
-			mr := oh.GetReserveMR(res, nil)
-			mr.ChatId = pl.Person.TelegramId
-			oh.Bot.SendMessage(&mr)
+			p, _ := oh.OrderService.PersonService.GetByTelegramId(pl.Person.TelegramId)
+			if p.Settings["notify_cancel"] != "off" {
+				mr := oh.GetReserveMR(res, nil)
+				mr.ChatId = pl.Person.TelegramId
+				oh.Bot.SendMessage(&mr)
+			}
 		}
 	}
 	return oh.UpdateReserveCQ(res, cq, "ordershow", false)
