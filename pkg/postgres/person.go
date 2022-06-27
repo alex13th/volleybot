@@ -95,7 +95,28 @@ func (rep *PersonPgRepository) Update(p person.Person) (err error) {
 	if err != nil {
 		return
 	}
+	err = rep.UpdateParams(p)
 	defer rows.Close()
+	return
+}
+
+func (rep *PersonPgRepository) UpdateParams(p person.Person) (err error) {
+	usql := "UPDATE %s SET param_value = $3 " +
+		"WHERE person_id = $1 AND param_name =$2"
+	usql = fmt.Sprintf(usql, rep.SettingsTableName)
+
+	isql := "INSERT INTO %s " +
+		"(person_id, param_name, param_value) " +
+		"VALUES ($1, $2, $3) "
+	isql = fmt.Sprintf(isql, rep.SettingsTableName)
+
+	for param, val := range p.Settings {
+		rres, _ := rep.dbpool.Exec(context.Background(), usql, p.Id, param, val)
+
+		if rres.RowsAffected() < 1 {
+			_, err = rep.dbpool.Exec(context.Background(), isql, p.Id, param, val)
+		}
+	}
 	return
 }
 

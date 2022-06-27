@@ -101,6 +101,19 @@ func TestTelegramView(t *testing.T) {
 				"*Игроков:* 12\n1. 👤 Elly\n2. Elly+1\n3.\n.\n.\n12.",
 			str: "Сб, 04.12 15:00-17:00 (2/12)",
 		},
+		"Tennis": {
+			res: Reserve{
+				Person:     pl1,
+				StartTime:  time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
+				EndTime:    time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
+				MaxPlayers: 12,
+				Activity:   30,
+				Players:    []person.Player{{Person: pl1, Count: 2}},
+			},
+			text: "🎾 *ТЕННИС* 🎾\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
+				"*Игроков:* 12\n1. 👤 Elly\n2. Elly+1\n3.\n.\n.\n12.",
+			str: "Сб, 04.12 15:00-17:00 (2/12)",
+		},
 	}
 
 	for name, test := range tests {

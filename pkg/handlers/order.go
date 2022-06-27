@@ -37,7 +37,7 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, rl OrderResour
 	}
 	oh.MinLevelHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Level.Message, "orderminlevel", levels)
 	activities := []telegram.EnumItem{}
-	for i := 0; i <= 20; i += 10 {
+	for i := 0; i <= 30; i += 10 {
 		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.Activity(i).String()})
 	}
 	oh.ActivityHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderactivity", activities)
@@ -777,9 +777,12 @@ func (oh *OrderBotHandler) CancelComfirmCallback(cq *telegram.CallbackQuery) (re
 	res.Canceled = true
 	for _, pl := range res.Players {
 		if pl.Person.TelegramId != cq.From.Id {
-			mr := oh.GetReserveMR(res, nil)
-			mr.ChatId = pl.Person.TelegramId
-			oh.Bot.SendMessage(&mr)
+			p, _ := oh.OrderService.PersonService.GetByTelegramId(pl.Person.TelegramId)
+			if p.Settings["notify_cancel"] != "off" {
+				mr := oh.GetReserveMR(res, nil)
+				mr.ChatId = pl.Person.TelegramId
+				oh.Bot.SendMessage(&mr)
+			}
 		}
 	}
 	return oh.UpdateReserveCQ(res, cq, "ordershow", false)

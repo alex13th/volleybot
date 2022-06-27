@@ -53,3 +53,41 @@ func (tgv *TelegramView) String() (text string) {
 
 	return
 }
+
+var (
+	ParamValText = map[string]string{
+		"undef": "не определен",
+		"on":    "вкл.",
+		"off":   "выкл.",
+	}
+
+	ParamNames = map[string]string{
+		"notify":        "При изменении",
+		"notify_cancel": "При отмене",
+	}
+)
+
+type TelegramSettingsView struct {
+	Person    Person
+	ParseMode string
+}
+
+func NewTelegramSettingsViewRu(p Person) TelegramSettingsView {
+	return TelegramSettingsView{
+		Person:    p,
+		ParseMode: "Markdown",
+	}
+}
+
+func (tgv *TelegramSettingsView) GetText() (text string) {
+	text = "⚙️*Настройки оповещений:*"
+	for _, param := range Params {
+		if val, ok := tgv.Person.Settings[param]; ok && val != "undef" {
+			text += fmt.Sprintf("\n*%s*: %s", ParamNames[param], ParamValText[val])
+		} else {
+			text += fmt.Sprintf("\n*%s*: %s (%s)", ParamNames[param],
+				ParamValText[ParamDefaults[param]], ParamValText["undef"])
+		}
+	}
+	return
+}
