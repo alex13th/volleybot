@@ -139,11 +139,22 @@ func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
 
 func (res *Reserve) GetPlayer(pid uuid.UUID) (pl person.Player) {
 	for _, pl := range res.Players {
-		if pl.Id != pid {
+		if pl.Id == pid {
 			return pl
 		}
 	}
 	return
+}
+
+func (res *Reserve) PlayerInReserve(pid uuid.UUID) bool {
+	count := 0
+	for _, pl := range res.Players {
+		if pl.Id == pid {
+			return count >= res.MaxPlayers
+		}
+		count += pl.Count
+	}
+	return count >= res.MaxPlayers
 }
 
 func (res *Reserve) JoinPlayer(pl person.Player) {
