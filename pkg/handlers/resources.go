@@ -155,8 +155,8 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.Court.MaxPlayers = 6
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
 	or.MaxPlayer.CountError = "Ошибка количества игроков!"
-	or.MaxPlayer.GroupChatWarning = fmt.Sprintf("⚠️*Внимание* - в групповом чате функция \"%s\" работает с дополнительными ограничениями, чат бота имеет меньше ограничений!",
-		or.JoinPlayer.MultiButton)
+	or.MaxPlayer.GroupChatWarning = fmt.Sprintf("⚠️*Внимание* - здесь функция *\"%s\"* ограничена числом игроков записи. "+
+		"В чате с ботом можно добавить больше игроков в резерв!", or.JoinPlayer.MultiButton)
 	or.MaxPlayer.Button = "👫 Мест"
 	or.MaxPlayer.Min = 1
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
