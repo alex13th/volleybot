@@ -61,10 +61,12 @@ type DescriptionResources struct {
 }
 
 type JoinPlayerResources struct {
-	Message     string
-	Button      string
-	LeaveButton string
-	MultiButton string
+	Message          string
+	Button           string
+	LeaveButton      string
+	MultiButton      string
+	MultiButtonEmoji string
+	MultiButtonText  string
 }
 
 type PriceResources struct {
@@ -140,7 +142,9 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.DateTime.TimeButton = "⏰ Время"
 	or.JoinPlayer.Message = "❓Сколько игроков записать❓"
 	or.JoinPlayer.Button = "😀 Буду"
-	or.JoinPlayer.MultiButton = "🤩 Буду не один"
+	or.JoinPlayer.MultiButtonEmoji = "🤩"
+	or.JoinPlayer.MultiButtonText = "Буду не один"
+	or.JoinPlayer.MultiButton = fmt.Sprintf("%s %s", or.JoinPlayer.MultiButtonEmoji, or.JoinPlayer.MultiButtonText)
 	or.JoinPlayer.LeaveButton = "😞 Не смогу"
 	or.Activity.Message = "❓Какой будет вид активности❓"
 	or.Activity.Button = "Вид активности"
@@ -156,7 +160,7 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.MaxPlayer.Message = "❓Максимальное количество игроков❓"
 	or.MaxPlayer.CountError = "Ошибка количества игроков!"
 	or.MaxPlayer.GroupChatWarning = fmt.Sprintf("⚠️*Внимание* - здесь функция *\"%s\"* ограничена числом игроков записи. "+
-		"В чате с ботом можно добавить больше игроков в резерв!", or.JoinPlayer.MultiButton)
+		"В чате с ботом можно добавить больше игроков в резерв!", or.JoinPlayer.MultiButtonText)
 	or.MaxPlayer.Button = "👫 Мест"
 	or.MaxPlayer.Min = 1
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
