@@ -93,6 +93,7 @@ type OrderResources struct {
 	CopyMessage       string
 	PublishBtn        string
 	RefreshBtn        string
+	RemovePlayerBtn   string
 	ListCommand       telegram.BotCommand
 	OrderCommand      telegram.BotCommand
 	Locale            monday.Locale
@@ -131,6 +132,7 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.CopyMessage = "‼️ *КОПИЯ СДЕЛАНА* ‼️"
 	or.PublishBtn = "Опубликовать"
 	or.RefreshBtn = "Обновить"
+	or.RemovePlayerBtn = "Удалить игрока"
 	or.Description.Button = "Описание"
 	or.Description.Message = "Отлично. Отправьте мне в чат описание активности."
 	or.Description.DoneMessage = "Успешно! Описание обновлено."

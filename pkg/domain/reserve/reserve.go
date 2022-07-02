@@ -164,6 +164,16 @@ func (res *Reserve) GetPlayerByTelegramId(tid int) (pl person.Player) {
 	return
 }
 
+func (res *Reserve) RemovePlayerByTelegramId(tid int) {
+	newplist := []person.Player{}
+	for _, pl := range res.Players {
+		if pl.TelegramId != tid {
+			newplist = append(newplist, pl)
+		}
+	}
+	res.Players = newplist
+}
+
 func (res *Reserve) PlayerInReserve(pid uuid.UUID) bool {
 	count := 0
 	for _, pl := range res.Players {
