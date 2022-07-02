@@ -909,7 +909,7 @@ func (oh *OrderBotHandler) GetReserveMR(cid int, res reserve.Reserve, kh telegra
 	if len(kbd.InlineKeyboard) > 0 {
 		return telegram.MessageRequest{ChatId: cid, Text: mtxt, ParseMode: rview.ParseMode, ReplyMarkup: kbd}
 	}
-	return telegram.MessageRequest{Text: mtxt, ParseMode: rview.ParseMode}
+	return telegram.MessageRequest{ChatId: cid, Text: mtxt, ParseMode: rview.ParseMode}
 }
 
 func (oh *OrderBotHandler) GetReserve(id uuid.UUID) (result reserve.Reserve, err error) {
