@@ -115,17 +115,20 @@ func NewTimeKeyboardHelper(msg string, prefix string) TimeKeyboardHelper {
 }
 
 type TimeKeyboardHelper struct {
-	Msg        string
-	Prefix     string
-	Action     string
-	Time       time.Time
-	Data       string
-	BackData   string
-	StartHour  int
-	EndHour    int
-	TimeFormat string
-	Columns    int
-	Locale     monday.Locale
+	Msg         string
+	Prefix      string
+	Action      string
+	Time        time.Time
+	Data        string
+	BackData    string
+	StartHour   int
+	StartMinute int
+	EndHour     int
+	EndMinute   int
+	Step        int
+	TimeFormat  string
+	Columns     int
+	Locale      monday.Locale
 }
 
 func (kh TimeKeyboardHelper) GetText() string {
@@ -147,13 +150,27 @@ func (kh TimeKeyboardHelper) GetBtnData(val interface{}) string {
 
 func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
+	count := 0
 	for i := kh.StartHour; i <= kh.EndHour; i++ {
 		btnTime := time.Date(0, 0, 0, i, 0, 0, 0, time.Local)
+		count++
 		btnText := monday.Format(btnTime, kh.TimeFormat, kh.Locale)
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnTime)})
-		if i%kh.Columns == 0 {
+		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
 			kbdRow = []InlineKeyboardButton{}
+		}
+		if kh.Step > 0 {
+			for i := kh.Step; i+kh.Step <= 60; i += kh.Step {
+				count++
+				btnTime = btnTime.Add(time.Minute * time.Duration(kh.Step))
+				btnText := monday.Format(btnTime, kh.TimeFormat, kh.Locale)
+				kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnTime)})
+				if count%kh.Columns == 0 {
+					kbd = append(kbd, kbdRow)
+					kbdRow = []InlineKeyboardButton{}
+				}
+			}
 		}
 	}
 	if len(kbdRow) > 0 {

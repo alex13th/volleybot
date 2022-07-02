@@ -53,7 +53,7 @@ func (rep *ReservePgRepository) UpdateDB() (err error) {
 		"min_level INT, court_count INT, max_players INT, " +
 		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000), activity INT);"
 
-	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT);"
+	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT, arrive_time TIMESTAMP);"
 	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
 		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
 		"price, min_level, court_count, max_players, ordered, approved, canceled, description, activity, " +
@@ -63,7 +63,7 @@ func (rep *ReservePgRepository) UpdateDB() (err error) {
 		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id " +
 		"LEFT OUTER JOIN %[6]s AS l ON r.location_id = l.location_id; "
 	sp_sql := "CREATE OR REPLACE PROCEDURE " +
-		"%[5]s(res_id UUID, per_id UUID, c INT) " +
+		"%[5]s(res_id UUID, per_id UUID, c INT, at TIMESTAMP) " +
 		"LANGUAGE plpgsql AS $$ " +
 		"DECLARE cur_count INT;\n" +
 		"BEGIN\n" +
@@ -73,9 +73,9 @@ func (rep *ReservePgRepository) UpdateDB() (err error) {
 		"WHEN c = 0 THEN\n" +
 		"DELETE FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id;\n" +
 		"WHEN cur_count > 0 THEN\n" +
-		"UPDATE %[2]s SET count = c WHERE reserve_id = res_id AND person_id = per_id;\n" +
+		"UPDATE %[2]s SET count = c, arrive_time = at WHERE reserve_id = res_id AND person_id = per_id;\n" +
 		"ELSE\n" +
-		"INSERT INTO %[2]s (reserve_id, person_id, count) VALUES (res_id, per_id, c);\n" +
+		"INSERT INTO %[2]s (reserve_id, person_id, count, arrive_time) VALUES (res_id, per_id, c, at);\n" +
 		"END CASE;\n" +
 		"END;$$;"
 	sql = fmt.Sprintf(sql+pl_sql+vw_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PersonsTableName,
@@ -90,7 +90,7 @@ func (rep *ReservePgRepository) UpdateDB() (err error) {
 }
 
 func (rep *ReservePgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player, err error) {
-	sql := "SELECT count, p.person_id, telegram_id, firstname, lastname, fullname, sex, level " +
+	sql := "SELECT count, arrive_time, p.person_id, telegram_id, firstname, lastname, fullname, sex, level " +
 		"FROM %s AS pl " +
 		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
 		"WHERE reserve_id = $1 " +
@@ -99,7 +99,7 @@ func (rep *ReservePgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	pl := person.Player{}
 	for rows.Next() {
-		rows.Scan(&pl.Count, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname, &pl.Sex, &pl.Level)
+		rows.Scan(&pl.Count, &pl.ArriveTime, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname, &pl.Sex, &pl.Level)
 		plist = append(plist, pl)
 	}
 	return
@@ -240,17 +240,17 @@ func (rep *ReservePgRepository) Update(r reserve.Reserve) (err error) {
 	}
 	defer rows.Close()
 	for _, pl := range r.Players {
-		rep.UpdatePlayer(r, pl.Person, pl.Count)
+		rep.UpdatePlayer(r, pl)
 	}
 	return
 }
 
-func (rep *ReservePgRepository) AddPlayer(r reserve.Reserve, pl person.Person, count int) (res reserve.Reserve, err error) {
-	sql := "INSERT INTO %s (reserve_id, person_id, count) " +
-		"VALUES ($1, $2, $3)"
+func (rep *ReservePgRepository) AddPlayer(r reserve.Reserve, pl person.Player) (res reserve.Reserve, err error) {
+	sql := "INSERT INTO %s (reserve_id, person_id, count, arrive_time) " +
+		"VALUES ($1, $2, $3, $4)"
 	sql = fmt.Sprintf(sql, rep.PlayersTableName)
 
-	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, pl.Id, count)
+	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, pl.Id, pl.Count, pl.ArriveTime)
 	if err != nil {
 		return
 	}
@@ -259,8 +259,8 @@ func (rep *ReservePgRepository) AddPlayer(r reserve.Reserve, pl person.Person, c
 	return
 }
 
-func (rep *ReservePgRepository) UpdatePlayer(r reserve.Reserve, pl person.Person, count int) (res reserve.Reserve, err error) {
-	sql := "call " + rep.PlayerSpName + " ($1, $2, $3);"
-	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, pl.Id, count)
+func (rep *ReservePgRepository) UpdatePlayer(r reserve.Reserve, pl person.Player) (res reserve.Reserve, err error) {
+	sql := "call " + rep.PlayerSpName + " ($1, $2, $3, $4);"
+	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, pl.Id, pl.Count, pl.ArriveTime)
 	return
 }

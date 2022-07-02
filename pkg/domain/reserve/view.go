@@ -44,7 +44,7 @@ func (tgv *TelegramView) String() string {
 	for _, pl := range tgv.Reserve.Players {
 		plcount += pl.Count
 	}
-	return fmt.Sprintf("%s %s (%d/%d)",
+	return fmt.Sprintf("%s %s %s (%d/%d)", tgv.Reserve.Activity.Emoji(),
 		monday.Format(tgv.Reserve.StartTime, "Mon, 02.01", tgv.Locale),
 		tgv.GetTimeText(), plcount, tgv.Reserve.MaxPlayers)
 }
@@ -63,10 +63,9 @@ func (tgv *TelegramView) GetText() (text string) {
 	}
 	var uname string
 	if tgv.Reserve.Person.TelegramId != 0 {
-		uname = "[%s](tg://user?id=%d)"
-		uname = fmt.Sprintf(uname, tgv.Reserve.Person.GetDisplayname(), tgv.Reserve.Person.TelegramId)
+		uname = fmt.Sprintf("[%s](tg://user?id=%d)", tgv.Reserve.Person.String(), tgv.Reserve.Person.TelegramId)
 	} else {
-		uname = fmt.Sprintf("*%s*", tgv.Reserve.Person.GetDisplayname())
+		uname = fmt.Sprintf("*%s*", tgv.Reserve.Person.String())
 	}
 	text += fmt.Sprintf("%s\n%s %s\n%s %s", uname,
 		tgv.DateLabel, monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale),
@@ -95,6 +94,9 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 	for _, pl := range tgv.Reserve.Players {
 		pvw := person.NewTelegramViewRu(pl.Person)
 		text += fmt.Sprintf("\n%d. %s", count, pvw.String())
+		if !pl.ArriveTime.IsZero() {
+			text += fmt.Sprintf(" (%s)", pl.ArriveTime.Format("15:04"))
+		}
 		count++
 		if !over && count > tgv.Reserve.MaxPlayers {
 			over = true
@@ -102,7 +104,7 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 			count = 1
 		}
 		for i := 1; i < pl.Count; i++ {
-			text += fmt.Sprintf("\n%d. %s+%d", count, pl.GetDisplayname(), i)
+			text += fmt.Sprintf("\n%d. %s+%d", count, pl.String(), i)
 			count++
 			if !over && count > tgv.Reserve.MaxPlayers {
 				over = true

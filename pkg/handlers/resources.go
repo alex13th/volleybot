@@ -63,6 +63,7 @@ type DescriptionResources struct {
 type JoinPlayerResources struct {
 	Message         string
 	Button          string
+	ArriveButton    string
 	LeaveButton     string
 	MultiButton     string
 	MultiButtonText string
@@ -141,6 +142,7 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.DateTime.TimeButton = "⏰ Время"
 	or.JoinPlayer.Message = "❓Сколько игроков записать❓"
 	or.JoinPlayer.Button = "😀 Буду"
+	or.JoinPlayer.ArriveButton = "🏃‍♂️ Опоздаю"
 	or.JoinPlayer.MultiButtonText = "Буду не один"
 	or.JoinPlayer.MultiButton = fmt.Sprintf("🤩 %s", or.JoinPlayer.MultiButtonText)
 	or.JoinPlayer.LeaveButton = "😞 Не смогу"

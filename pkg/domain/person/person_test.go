@@ -50,7 +50,7 @@ func TestPersonGetDisplayname(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			displayname := test.Person.GetDisplayname()
+			displayname := test.Person.String()
 			if displayname != test.want {
 				t.Fail()
 			}
