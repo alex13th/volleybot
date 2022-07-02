@@ -5,6 +5,13 @@
   become_user: root
 
   tasks:
+    - name: Set database update script
+      set_fact:
+        update_sql: |
+          DROP VIEW  IF EXISTS vw_reserves;
+          DROP PROCEDURE IF EXISTS sp_reserve_player_update(res_id uuid, per_id uuid, c integer);
+          ALTER TABLE reserve_players ADD COLUMN IF NOT EXISTS arrive_time TIMESTAMP DEFAULT '0001-01-01';
+
     - name: Copy binary to temp directory
       copy:
         src: "{{ bot_name }}"
@@ -45,6 +52,15 @@
         state: stopped
       listen: restart_service
     
+    - name: Update database
+      when:
+        update_sql | length > 0 
+      shell: | 
+        psql {{ pg_url }} -c "{{ update_sql }}"
+      become: true
+      become_user: postgres
+      listen: update_binary
+
     - name: Update bot binary
       copy:
         src: "{{ src_path }}/{{ bot_name }}"
