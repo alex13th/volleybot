@@ -101,21 +101,21 @@ func (mr *MemoryRepository) Update(memr Reserve) error {
 	return fmt.Errorf("reserve does not exist: %w", ErrUpdateReserve)
 }
 
-func (mr *MemoryRepository) AddPlayer(r Reserve, pl person.Person, count int) (Reserve, error) {
+func (mr *MemoryRepository) AddPlayer(r Reserve, pl person.Player) (Reserve, error) {
 	for i, p := range r.Players {
 		if p.Id == pl.Id {
-			r.Players[i] = person.Player{Person: pl, Count: count}
+			r.Players[i] = pl
 			return r, nil
 		}
 	}
-	r.Players = append(r.Players, person.Player{Person: pl, Count: count})
+	r.Players = append(r.Players, pl)
 	return r, nil
 }
 
-func (mr *MemoryRepository) UpdatePlayer(r Reserve, pl person.Person, count int) (Reserve, error) {
+func (mr *MemoryRepository) UpdatePlayer(r Reserve, pl person.Player) (Reserve, error) {
 	for i, p := range r.Players {
 		if p.Id == pl.Id {
-			r.Players[i] = person.Player{Person: pl, Count: count}
+			r.Players[i] = pl
 			return r, nil
 		}
 	}

@@ -8,9 +8,9 @@ import (
 
 type ReserveRepository interface {
 	Add(Reserve) (Reserve, error)
-	AddPlayer(Reserve, person.Person, int) (Reserve, error)
+	AddPlayer(Reserve, person.Player) (Reserve, error)
 	Get(uuid.UUID) (Reserve, error)
 	GetByFilter(res Reserve, oredered bool, sorted bool) ([]Reserve, error)
-	UpdatePlayer(Reserve, person.Person, int) (Reserve, error)
+	UpdatePlayer(Reserve, person.Player) (Reserve, error)
 	Update(Reserve) error
 }

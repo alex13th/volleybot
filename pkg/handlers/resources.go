@@ -61,12 +61,12 @@ type DescriptionResources struct {
 }
 
 type JoinPlayerResources struct {
-	Message          string
-	Button           string
-	LeaveButton      string
-	MultiButton      string
-	MultiButtonEmoji string
-	MultiButtonText  string
+	Message         string
+	Button          string
+	ArriveButton    string
+	LeaveButton     string
+	MultiButton     string
+	MultiButtonText string
 }
 
 type PriceResources struct {
@@ -93,6 +93,7 @@ type OrderResources struct {
 	CopyMessage       string
 	PublishBtn        string
 	RefreshBtn        string
+	RemovePlayerBtn   string
 	ListCommand       telegram.BotCommand
 	OrderCommand      telegram.BotCommand
 	Locale            monday.Locale
@@ -131,6 +132,7 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.CopyMessage = "‼️ *КОПИЯ СДЕЛАНА* ‼️"
 	or.PublishBtn = "Опубликовать"
 	or.RefreshBtn = "Обновить"
+	or.RemovePlayerBtn = "Удалить игрока"
 	or.Description.Button = "Описание"
 	or.Description.Message = "Отлично. Отправьте мне в чат описание активности."
 	or.Description.DoneMessage = "Успешно! Описание обновлено."
@@ -142,9 +144,9 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.DateTime.TimeButton = "⏰ Время"
 	or.JoinPlayer.Message = "❓Сколько игроков записать❓"
 	or.JoinPlayer.Button = "😀 Буду"
-	or.JoinPlayer.MultiButtonEmoji = "🤩"
+	or.JoinPlayer.ArriveButton = "🏃‍♂️ Опоздаю"
 	or.JoinPlayer.MultiButtonText = "Буду не один"
-	or.JoinPlayer.MultiButton = fmt.Sprintf("%s %s", or.JoinPlayer.MultiButtonEmoji, or.JoinPlayer.MultiButtonText)
+	or.JoinPlayer.MultiButton = fmt.Sprintf("🤩 %s", or.JoinPlayer.MultiButtonText)
 	or.JoinPlayer.LeaveButton = "😞 Не смогу"
 	or.Activity.Message = "❓Какой будет вид активности❓"
 	or.Activity.Button = "Вид активности"

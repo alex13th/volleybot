@@ -100,7 +100,9 @@ func (oh *OrderBotHandler) GetCallbackHandlers() (hlist []telegram.CallbackHandl
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderplayers", Handler: oh.MaxPlayersCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderprice", Handler: oh.PriceCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderjoin", Handler: oh.JoinCallback})
+	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderremovepl", Handler: oh.RemovePlayerCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderjoinmult", Handler: oh.JoinMultiCallback})
+	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderarrivetime", Handler: oh.ArriveTimeCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderleave", Handler: oh.LeaveCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercancel", Handler: oh.CancelCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercancelcomfirm", Handler: oh.CancelComfirmCallback})
@@ -283,6 +285,8 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, p person.Perso
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
 					Prefix: "orderpub", Text: oh.Resources.PublishBtn})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
+					Prefix: "orderremovepl", Text: oh.Resources.RemovePlayerBtn})
+				ah.Actions = append(ah.Actions, telegram.ActionButton{
 					Prefix: "ordershow", Text: oh.Resources.BackBtn})
 			}
 		}
@@ -295,6 +299,10 @@ func (oh *OrderBotHandler) GetReserveActions(res reserve.Reserve, p person.Perso
 		if chid > 0 || res.MaxPlayers-res.PlayerCount(uuid.Nil) > 1 {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Prefix: "orderjoinmult", Text: oh.Resources.JoinPlayer.MultiButton})
+		}
+		if chid > 0 && res.HasPlayerByTelegramId(p.TelegramId) {
+			ah.Actions = append(ah.Actions, telegram.ActionButton{
+				Prefix: "orderarrivetime", Text: oh.Resources.JoinPlayer.ArriveButton})
 		}
 		if chid <= 0 || res.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
@@ -391,6 +399,34 @@ func (oh *OrderBotHandler) StartTimeCallback(cq *telegram.CallbackQuery) (result
 		res.EndTime = res.StartTime.Add(dur)
 		return oh.UpdateReserveCQ(res, cq, "ordershow", false)
 	} else {
+		mr := oh.GetReserveEditMR(cq.Message.Chat.Id, res, &th)
+		cq.Message.EditText(oh.Bot, "", &mr)
+		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+	}
+}
+
+func (oh *OrderBotHandler) ArriveTimeCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	th := oh.TimeHelper
+	th.Prefix = "orderarrivetime"
+	err = th.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(th.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	if th.Action == "set" {
+		pl := res.GetPlayerByTelegramId(cq.From.Id)
+		pl.ArriveTime = th.Time
+		res.JoinPlayer(pl)
+		return oh.UpdateReserveCQ(res, cq, "ordershow", false)
+	} else {
+		th.StartHour = res.StartTime.Hour()
+		th.EndHour = res.EndTime.Hour() - 1
+		th.Step = 15
 		mr := oh.GetReserveEditMR(cq.Message.Chat.Id, res, &th)
 		cq.Message.EditText(oh.Bot, "", &mr)
 		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
@@ -532,7 +568,7 @@ func (oh *OrderBotHandler) ActivityCallback(cq *telegram.CallbackQuery) (result 
 	}
 	if ch.Action == "set" {
 		act, err := strconv.Atoi(ch.Choice)
-		res.Activity = act
+		res.Activity = reserve.Activity(act)
 		if err != nil {
 			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 		}
@@ -666,6 +702,43 @@ func (oh *OrderBotHandler) JoinCallback(cq *telegram.CallbackQuery) (result tele
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 	return oh.JoinPlayer(cq, ah.Data, 1)
+}
+
+func (oh *OrderBotHandler) RemovePlayerCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	ph := telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderremovepl", nil)
+
+	err = ph.Parse(cq.Data)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+
+	res, err := oh.GetDataReserve(ph.Data, nil)
+	if err != nil {
+		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	}
+	if ph.Action == "set" {
+		tid, err := strconv.Atoi(ph.Choice)
+		if err != nil {
+			return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+		}
+		pl := res.GetPlayerByTelegramId(tid)
+		pl.Count = 0
+		res.JoinPlayer(pl)
+		return oh.UpdateReserveCQ(res, cq, "orderactions", false)
+	} else {
+		pllist := []telegram.EnumItem{}
+		for _, pl := range res.Players {
+			pllist = append(pllist, telegram.EnumItem{Id: strconv.Itoa(pl.TelegramId), Item: pl.String()})
+		}
+		ph := telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderremovepl", pllist)
+
+		ab := telegram.ActionButton{
+			Prefix: "orderactions", Data: res.Id.String(), Text: ""}
+		ph.BackData = telegram.ActionsKeyboardHelper{}.GetBtnData(ab)
+		mr := oh.GetReserveEditMR(cq.Message.Chat.Id, res, &ph)
+		cq.Message.EditText(oh.Bot, "", &mr)
+		return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+	}
 }
 
 func (oh *OrderBotHandler) JoinMultiCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
@@ -909,7 +982,7 @@ func (oh *OrderBotHandler) GetReserveMR(cid int, res reserve.Reserve, kh telegra
 	if len(kbd.InlineKeyboard) > 0 {
 		return telegram.MessageRequest{ChatId: cid, Text: mtxt, ParseMode: rview.ParseMode, ReplyMarkup: kbd}
 	}
-	return telegram.MessageRequest{Text: mtxt, ParseMode: rview.ParseMode}
+	return telegram.MessageRequest{ChatId: cid, Text: mtxt, ParseMode: rview.ParseMode}
 }
 
 func (oh *OrderBotHandler) GetReserve(id uuid.UUID) (result reserve.Reserve, err error) {

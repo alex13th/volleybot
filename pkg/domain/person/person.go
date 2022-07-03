@@ -3,6 +3,7 @@ package person
 import (
 	"errors"
 	"strings"
+	"time"
 	"volleybot/pkg/domain/location"
 
 	uuid "github.com/google/uuid"
@@ -53,7 +54,7 @@ type Person struct {
 	Settings      map[string]string      `json:"settings"`
 }
 
-func (user *Person) GetDisplayname() string {
+func (user *Person) String() string {
 	fullname := strings.Trim(user.Fullname, " ")
 	if fullname != "" {
 		return fullname
@@ -83,7 +84,8 @@ func (user *Person) CheckLocationRole(l location.Location, role string) bool {
 
 type Player struct {
 	Person
-	Count int
+	Count      int
+	ArriveTime time.Time
 }
 
 type Sex int

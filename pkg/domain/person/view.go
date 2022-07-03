@@ -21,7 +21,7 @@ func NewTelegramViewRu(p Person) TelegramView {
 func (tgv *TelegramView) GetText() (text string) {
 	text = fmt.Sprintf("*Имя*: %s", tgv.Person.Firstname)
 	text += fmt.Sprintf("\n*Фамилия*: %s", tgv.Person.Lastname)
-	text += fmt.Sprintf("\n*Полное имя*: %s", tgv.Person.GetDisplayname())
+	text += fmt.Sprintf("\n*Полное имя*: %s", tgv.Person.String())
 	text += fmt.Sprintf("\n*Пол*: %s", tgv.GetSexText())
 	text += fmt.Sprintf("\n*Уровень*: %s", tgv.GetLevelText())
 	return
@@ -43,8 +43,7 @@ func (tgv *TelegramView) GetSexText() (text string) {
 }
 
 func (tgv *TelegramView) String() (text string) {
-	text = tgv.Person.GetDisplayname()
-	text = fmt.Sprintf("%s %s", Sex.Emoji(tgv.Person.Sex), text)
+	text = fmt.Sprintf("%s %s", Sex.Emoji(tgv.Person.Sex), tgv.Person.String())
 	text = fmt.Sprintf("%s%s", PlayerLevel(tgv.Person.Level).Emoji(), text)
 
 	if tgv.Person.TelegramId != 0 {

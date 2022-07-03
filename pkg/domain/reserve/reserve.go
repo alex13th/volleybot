@@ -55,9 +55,18 @@ func (a Activity) String() string {
 	return lnames[int(a)]
 }
 
+func (a Activity) Emoji() string {
+	lnames := make(map[int]string)
+	lnames[0] = "🏐"
+	lnames[10] = "‼️"
+	lnames[20] = "🌟"
+	lnames[30] = "🎾"
+	return lnames[int(a)]
+}
+
 type Reserve struct {
 	Id          uuid.UUID         `json:"id"`
-	Activity    int               `json:"activity"`
+	Activity    Activity          `json:"activity"`
 	Person      person.Person     `json:"person"`
 	Location    location.Location `json:"location"`
 	StartTime   time.Time         `json:"start_time"`
@@ -144,6 +153,25 @@ func (res *Reserve) GetPlayer(pid uuid.UUID) (pl person.Player) {
 		}
 	}
 	return
+}
+
+func (res *Reserve) GetPlayerByTelegramId(tid int) (pl person.Player) {
+	for _, pl := range res.Players {
+		if pl.TelegramId == tid {
+			return pl
+		}
+	}
+	return
+}
+
+func (res *Reserve) RemovePlayerByTelegramId(tid int) {
+	newplist := []person.Player{}
+	for _, pl := range res.Players {
+		if pl.TelegramId != tid {
+			newplist = append(newplist, pl)
+		}
+	}
+	res.Players = newplist
 }
 
 func (res *Reserve) PlayerInReserve(pid uuid.UUID) bool {
