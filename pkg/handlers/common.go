@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"volleybot/pkg/domain/person"
+	"volleybot/pkg/res"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 )
@@ -14,10 +15,16 @@ type BotHandler interface {
 	GetCommands(tuser *telegram.User) (cmds []telegram.BotCommand)
 }
 
+type Messager interface {
+	GetMR(ChatId int) telegram.MessageRequest
+	GetEditMR(ChatId int) telegram.EditMessageTextRequest
+}
+
 type CommonHandler struct {
 	Bot             *telegram.Bot
 	StateRepository telegram.StateRepository
 	PersonService   *services.PersonService
+	Resources       res.OrderResources
 }
 
 func (h *CommonHandler) SendCallbackError(cq *telegram.CallbackQuery, cq_err telegram.HelperError, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
