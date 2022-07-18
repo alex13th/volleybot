@@ -23,6 +23,7 @@ type KeyboardHelper interface {
 	GetKeyboard() [][]InlineKeyboardButton
 	GetBtnData(interface{}) string
 	GetData() string
+	Parse(string) error
 	SetData(string)
 }
 
