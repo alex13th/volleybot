@@ -122,14 +122,14 @@ func (rep *PersonPgRepository) UpdateParams(p person.Person) (err error) {
 
 func (rep *PersonPgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s " +
-		"(person_id UUID PRIMARY KEY, telegram_id bigint, " +
-		"firstname varchar(20), lastname varchar(20), fullname varchar(60), " +
-		"sex varchar(20), level INT, " +
+		"(person_id UUID PRIMARY KEY, telegram_id BIGINT, " +
+		"firstname VARCHAR(20), lastname VARCHAR(20), fullname VARCHAR(60), " +
+		"sex INT, level INT, " +
 		"roles varchar(250));"
 	sql += "CREATE TABLE IF NOT EXISTS %s " +
-		"(person_id UUID, location_id UUID, role varchar(30));"
+		"(person_id UUID, location_id UUID, role VARCHAR(30));"
 	sql += "CREATE TABLE IF NOT EXISTS %s " +
-		"(person_id UUID, param_name varchar(20), param_value varchar(250));"
+		"(person_id UUID, param_name VARCHAR(20), param_value VARCHAR(250));"
 	sql = fmt.Sprintf(sql, rep.TableName, rep.RolesTableName, rep.SettingsTableName)
 	_, err = rep.dbpool.Exec(context.Background(), sql)
 

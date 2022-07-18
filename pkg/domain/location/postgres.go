@@ -85,8 +85,8 @@ func (rep *PgRepository) Update(loc Location) (err error) {
 
 func (rep *PgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s (" +
-		"location_id UUID PRIMARY KEY, location_name varchar(20), location_descr varchar(100), " +
-		"location_chat_id bigint, location_court_count int) "
+		"location_id UUID PRIMARY KEY, location_name VARCHAR(20), location_descr VARCHAR(100), " +
+		"location_chat_id BIGINT, location_court_count INT) "
 	rows, err := rep.dbpool.Query(context.Background(), fmt.Sprintf(sql, rep.TableName))
 
 	if err != nil {
