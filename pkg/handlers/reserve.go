@@ -121,7 +121,8 @@ func (rm *ReserveMessager) SetReserveActions(p person.Person, ChatId int, state 
 type ReserveHandler struct {
 	CommonHandler
 	PlayerHandler *PlayerHandler
-	Reserves      reserve.ReserveRepository
+	Reserve       reserve.Reserve
+	Repository    reserve.ReserveRepository
 }
 
 func (rh *ReserveHandler) GetDataReserve(data string, kh telegram.KeyboardHelper,
@@ -140,7 +141,7 @@ func (rh *ReserveHandler) GetDataReserve(data string, kh telegram.KeyboardHelper
 			AnswerMsg: "Parse reserve id error"}
 
 	} else {
-		r, err = rh.Reserves.Get(id)
+		r, err = rh.Repository.Get(id)
 		if err != nil {
 			err = telegram.HelperError{
 				Msg:       fmt.Sprintf("Getting reserve error: %s", err.Error()),
@@ -168,7 +169,7 @@ func (rh *ReserveHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Call
 
 	rm := NewReserveMessager(res, nil, rh.Resources)
 	rh.StateRepository.Set(st)
-	rh.UpdateReserveMessages(res, true)
+	rh.UpdateMessages(res, true)
 	rh.PlayerHandler.NotifyPlayers(res, &rm, cq.From.Id, "notify")
 	resp = cq.Answer(rh.Bot, "Ok", nil)
 	return resp, nil
@@ -181,24 +182,24 @@ func (rh *ReserveHandler) UpdateReserveMsg(res reserve.Reserve, msg *telegram.Me
 	}
 	rh.StateRepository.Set(st)
 	rm := NewReserveMessager(res, nil, rh.Resources)
-	rh.UpdateReserveMessages(res, true)
+	rh.UpdateMessages(res, true)
 	rh.PlayerHandler.NotifyPlayers(res, &rm, msg.From.Id, "notify")
 	return
 }
 
-func (rm *ReserveHandler) UpdateReserve(res *reserve.Reserve) (err error) {
+func (rh *ReserveHandler) UpdateReserve(res *reserve.Reserve) (err error) {
 
-	if err = rm.Reserves.Update(*res); err != nil {
+	if err = rh.Repository.Update(*res); err != nil {
 		err = telegram.HelperError{
 			Msg:       fmt.Sprintf("order update can't update reserve %s error: %s", res.Id, err.Error()),
 			AnswerMsg: "Can't update reserve"}
 		return
 	}
-	*res, err = rm.Reserves.Get(res.Id)
+	*res, err = rh.Repository.Get(res.Id)
 	return
 }
 
-func (rh *ReserveHandler) UpdateReserveMessages(res reserve.Reserve, renew bool) {
+func (rh *ReserveHandler) UpdateMessages(res reserve.Reserve, renew bool) {
 	slist, _ := rh.StateRepository.GetByData(res.Id.String())
 	notified := map[int]bool{}
 	for _, st := range slist {

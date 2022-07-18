@@ -19,48 +19,121 @@ func (e HelperError) Error() string {
 }
 
 type KeyboardHelper interface {
-	GetText() string
-	GetKeyboard() [][]InlineKeyboardButton
+	GetAction() string
 	GetBtnData(interface{}) string
 	GetData() string
+	GetKeyboard() [][]InlineKeyboardButton
+	GetText() string
+	GetState() string
 	Parse(string) error
+	SetBackData(string)
 	SetData(string)
+	SetState(string)
 }
 
-func NewDateKeyboardHelper(msg string, prefix string) DateKeyboardHelper {
-	return DateKeyboardHelper{Action: "get",
-		Days: 6, Columns: 2, DateFormat: "Mon, 02.01", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
+func NewBaseKeyboardHelper(data string, sep string) (kh BaseKeyboardHelper, err error) {
+	kh = BaseKeyboardHelper{sep: sep}
+	err = kh.Parse(data)
+	return
+}
+
+type BaseKeyboardHelper struct {
+	sep      string
+	Action   string
+	BackData string
+	Data     string
+	State    string
+	Text     string
+}
+
+func (kh BaseKeyboardHelper) GetAction() string {
+	return kh.Action
+}
+
+func (kh BaseKeyboardHelper) GetData() string {
+	return kh.Data
+}
+
+func (kh BaseKeyboardHelper) GetState() string {
+	return kh.State
+}
+
+func (kh BaseKeyboardHelper) GetText() string {
+	return kh.Text
+}
+
+func (kh *BaseKeyboardHelper) SetBackData(data string) {
+	kh.BackData = data
+}
+
+func (kh *BaseKeyboardHelper) SetData(data string) {
+	kh.Data = data
+}
+
+func (kh *BaseKeyboardHelper) SetState(state string) {
+	kh.State = state
+}
+
+func (kh *BaseKeyboardHelper) Parse(Data string) (err error) {
+	splitedData := strings.Split(Data, kh.sep)
+	if len(splitedData) < 2 {
+		err = HelperError{
+			Msg:       "incorrect Date button data format",
+			AnswerMsg: "Can't parse date"}
+		return
+	}
+	kh.State = splitedData[0]
+	kh.Action = splitedData[1]
+	if len(splitedData) > 2 {
+		kh.Data = strings.Join(splitedData[2:], kh.sep)
+	}
+	return
+}
+
+func NewDateKeyboardHelper(data string, sep string) (h DateKeyboardHelper, err error) {
+	h = DateKeyboardHelper{Days: 6, Columns: 2, DateFormat: "Mon, 02.01", Location: time.Local}
+	h.sep = sep
+	err = h.Parse(data)
+	return
+}
+
+func NewDateKeyboardHelperRu(data string, sep string) (h DateKeyboardHelper, err error) {
+	h, err = NewDateKeyboardHelper(data, sep)
+	h.Locale = monday.LocaleRuRU
+	return
 }
 
 type DateKeyboardHelper struct {
-	Msg        string
-	Prefix     string
-	Action     string
+	BaseKeyboardHelper
 	Date       time.Time
-	Data       string
-	BackData   string
+	Location   *time.Location
 	Days       int
 	DateFormat string
 	Columns    int
 	Locale     monday.Locale
 }
 
-func (kh DateKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh DateKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh *DateKeyboardHelper) SetData(data string) {
-	kh.Data = data
+func (kh *DateKeyboardHelper) Parse(Data string) (err error) {
+	kh.BaseKeyboardHelper.Parse(Data)
+	if kh.Action == "set" {
+		splitedData := strings.Split(kh.Data, kh.sep)
+		if kh.Date, err = time.ParseInLocation("2006-02-01", splitedData[0], kh.Location); err != nil {
+			err = HelperError{
+				Msg:       fmt.Sprintf("parse date error: %s", err.Error()),
+				AnswerMsg: "Can't parse date"}
+			return
+		}
+		kh.Date = time.Date(kh.Date.Year(), kh.Date.Month(), kh.Date.Day(), 0, 0, 0, 0, kh.Location)
+		if len(splitedData) > 1 {
+			kh.Data = strings.Join(splitedData[1:], kh.sep)
+		}
+	}
+	return
 }
 
 func (kh DateKeyboardHelper) GetBtnData(val interface{}) string {
 	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("2006-02-01"))
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, "set", dt.Format("2006-02-01"), kh.Data)
 }
 
 func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -86,42 +159,23 @@ func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (kh *DateKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
-	if kh.Action == "set" {
-		kh.Date, err = time.Parse("2006-02-01", splitedData[3])
-		if err != nil {
-			err = HelperError{
-				Msg:       fmt.Sprintf("parse date error: %s", err.Error()),
-				AnswerMsg: "Can't parse date"}
-			return
-		}
-	}
-	kh.Data = splitedData[1]
+func NewTimeKeyboardHelper(data string, sep string) (h TimeKeyboardHelper, err error) {
+	h = TimeKeyboardHelper{StartHour: 7, EndHour: 21, Columns: 3, TimeFormat: "15:04", Location: time.Local}
+	h.sep = sep
+	err = h.Parse(data)
 	return
 }
 
-func NewTimeKeyboardHelper(msg string, prefix string) TimeKeyboardHelper {
-	return TimeKeyboardHelper{Action: "get", StartHour: 7, EndHour: 21,
-		Columns: 3, TimeFormat: "15:04", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
+func NewTimeKeyboardHelperRu(data string, sep string) (h TimeKeyboardHelper, err error) {
+	h, err = NewTimeKeyboardHelper(data, sep)
+	h.Locale = monday.LocaleRuRU
+	return
 }
 
 type TimeKeyboardHelper struct {
-	Msg         string
-	Prefix      string
-	Action      string
+	BaseKeyboardHelper
+	Location    *time.Location
 	Time        time.Time
-	Data        string
-	BackData    string
 	StartHour   int
 	StartMinute int
 	EndHour     int
@@ -132,21 +186,9 @@ type TimeKeyboardHelper struct {
 	Locale      monday.Locale
 }
 
-func (kh TimeKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh TimeKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh *TimeKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
 func (kh TimeKeyboardHelper) GetBtnData(val interface{}) string {
 	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("15:04"))
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, "set", dt.Format("15:04"), kh.Data)
 }
 
 func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -186,26 +228,22 @@ func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 }
 
 func (kh *TimeKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
+	kh.BaseKeyboardHelper.Parse(Data)
 
 	if kh.Action == "set" {
-		kh.Time, err = time.Parse("15:04", splitedData[3])
+		splitedData := strings.Split(kh.Data, kh.sep)
+		kh.Time, err = time.Parse("15:04", splitedData[0])
 		if err != nil {
 			err = HelperError{
 				Msg:       fmt.Sprintf("parse time error: %s", err.Error()),
 				AnswerMsg: "Can't parse time"}
 			return
 		}
+		kh.Time = time.Date(0, 0, 0, kh.Time.Hour(), kh.Time.Minute(), 0, 0, kh.Location)
+		if len(splitedData) > 1 {
+			kh.Data = strings.Join(splitedData[1:], kh.sep)
+		}
 	}
-	kh.Data = splitedData[1]
 	return
 }
 

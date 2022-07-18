@@ -32,7 +32,7 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, sr telegram.St
 	oh.ReserveHandler = &ReserveHandler{
 		CommonHandler: oh.CommonHandler,
 		PlayerHandler: oh.PlayerHandler,
-		Reserves:      os.Reserves,
+		Repository:    os.Reserves,
 	}
 
 	oh.DateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderdate")

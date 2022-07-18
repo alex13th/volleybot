@@ -56,7 +56,6 @@ func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageRespons
 }
 
 type PrefixCallbackHandler struct {
-	Bot     *Bot
 	Prefix  string
 	Handler CallbackQueryFunc
 }
@@ -74,7 +73,6 @@ type MessageHandler interface {
 }
 
 type BaseMessageHandler struct {
-	Bot     *Bot
 	Handler MessageFunc
 }
 
@@ -83,7 +81,6 @@ func (h *BaseMessageHandler) ProceedMessage(m *Message) (MessageResponse, error)
 }
 
 type CommandHandler struct {
-	Bot      *Bot
 	Handler  MessageFunc
 	Command  string
 	Commands []BotCommand
@@ -113,7 +110,6 @@ func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err
 }
 
 type StateMessageHandler struct {
-	Bot             *Bot
 	Handler         MessageStateFunc
 	State           string
 	StateRepository StateRepository
