@@ -202,7 +202,7 @@ func (rh *ReserveHandler) UpdateReserveMessages(res reserve.Reserve, renew bool)
 	slist, _ := rh.StateRepository.GetByData(res.Id.String())
 	notified := map[int]bool{}
 	for _, st := range slist {
-		if notified[st.ChatId] {
+		if notified[st.ChatId] && st.ChatId < 0 {
 			continue
 		}
 		notified[st.ChatId] = true
