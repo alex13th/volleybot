@@ -73,6 +73,7 @@ type OrderBotHandler struct {
 	PlayerHandler      *PlayerHandler
 	ReserveHandler     *ReserveHandler
 	Resources          res.OrderResources
+	StateRepository    telegram.StateRepository
 	OrderService       *services.OrderService
 	DateHelper         telegram.DateKeyboardHelper
 	ListDateHelper     telegram.DateKeyboardHelper
@@ -123,11 +124,11 @@ func (oh *OrderBotHandler) GetCallbackHandlers() (hlist []telegram.CallbackHandl
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercancel", Handler: oh.CancelCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercancelcomfirm", Handler: oh.CancelComfirmCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordershow", Handler: oh.ShowCallback})
+	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordersettings", Handler: oh.SettingsCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderlist", Handler: oh.ListOrdersCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderpub", Handler: oh.PublishCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderdesc", Handler: oh.DescriptionCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercopy", Handler: oh.CopyCallback})
-	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordersettings", Handler: oh.ShowCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderactions", Handler: oh.ShowCallback})
 	return
 }
@@ -388,22 +389,24 @@ func (oh *OrderBotHandler) CopyCallback(cq *telegram.CallbackQuery) (resp telegr
 	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
 }
 
-func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
-	ch := oh.OrderActionsHelper
-	p, resp, err := oh.GetPersonCq(cq)
-	if err != nil {
-		return
-	}
-	res, err := oh.ReserveHandler.GetDataReserve(cq.Data, &ch, nil)
+func (oh *OrderBotHandler) ProduceCallback(cq *telegram.CallbackQuery, sp StateProcessor) (resp telegram.MessageResponse, err error) {
+	err = sp.Init(*cq.From, *cq.Message.Chat, cq.Data)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-
-	rm := NewReserveMessager(res, nil, oh.Resources)
-	rm.SetReserveActions(p, cq.Message.Chat.Id, ch.Action)
-	mr := rm.GetEditMR(cq.Message.Chat.Id)
+	mr := sp.GetEditMR()
 	cq.Message.EditText(oh.Bot, "", &mr)
 	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+}
+
+func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := NewReserveShowProducer(oh.PersonService, oh.OrderService.Reserves, &oh.Resources)
+	return oh.ProduceCallback(cq, &sp)
+}
+
+func (oh *OrderBotHandler) SettingsCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := NewReserveSettingsProducer(oh.PersonService, oh.OrderService.Reserves, &oh.Resources)
+	return oh.ProduceCallback(cq, &sp)
 }
 
 func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
