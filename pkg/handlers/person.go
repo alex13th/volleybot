@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strconv"
 	"volleybot/pkg/domain/person"
+	res "volleybot/pkg/res"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 )
 
-func NewPersonHandler(tb *telegram.Bot, serv *services.PersonService, rl PersonResourceLoader) (h PersonBotHandler) {
+func NewPersonHandler(tb *telegram.Bot, serv *services.PersonService, rl res.PersonResourceLoader) (h PersonBotHandler) {
 	h.PersonService = serv
 	h.Bot = tb
 	h.Resources = rl.GetResource()
@@ -37,7 +38,7 @@ func NewPersonHandler(tb *telegram.Bot, serv *services.PersonService, rl PersonR
 
 type PersonBotHandler struct {
 	CommonHandler
-	Resources     PersonResources
+	Resources     res.PersonResources
 	LevelHelper   telegram.EnumKeyboardHelper
 	SexHelper     telegram.EnumKeyboardHelper
 	NotifyHelper  telegram.EnumKeyboardHelper
@@ -73,7 +74,7 @@ func (h *PersonBotHandler) ShowProfileMsg(msg *telegram.Message, state string, c
 		return h.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 
-	mr := h.GetPersonMR(p, h.GetPersonActions(p, state))
+	mr := h.GetMR(p, h.GetPersonActions(p, state))
 
 	return msg.SendMessage(h.Bot, "", &mr), nil
 }
@@ -84,13 +85,13 @@ func (h *PersonBotHandler) ShowProfileCQ(cq *telegram.CallbackQuery, state strin
 		return h.SendMessageError(cq.Message, err.(telegram.HelperError), nil)
 	}
 
-	mr := h.GetPersonEditMR(p, h.GetPersonActions(p, state))
+	mr := h.GetEditMR(p, h.GetPersonActions(p, state))
 
 	return cq.Message.EditText(h.Bot, "", &mr), nil
 }
 
 func (h *PersonBotHandler) EditMessageCQ(cq *telegram.CallbackQuery, p person.Person, kh telegram.KeyboardHelper) (result telegram.MessageResponse, err error) {
-	mr := h.GetPersonEditMR(p, kh)
+	mr := h.GetEditMR(p, kh)
 	mr.ChatId = cq.Message.Chat.Id
 	cq.Message.EditText(h.Bot, "", &mr)
 	return cq.Answer(h.Bot, "Ok", nil), nil
@@ -189,7 +190,7 @@ func (h *PersonBotHandler) UpdatePersonCQ(p person.Person, cq *telegram.Callback
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 
-	mr := h.GetPersonEditMR(p, h.GetPersonActions(p, "personshow"))
+	mr := h.GetEditMR(p, h.GetPersonActions(p, "personshow"))
 	cq.Message.EditText(h.Bot, "", &mr)
 	return cq.Answer(h.Bot, "Ok", nil), nil
 }
@@ -198,12 +199,12 @@ func (h *PersonBotHandler) UpdatePerson(p person.Person) error {
 	return h.PersonService.Update(p)
 }
 
-func (oh *PersonBotHandler) GetPersonEditMR(p person.Person, kh telegram.KeyboardHelper) (mer telegram.EditMessageTextRequest) {
-	mr := oh.GetPersonMR(p, kh)
+func (oh *PersonBotHandler) GetEditMR(p person.Person, kh telegram.KeyboardHelper) (mer telegram.EditMessageTextRequest) {
+	mr := oh.GetMR(p, kh)
 	return telegram.EditMessageTextRequest{Text: mr.Text, ParseMode: mr.ParseMode, ReplyMarkup: mr.ReplyMarkup}
 }
 
-func (h *PersonBotHandler) GetPersonMR(p person.Person, kh telegram.KeyboardHelper) (mr telegram.MessageRequest) {
+func (h *PersonBotHandler) GetMR(p person.Person, kh telegram.KeyboardHelper) (mr telegram.MessageRequest) {
 	var kbd telegram.InlineKeyboardMarkup
 	var kbdText string
 	if kh != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"volleybot/pkg/domain/person"
+	"volleybot/pkg/res"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 )
@@ -12,6 +13,11 @@ type StateProcessor interface {
 	Init(telegram.User, telegram.Chat, string) error
 	GetMR() telegram.MessageRequest
 	GetEditMR() (mer telegram.EditMessageTextRequest)
+}
+
+type Messager interface {
+	GetMR(ChatId int) telegram.MessageRequest
+	GetEditMR(ChatId int) telegram.EditMessageTextRequest
 }
 
 type CommonHandler struct {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"volleybot/pkg/handlers"
 	"volleybot/pkg/postgres"
+	"volleybot/pkg/res"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 
@@ -57,12 +58,11 @@ func main() {
 		services.WithReservePgRepository(dbpool))
 	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
 	tb.Client = &http.Client{}
-
-	orderHandler := handlers.NewOrderHandler(tb, oservice, handlers.StaticOrderResourceLoader{})
-	strep, err := postgres.NewStatePgRepository(dbpool)
+	strep, _ := postgres.NewStatePgRepository(dbpool)
 	strep.UpdateDB()
+	orderHandler := handlers.NewOrderHandler(tb, oservice, &strep, res.StaticOrderResourceLoader{})
 	orderHandler.StateRepository = &strep
-	personHandler := handlers.NewPersonHandler(tb, pservice, handlers.StaticPersonResourceLoader{})
+	personHandler := handlers.NewPersonHandler(tb, pservice, res.StaticPersonResourceLoader{})
 	if os.Getenv("LOCATION") != "" {
 		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
 	} else {

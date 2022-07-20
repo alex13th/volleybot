@@ -1,4 +1,4 @@
-package handlers
+package res
 
 import (
 	"fmt"
@@ -7,116 +7,6 @@ import (
 
 	"github.com/goodsign/monday"
 )
-
-type DateTimeResources struct {
-	DayCount    int
-	DateMessage string
-	DateButton  string
-	TimeMessage string
-	TimeButton  string
-}
-
-type CourtResources struct {
-	Message    string
-	Button     string
-	Min        int
-	Max        int
-	MaxPlayers int
-}
-
-type PlayerLevelResources struct {
-	Message string
-	Button  string
-	Min     int
-	Max     int
-}
-
-type ActivityResources struct {
-	Message string
-	Button  string
-	Min     int
-	Max     int
-}
-
-type SetResources struct {
-	Message string
-	Button  string
-	Min     int
-	Max     int
-}
-
-type MaxPlayerResources struct {
-	Message          string
-	CountError       string
-	GroupChatWarning string
-	Button           string
-	Min              int
-	Max              int
-}
-
-type DescriptionResources struct {
-	Message     string
-	DoneMessage string
-	Button      string
-}
-
-type JoinPlayerResources struct {
-	Message         string
-	Button          string
-	ArriveButton    string
-	LeaveButton     string
-	MultiButton     string
-	MultiButtonText string
-}
-
-type PriceResources struct {
-	Message string
-	Button  string
-	Min     int
-	Max     int
-	Step    int
-}
-
-type CancelResources struct {
-	Message string
-	Button  string
-	Confirm string
-	Abort   string
-}
-
-type OrderResources struct {
-	Location          location.Location
-	ActionsBtn        string
-	SettingsBtn       string
-	BackBtn           string
-	CopyBtn           string
-	CopyMessage       string
-	PublishBtn        string
-	RefreshBtn        string
-	RemovePlayerBtn   string
-	ListCommand       telegram.BotCommand
-	OrderCommand      telegram.BotCommand
-	Locale            monday.Locale
-	Description       DescriptionResources
-	DateTime          DateTimeResources
-	Court             CourtResources
-	Activity          ActivityResources
-	Level             PlayerLevelResources
-	Set               SetResources
-	MaxPlayer         MaxPlayerResources
-	JoinPlayer        JoinPlayerResources
-	Price             PriceResources
-	Cancel            CancelResources
-	RenewMessage      string
-	ReservesMessage   string
-	NoReservesMessage string
-	NoReservesAnswer  string
-	OkAnswer          string
-}
-
-type OrderResourceLoader interface {
-	GetResource() OrderResources
-}
 
 type StaticOrderResourceLoader struct{}
 
@@ -185,14 +75,38 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	return
 }
 
-type PersonResources struct {
-	CommonHandler
-	ProfileCommand telegram.BotCommand
-	Level          PlayerLevelResources
+type OrderResources struct {
+	Location          location.Location
+	ActionsBtn        string
+	SettingsBtn       string
+	BackBtn           string
+	CopyBtn           string
+	CopyMessage       string
+	PublishBtn        string
+	RefreshBtn        string
+	RemovePlayerBtn   string
+	ListCommand       telegram.BotCommand
+	OrderCommand      telegram.BotCommand
+	Locale            monday.Locale
+	Description       DescriptionResources
+	DateTime          DateTimeResources
+	Court             CourtResources
+	Activity          ActivityResources
+	Level             PlayerLevelResources
+	Set               SetResources
+	MaxPlayer         MaxPlayerResources
+	JoinPlayer        JoinPlayerResources
+	Price             PriceResources
+	Cancel            CancelResources
+	RenewMessage      string
+	ReservesMessage   string
+	NoReservesMessage string
+	NoReservesAnswer  string
+	OkAnswer          string
 }
 
-type PersonResourceLoader interface {
-	GetResource() PersonResources
+type OrderResourceLoader interface {
+	GetResource() OrderResources
 }
 
 type StaticPersonResourceLoader struct{}
