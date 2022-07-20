@@ -5,6 +5,7 @@ import (
 	"log"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
+	"volleybot/pkg/res"
 	"volleybot/pkg/services"
 	"volleybot/pkg/telegram"
 
@@ -12,7 +13,7 @@ import (
 )
 
 type ReserveProducer struct {
-	res     *OrderResources
+	res     *res.OrderResources
 	ps      *services.PersonService
 	rr      reserve.ReserveRepository
 	kh      telegram.KeyboardHelper
@@ -113,7 +114,7 @@ type ReserveShowProucer struct {
 	ReserveProducer
 }
 
-func NewReserveShowProducer(ps *services.PersonService, rr reserve.ReserveRepository, res *OrderResources) (rs ReserveShowProucer) {
+func NewReserveShowProducer(ps *services.PersonService, rr reserve.ReserveRepository, res *res.OrderResources) (rs ReserveShowProucer) {
 	rs.res = res
 	rs.ps = ps
 	rs.rr = rr
@@ -179,7 +180,7 @@ type ReserveSettingsProducer struct {
 	ReserveProducer
 }
 
-func NewReserveSettingsProducer(ps *services.PersonService, rr reserve.ReserveRepository, res *OrderResources) (rs ReserveSettingsProducer) {
+func NewReserveSettingsProducer(ps *services.PersonService, rr reserve.ReserveRepository, res *res.OrderResources) (rs ReserveSettingsProducer) {
 	rs.res = res
 	rs.ps = ps
 	rs.rr = rr

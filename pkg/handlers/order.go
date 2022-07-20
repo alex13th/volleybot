@@ -21,9 +21,9 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, sr telegram.St
 	oh.Resources = rl.GetResource()
 	oh.CommonHandler = CommonHandler{
 		Bot:             tb,
-		StateRepository: sr,
 		PersonService:   os.PersonService,
-		Resources:       oh.Resources,
+		Resources:       rl.GetResource(),
+		StateRepository: sr,
 	}
 	oh.PlayerHandler = &PlayerHandler{
 		PersonService: os.PersonService,
@@ -73,7 +73,6 @@ type OrderBotHandler struct {
 	PlayerHandler      *PlayerHandler
 	ReserveHandler     *ReserveHandler
 	Resources          res.OrderResources
-	StateRepository    telegram.StateRepository
 	OrderService       *services.OrderService
 	DateHelper         telegram.DateKeyboardHelper
 	ListDateHelper     telegram.DateKeyboardHelper

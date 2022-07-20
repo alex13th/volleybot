@@ -21,8 +21,10 @@ type Messager interface {
 }
 
 type CommonHandler struct {
-	Bot           *telegram.Bot
-	PersonService *services.PersonService
+	Bot             *telegram.Bot
+	Resources       res.OrderResources
+	PersonService   *services.PersonService
+	StateRepository telegram.StateRepository
 }
 
 func (h *CommonHandler) SendCallbackError(cq *telegram.CallbackQuery, cq_err telegram.HelperError, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {

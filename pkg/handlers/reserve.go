@@ -168,7 +168,7 @@ func (rh *ReserveHandler) UpdateReserveCQ(res reserve.Reserve, cq *telegram.Call
 
 	rm := NewReserveMessager(res, nil, rh.Resources)
 	rh.StateRepository.Set(st)
-	rh.UpdateReserveMessages(res, true)
+	rh.UpdateReserveMessages(res)
 	rh.PlayerHandler.NotifyPlayers(res, &rm, cq.From.Id, "notify")
 	resp = cq.Answer(rh.Bot, "Ok", nil)
 	return resp, nil
@@ -181,7 +181,7 @@ func (rh *ReserveHandler) UpdateReserveMsg(res reserve.Reserve, msg *telegram.Me
 	}
 	rh.StateRepository.Set(st)
 	rm := NewReserveMessager(res, nil, rh.Resources)
-	rh.UpdateReserveMessages(res, true)
+	rh.UpdateReserveMessages(res)
 	rh.PlayerHandler.NotifyPlayers(res, &rm, msg.From.Id, "notify")
 	return
 }
@@ -198,7 +198,7 @@ func (rm *ReserveHandler) UpdateReserve(res *reserve.Reserve) (err error) {
 	return
 }
 
-func (rh *ReserveHandler) UpdateReserveMessages(res reserve.Reserve, renew bool) {
+func (rh *ReserveHandler) UpdateReserveMessages(res reserve.Reserve) {
 	slist, _ := rh.StateRepository.GetByData(res.Id.String())
 	notified := map[int]bool{}
 	for _, st := range slist {
@@ -209,7 +209,7 @@ func (rh *ReserveHandler) UpdateReserveMessages(res reserve.Reserve, renew bool)
 		p, _ := rh.GetPerson(&telegram.User{Id: st.ChatId})
 		rm := NewReserveMessager(res, nil, rh.Resources)
 		rm.SetReserveActions(p, st.ChatId, st.State)
-		if renew && st.ChatId < 0 {
+		if st.ChatId < 0 {
 			mr := rm.GetMR(st.ChatId)
 			mr.DisableNotification = true
 			resp := rh.Bot.SendMessage(&mr)
