@@ -8,16 +8,15 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-type BotHandler interface {
-	GetCallbackHandlers() []telegram.CallbackHandler
-	GetMessageHandler() []telegram.MessageHandler
-	GetCommands(tuser *telegram.User) (cmds []telegram.BotCommand)
+type StateProcessor interface {
+	Init(telegram.User, telegram.Chat, string) error
+	GetMR() telegram.MessageRequest
+	GetEditMR() (mer telegram.EditMessageTextRequest)
 }
 
 type CommonHandler struct {
-	Bot             *telegram.Bot
-	StateRepository telegram.StateRepository
-	PersonService   *services.PersonService
+	Bot           *telegram.Bot
+	PersonService *services.PersonService
 }
 
 func (h *CommonHandler) SendCallbackError(cq *telegram.CallbackQuery, cq_err telegram.HelperError, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
