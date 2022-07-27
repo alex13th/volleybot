@@ -129,7 +129,7 @@ func (msg *Message) IsCommand() bool {
 	return msg.GetCommand() != ""
 }
 
-func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
+func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
 	return tb.SendMessage(msg.CreateMessageRequest(Text, mr))
 }
 
@@ -137,7 +137,7 @@ func (msg *Message) DeleteMessage(tb *Bot) {
 	tb.SendMessage(&DeleteMessageRequest{ChatId: msg.Chat.Id, MessageId: msg.MessageId})
 }
 
-func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
+func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) (MessageResponse, error) {
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }
 
@@ -160,7 +160,7 @@ func (msg *Message) CreateMessageRequest(Text string, mr *MessageRequest) (resul
 }
 
 func (msg *Message) EditText(tb *Bot, Text string,
-	mer *EditMessageTextRequest) MessageResponse {
+	mer *EditMessageTextRequest) (MessageResponse, error) {
 	if mer == nil {
 		mer = &EditMessageTextRequest{}
 	}
@@ -190,7 +190,7 @@ type CallbackQuery struct {
 	GameShortName   string   `json:"game_short_name"`
 }
 
-func (cq *CallbackQuery) Answer(tb *Bot, Text string, req *AnswerCallbackQueryRequest) MessageResponse {
+func (cq *CallbackQuery) Answer(tb *Bot, Text string, req *AnswerCallbackQueryRequest) (MessageResponse, error) {
 	if req == nil {
 		req = &AnswerCallbackQueryRequest{}
 	}

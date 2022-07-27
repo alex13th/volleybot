@@ -3,8 +3,8 @@ name: Dev
 on:
   push:
     branches:
-      - '*'
-      - '*/*'
+      - 'dev'
+      - 'refactoring_producers'
       - '!master'
 
 env:

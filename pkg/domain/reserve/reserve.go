@@ -1,6 +1,7 @@
 package reserve
 
 import (
+	"encoding/base64"
 	"errors"
 	"time"
 	"volleybot/pkg/domain/location"
@@ -19,18 +20,12 @@ var (
 
 func NewPreReserve(p person.Person) Reserve {
 	return Reserve{
-		Id:         uuid.New(),
-		Person:     p,
-		CourtCount: 1,
-		MaxPlayers: 6,
-		Players:    []person.Player{}}
+		Id:     uuid.New(),
+		Person: p,
+	}
 }
 
-func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve, err error) {
-
-	if end.Before(start) {
-		return Reserve{}, ErrReserveInvalidPeriod
-	}
+func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve) {
 	res = NewPreReserve(p)
 	res.StartTime = start
 	res.EndTime = end
@@ -66,19 +61,28 @@ func (a Activity) Emoji() string {
 
 type Reserve struct {
 	Id          uuid.UUID         `json:"id"`
-	Activity    Activity          `json:"activity"`
 	Person      person.Person     `json:"person"`
 	Location    location.Location `json:"location"`
 	StartTime   time.Time         `json:"start_time"`
 	EndTime     time.Time         `json:"end_time"`
-	MinLevel    int               `json:"min_level"`
 	Price       int               `json:"price"`
-	CourtCount  int               `json:"court_count"`
-	MaxPlayers  int               `json:"max_players"`
 	Approved    bool              `json:"approved"`
 	Canceled    bool              `json:"canceled"`
-	Players     []person.Player   `json:"players"`
 	Description string            `json:"description"`
+}
+
+func (res Reserve) Base64Id() string {
+	bid := [16]byte(res.Id)
+	return base64.StdEncoding.EncodeToString(bid[:])
+}
+
+func (res Reserve) IdFromBase64(b64 string) (id uuid.UUID, err error) {
+	var bid []byte
+	if bid, err = base64.StdEncoding.DecodeString(b64); err != nil {
+		return
+	}
+	id, err = uuid.FromBytes(bid)
+	return
 }
 
 func (res *Reserve) GetPerson() person.Person {
@@ -89,6 +93,24 @@ func (res *Reserve) GetStartTime() time.Time {
 	return res.StartTime
 }
 
+func (res *Reserve) SetDurationHours(h int) {
+	res.EndTime = res.StartTime.Add(time.Duration(time.Hour * time.Duration(h)))
+}
+
+func (res *Reserve) SetStartDate(dt time.Time) {
+	dur := res.GetDuration()
+	res.StartTime = dt.Add(time.Duration(res.StartTime.Hour()*int(time.Hour) +
+		res.StartTime.Minute()*int(time.Minute)))
+	res.EndTime = res.StartTime.Add(dur)
+}
+
+func (res *Reserve) SetStartTime(tm time.Time) {
+	dur := res.GetDuration()
+	res.StartTime = time.Date(res.StartTime.Year(), res.StartTime.Month(), res.StartTime.Day(),
+		tm.Hour(), tm.Minute(), 0, 0, time.Local)
+	res.EndTime = res.StartTime.Add(dur)
+}
+
 func (res *Reserve) GetEndTime() time.Time {
 	return res.EndTime
 }
@@ -96,15 +118,6 @@ func (res *Reserve) GetEndTime() time.Time {
 func (res *Reserve) GetDuration() time.Duration {
 	result := res.EndTime.Sub(res.StartTime)
 	return result
-}
-
-func (res *Reserve) HasPlayerByTelegramId(id int) bool {
-	for _, pl := range res.Players {
-		if pl.Person.TelegramId == id {
-			return true
-		}
-	}
-	return false
 }
 
 func (res *Reserve) Copy() (result Reserve) {
@@ -133,63 +146,6 @@ func (res *Reserve) CheckConflicts(other Reserve) bool {
 
 func (res Reserve) Ordered() (ordered bool) {
 	ordered = (!res.StartTime.IsZero() && res.GetDuration() > 0 &&
-		res.CourtCount > 0 && res.MaxPlayers > 0 && !res.Canceled)
+		!res.Canceled)
 	return
-}
-
-func (res *Reserve) PlayerCount(pid uuid.UUID) (count int) {
-	for i, pl := range res.Players {
-		if res.Players[i].Id != pid {
-			count += pl.Count
-		}
-	}
-	return
-}
-
-func (res *Reserve) GetPlayer(pid uuid.UUID) (pl person.Player) {
-	for _, pl := range res.Players {
-		if pl.Id == pid {
-			return pl
-		}
-	}
-	return
-}
-
-func (res *Reserve) GetPlayerByTelegramId(tid int) (pl person.Player) {
-	for _, pl := range res.Players {
-		if pl.TelegramId == tid {
-			return pl
-		}
-	}
-	return
-}
-
-func (res *Reserve) RemovePlayerByTelegramId(tid int) {
-	newplist := []person.Player{}
-	for _, pl := range res.Players {
-		if pl.TelegramId != tid {
-			newplist = append(newplist, pl)
-		}
-	}
-	res.Players = newplist
-}
-
-func (res *Reserve) PlayerInReserve(pid uuid.UUID) bool {
-	count := 0
-	for _, pl := range res.Players {
-		if pl.Id == pid {
-			return count >= res.MaxPlayers
-		}
-		count += pl.Count
-	}
-	return count >= res.MaxPlayers
-}
-
-func (res *Reserve) JoinPlayer(pl person.Player) {
-	for i, p := range res.Players {
-		if p.Id == pl.Id {
-			res.Players[i] = pl
-		}
-	}
-	res.Players = append(res.Players, pl)
 }

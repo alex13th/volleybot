@@ -36,8 +36,9 @@ func NewPerson(firstname string) (person Person, err error) {
 	}
 
 	person = Person{
-		Firstname: firstname,
-		Id:        uuid.New(),
+		Firstname:     firstname,
+		Id:            uuid.New(),
+		LocationRoles: make(map[uuid.UUID][]string),
 	}
 	return
 }
@@ -84,6 +85,7 @@ func (user *Person) CheckLocationRole(l location.Location, role string) bool {
 
 type Player struct {
 	Person
+	PlayerId   int
 	Count      int
 	ArriveTime time.Time
 }
