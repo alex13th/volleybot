@@ -122,7 +122,7 @@ func (h *PersonBotHandler) NotifyCallback(cq *telegram.CallbackQuery) (result te
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 	ch := h.NotifyHelper
-	ch.Prefix = "personnotify"
+	ch.State = "personnotify"
 	err = ch.Parse(cq.Data)
 	if err != nil {
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
@@ -141,7 +141,7 @@ func (h *PersonBotHandler) NotifyCancelCallback(cq *telegram.CallbackQuery) (res
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 	ch := h.NotifyHelper
-	ch.Prefix = "personnotifycncl"
+	ch.State = "personnotifycncl"
 	err = ch.Parse(cq.Data)
 	if err != nil {
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
@@ -180,7 +180,7 @@ func (h *PersonBotHandler) ShowCallback(cq *telegram.CallbackQuery) (resp telegr
 		return h.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
 
-	h.ShowProfileCQ(cq, ch.Action, nil)
+	h.ShowProfileCQ(cq, ch.State, nil)
 	return cq.Answer(h.Bot, "Ok", nil), nil
 }
 
@@ -228,18 +228,18 @@ func (h *PersonBotHandler) GetPersonActions(p person.Person, state string) (лh 
 
 	if state == "personshow" {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personlevel", Text: "Уровень"})
+			Action: "personlevel", Text: "Уровень"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personsex", Text: "Пол"})
+			Action: "personsex", Text: "Пол"})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personnotifies", Text: "Оповещения"})
+			Action: "personnotifies", Text: "Оповещения"})
 	} else if state == "personnotifies" {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personnotify", Text: person.ParamNames["notify"]})
+			Action: "personnotify", Text: person.ParamNames["notify"]})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personnotifycncl", Text: person.ParamNames["notify_cancel"]})
+			Action: "personnotifycncl", Text: person.ParamNames["notify_cancel"]})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "personshow", Text: "Назад"})
+			Action: "personshow", Text: "Назад"})
 	}
 	return &ah
 }

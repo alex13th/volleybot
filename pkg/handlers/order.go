@@ -35,6 +35,15 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, sr telegram.St
 		Reserves:      os.Reserves,
 	}
 
+	oh.StateProviders = make(map[string]StateProvider)
+	rp := NewReserveProvider(os.PersonService, os.Reserves, &oh.CommonHandler.Resources)
+	rsp := NewReserveShowProvider(rp)
+	oh.StateProviders["ordershow"] = rsp
+	oh.StateProviders["ordersettings"] = NewReserveSettingsProvider(rp)
+	oh.StateProviders["orderactions"] = NewReserveActionsProvider(rp)
+	oh.StateProviders["orderpub"] = NewReservePublishProvider(*rsp, tb)
+	oh.StateProviders["ordercopy"] = NewReserveCopyProvider(*rsp)
+
 	oh.DateHelper = telegram.NewDateKeyboardHelper(oh.Resources.DateTime.DateMessage, "orderdate")
 	oh.DateHelper.Days = oh.Resources.DateTime.DayCount
 	oh.DateHelper.Columns = 3
@@ -72,6 +81,7 @@ type OrderBotHandler struct {
 	CommonHandler
 	PlayerHandler      *PlayerHandler
 	ReserveHandler     *ReserveHandler
+	StateProviders     map[string]StateProvider
 	Resources          res.OrderResources
 	OrderService       *services.OrderService
 	DateHelper         telegram.DateKeyboardHelper
@@ -128,14 +138,14 @@ func (oh *OrderBotHandler) GetCallbackHandlers() (hlist []telegram.CallbackHandl
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderpub", Handler: oh.PublishCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderdesc", Handler: oh.DescriptionCallback})
 	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "ordercopy", Handler: oh.CopyCallback})
-	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderactions", Handler: oh.ShowCallback})
+	hlist = append(hlist, &telegram.PrefixCallbackHandler{Prefix: "orderactions", Handler: oh.ActionsCallback})
 	return
 }
 
 func (oh *OrderBotHandler) GetMessageHandler() (hlist []telegram.MessageHandler) {
 	hlist = append(hlist, &telegram.CommandHandler{
 		Command: oh.Resources.OrderCommand.Command, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
-			return oh.CreateOrder(m, nil)
+			return oh.CreateOrder(m)
 		}})
 	hlist = append(hlist, &telegram.CommandHandler{
 		Command: oh.Resources.ListCommand.Command, Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
@@ -161,7 +171,7 @@ func (oh *OrderBotHandler) GetLocation(lname string) (l location.Location, err e
 	return
 }
 
-func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
+func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message) (result telegram.MessageResponse, err error) {
 	p, err := oh.GetPerson(msg.From)
 	if err != nil {
 		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
@@ -192,22 +202,10 @@ func (oh *OrderBotHandler) CreateOrder(msg *telegram.Message, chanr chan telegra
 		return oh.SendMessageError(msg, err.(telegram.HelperError), nil)
 	}
 
-	var kbd telegram.InlineKeyboardMarkup
-	rm := NewReserveMessager(res, nil, oh.Resources)
-	rm.SetReserveActions(p, msg.Chat.Id, "ordershow")
-
-	rm.KeyboardHelper.SetData(res.Id.String())
-	kbd.InlineKeyboard = rm.KeyboardHelper.GetKeyboard()
-	rview := reserve.NewTelegramViewRu(res)
-	mr := &telegram.MessageRequest{
-		ChatId:      msg.Chat.Id,
-		Text:        rview.GetText(),
-		ParseMode:   rview.ParseMode,
-		ReplyMarkup: kbd}
-	result = oh.Bot.SendMessage(mr)
-	if chanr != nil {
-		chanr <- result
-	}
+	sp := oh.StateProviders["ordershow"]
+	sp.Init(*msg.From, *msg, res.Id.String())
+	mr := sp.GetMR()
+	result = oh.Bot.SendMessage(&mr)
 	return result, nil
 }
 
@@ -259,15 +257,14 @@ func (oh *OrderBotHandler) ListDateCallback(cq *telegram.CallbackQuery) (result 
 
 	}
 	ah := telegram.ActionsKeyboardHelper{Columns: 1}
-	prefix := "ordershow"
 	for _, res := range rlist {
 		tgv := reserve.NewTelegramViewRu(res)
 		ab := telegram.ActionButton{
-			Prefix: prefix, Data: res.Id.String(), Text: tgv.String()}
+			Action: "ordershow", Data: res.Id.String(), Text: tgv.String()}
 		ah.Actions = append(ah.Actions, ab)
 	}
 	ah.Actions = append(ah.Actions, telegram.ActionButton{
-		Prefix: "orderlist", Text: oh.Resources.BackBtn})
+		Action: "orderlist", Text: oh.Resources.BackBtn})
 
 	mr.Text = oh.Resources.ReservesMessage
 	mr.ReplyMarkup = telegram.InlineKeyboardMarkup{InlineKeyboard: ah.GetKeyboard()}
@@ -322,7 +319,7 @@ func (oh *OrderBotHandler) StartTimeCallback(cq *telegram.CallbackQuery) (result
 
 func (oh *OrderBotHandler) ArriveTimeCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
 	th := oh.TimeHelper
-	th.Prefix = "orderarrivetime"
+	th.State = "orderarrivetime"
 	res, err := oh.ReserveHandler.GetDataReserve(cq.Data, &th, nil)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
@@ -361,72 +358,51 @@ func (oh *OrderBotHandler) SetsCallback(cq *telegram.CallbackQuery) (result tele
 	}
 }
 
-func (oh *OrderBotHandler) CopyCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
-	p, resp, err := oh.GetPersonCq(cq)
-	if err != nil {
-		return
-	}
-
-	ch := oh.OrderActionsHelper
-	res, err := oh.ReserveHandler.GetDataReserve(cq.Data, &ch, nil)
+func (oh *OrderBotHandler) ProduceCallback(cq *telegram.CallbackQuery, sp StateProvider) (resp telegram.MessageResponse, err error) {
+	err = sp.ProceedCQ(*cq.From, *cq)
 	if err != nil {
 		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
 	}
-
-	res, err = oh.OrderService.Reserves.Add(res.Copy())
-	if err != nil {
-		err = telegram.HelperError{
-			Msg:       fmt.Sprintf("copping order error: %s", err.Error()),
-			AnswerMsg: "Can't copy order"}
-		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
+	st := sp.GetState()
+	if st.ChatId != cq.Message.Chat.Id || st.MessageId != cq.Message.MessageId {
+		oh.StateRepository.Set(st)
 	}
 
-	rm := NewReserveMessager(res, nil, oh.Resources)
-	rm.SetReserveActions(p, cq.Message.Chat.Id, "ordercopy")
-	mr := rm.GetEditMR(cq.Message.Chat.Id)
-	cq.Message.EditText(oh.Bot, oh.Resources.CopyMessage, &mr)
-	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
-}
-
-func (oh *OrderBotHandler) ProduceCallback(cq *telegram.CallbackQuery, sp StateProcessor) (resp telegram.MessageResponse, err error) {
-	err = sp.Init(*cq.From, *cq.Message.Chat, cq.Data)
-	if err != nil {
-		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
-	}
+	sp = oh.StateProviders[st.State]
+	sp.Init(*cq.From, *cq.Message, st.Data)
 	mr := sp.GetEditMR()
 	cq.Message.EditText(oh.Bot, "", &mr)
-	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
-}
-
-func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
-	sp := NewReserveShowProducer(oh.PersonService, oh.OrderService.Reserves, &oh.Resources)
-	return oh.ProduceCallback(cq, &sp)
-}
-
-func (oh *OrderBotHandler) SettingsCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
-	sp := NewReserveSettingsProducer(oh.PersonService, oh.OrderService.Reserves, &oh.Resources)
-	return oh.ProduceCallback(cq, &sp)
-}
-
-func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
-	ch := oh.OrderActionsHelper
-	res, err := oh.ReserveHandler.GetDataReserve(cq.Data, &ch, nil)
-	if err != nil {
-		return oh.SendCallbackError(cq, err.(telegram.HelperError), nil)
-	}
-	st := telegram.State{
-		ChatId: res.Location.ChatId,
-		State:  "ordershow",
-		Data:   res.Id.String(),
-	}
-	rm := NewReserveMessager(res, nil, oh.Resources)
-	rm.SetReserveActions(person.Person{}, st.ChatId, st.State)
-	mr := rm.GetMR(st.ChatId)
-	resp := oh.Bot.SendMessage(&mr)
-	st.MessageId = resp.Result.MessageId
+	st = sp.GetState()
+	st.ChatId = cq.Message.Chat.Id
+	st.MessageId = cq.Message.MessageId
 	oh.StateRepository.Set(st)
 
 	return cq.Answer(oh.Bot, oh.Resources.OkAnswer, nil), nil
+}
+
+func (oh *OrderBotHandler) CopyCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := oh.StateProviders["ordercopy"]
+	return oh.ProduceCallback(cq, sp)
+}
+
+func (oh *OrderBotHandler) ShowCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := oh.StateProviders["ordershow"]
+	return oh.ProduceCallback(cq, sp)
+}
+
+func (oh *OrderBotHandler) ActionsCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := oh.StateProviders["orderactions"]
+	return oh.ProduceCallback(cq, sp)
+}
+
+func (oh *OrderBotHandler) SettingsCallback(cq *telegram.CallbackQuery) (resp telegram.MessageResponse, err error) {
+	sp := oh.StateProviders["ordersettings"]
+	return oh.ProduceCallback(cq, sp)
+}
+
+func (oh *OrderBotHandler) PublishCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
+	sp := oh.StateProviders["orderpub"]
+	return oh.ProduceCallback(cq, sp)
 }
 
 func (oh *OrderBotHandler) MinLevelCallback(cq *telegram.CallbackQuery) (result telegram.MessageResponse, err error) {
@@ -612,7 +588,7 @@ func (oh *OrderBotHandler) RemovePlayerCallback(cq *telegram.CallbackQuery) (res
 		ph := telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderremovepl", pllist)
 
 		ab := telegram.ActionButton{
-			Prefix: "orderactions", Data: res.Id.String(), Text: ""}
+			Action: "orderactions", Data: res.Id.String(), Text: ""}
 		ph.BackData = telegram.ActionsKeyboardHelper{}.GetBtnData(ab)
 		rm := NewReserveMessager(res, &ph, oh.Resources)
 		mr := rm.GetEditMR(cq.Message.Chat.Id)
@@ -674,11 +650,11 @@ func (oh *OrderBotHandler) CancelCallback(cq *telegram.CallbackQuery) (result te
 	}
 	ah.Columns = 2
 	ah.Actions = append(ah.Actions, telegram.ActionButton{
-		Prefix: "orderleave", Text: oh.Resources.JoinPlayer.LeaveButton})
+		Action: "orderleave", Text: oh.Resources.JoinPlayer.LeaveButton})
 	ah.Actions = append(ah.Actions, telegram.ActionButton{
-		Prefix: "ordercancelcomfirm", Text: oh.Resources.Cancel.Confirm})
+		Action: "ordercancelcomfirm", Text: oh.Resources.Cancel.Confirm})
 	ah.Actions = append(ah.Actions, telegram.ActionButton{
-		Prefix: "ordershow", Text: oh.Resources.Cancel.Abort})
+		Action: "ordershow", Text: oh.Resources.Cancel.Abort})
 	rm := NewReserveMessager(res, &ah, oh.Resources)
 	mr := rm.GetEditMR(cq.Message.Chat.Id)
 	mr.Text += oh.Resources.Cancel.Message

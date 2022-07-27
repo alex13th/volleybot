@@ -57,63 +57,63 @@ func (rm *ReserveMessager) SetReserveActions(p person.Person, ChatId int, state 
 		if rm.Reserve.Person.TelegramId == p.TelegramId || p.CheckLocationRole(rm.Reserve.Location, "admin") {
 			if state == "ordershow" {
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderdate", Text: rm.Resources.DateTime.DateButton})
+					Action: "orderdate", Text: rm.Resources.DateTime.DateButton})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordertime", Text: rm.Resources.DateTime.TimeButton})
+					Action: "ordertime", Text: rm.Resources.DateTime.TimeButton})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordersets", Text: rm.Resources.Set.Button})
+					Action: "ordersets", Text: rm.Resources.Set.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderdesc", Text: rm.Resources.Description.Button})
+					Action: "orderdesc", Text: rm.Resources.Description.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordersettings", Text: rm.Resources.SettingsBtn})
+					Action: "ordersettings", Text: rm.Resources.SettingsBtn})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderactions", Text: rm.Resources.ActionsBtn})
+					Action: "orderactions", Text: rm.Resources.ActionsBtn})
 			} else if state == "ordersettings" {
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderactivity", Text: rm.Resources.Activity.Button})
+					Action: "orderactivity", Text: rm.Resources.Activity.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordercourts", Text: rm.Resources.Court.Button})
+					Action: "ordercourts", Text: rm.Resources.Court.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderminlevel", Text: rm.Resources.Level.Button})
+					Action: "orderminlevel", Text: rm.Resources.Level.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderplayers", Text: rm.Resources.MaxPlayer.Button})
+					Action: "orderplayers", Text: rm.Resources.MaxPlayer.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderprice", Text: rm.Resources.Price.Button})
+					Action: "orderprice", Text: rm.Resources.Price.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordershow", Text: rm.Resources.BackBtn})
+					Action: "ordershow", Text: rm.Resources.BackBtn})
 			} else if state == "orderactions" {
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordercancel", Text: rm.Resources.Cancel.Button})
+					Action: "ordercancel", Text: rm.Resources.Cancel.Button})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordercopy", Text: rm.Resources.CopyBtn})
+					Action: "ordercopy", Text: rm.Resources.CopyBtn})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderpub", Text: rm.Resources.PublishBtn})
+					Action: "orderpub", Text: rm.Resources.PublishBtn})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "orderremovepl", Text: rm.Resources.RemovePlayerBtn})
+					Action: "orderremovepl", Text: rm.Resources.RemovePlayerBtn})
 				ah.Actions = append(ah.Actions, telegram.ActionButton{
-					Prefix: "ordershow", Text: rm.Resources.BackBtn})
+					Action: "ordershow", Text: rm.Resources.BackBtn})
 			}
 		}
 	}
 	if rm.Reserve.Ordered() && state == "ordershow" {
 		if ChatId <= 0 || !rm.Reserve.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
-				Prefix: "orderjoin", Text: rm.Resources.JoinPlayer.Button})
+				Action: "orderjoin", Text: rm.Resources.JoinPlayer.Button})
 		}
 		if ChatId > 0 || rm.Reserve.MaxPlayers-rm.Reserve.PlayerCount(uuid.Nil) > 1 {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
-				Prefix: "orderjoinmult", Text: rm.Resources.JoinPlayer.MultiButton})
+				Action: "orderjoinmult", Text: rm.Resources.JoinPlayer.MultiButton})
 		}
 		if ChatId > 0 && rm.Reserve.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
-				Prefix: "orderarrivetime", Text: rm.Resources.JoinPlayer.ArriveButton})
+				Action: "orderarrivetime", Text: rm.Resources.JoinPlayer.ArriveButton})
 		}
 		if ChatId <= 0 || rm.Reserve.HasPlayerByTelegramId(p.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
-				Prefix: "orderleave", Text: rm.Resources.JoinPlayer.LeaveButton})
+				Action: "orderleave", Text: rm.Resources.JoinPlayer.LeaveButton})
 		}
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
-			Prefix: "ordershow", Text: rm.Resources.RefreshBtn})
+			Action: "ordershow", Text: rm.Resources.RefreshBtn})
 	}
 	rm.KeyboardHelper = &ah
 }

@@ -19,23 +19,24 @@ func (e HelperError) Error() string {
 }
 
 type KeyboardHelper interface {
-	GetText() string
-	GetKeyboard() [][]InlineKeyboardButton
 	GetBtnData(interface{}) string
 	GetData() string
+	GetKeyboard() [][]InlineKeyboardButton
+	GetState() string
+	GetText() string
 	Parse(string) error
 	SetData(string)
 }
 
-func NewDateKeyboardHelper(msg string, prefix string) DateKeyboardHelper {
+func NewDateKeyboardHelper(msg string, state string) DateKeyboardHelper {
 	return DateKeyboardHelper{Action: "get",
 		Days: 6, Columns: 2, DateFormat: "Mon, 02.01", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
+		Msg: msg, State: state}
 }
 
 type DateKeyboardHelper struct {
 	Msg        string
-	Prefix     string
+	State      string
 	Action     string
 	Date       time.Time
 	Data       string
@@ -50,6 +51,10 @@ func (kh DateKeyboardHelper) GetData() string {
 	return kh.Data
 }
 
+func (kh DateKeyboardHelper) GetState() string {
+	return kh.State
+}
+
 func (kh DateKeyboardHelper) GetText() string {
 	return kh.Msg
 }
@@ -60,7 +65,7 @@ func (kh *DateKeyboardHelper) SetData(data string) {
 
 func (kh DateKeyboardHelper) GetBtnData(val interface{}) string {
 	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("2006-02-01"))
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, kh.Data, "set", dt.Format("2006-02-01"))
 }
 
 func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -109,15 +114,15 @@ func (kh *DateKeyboardHelper) Parse(Data string) (err error) {
 	return
 }
 
-func NewTimeKeyboardHelper(msg string, prefix string) TimeKeyboardHelper {
+func NewTimeKeyboardHelper(msg string, state string) TimeKeyboardHelper {
 	return TimeKeyboardHelper{Action: "get", StartHour: 7, EndHour: 21,
 		Columns: 3, TimeFormat: "15:04", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
+		Msg: msg, State: state}
 }
 
 type TimeKeyboardHelper struct {
 	Msg         string
-	Prefix      string
+	State       string
 	Action      string
 	Time        time.Time
 	Data        string
@@ -136,6 +141,10 @@ func (kh TimeKeyboardHelper) GetText() string {
 	return kh.Msg
 }
 
+func (kh TimeKeyboardHelper) GetState() string {
+	return kh.State
+}
+
 func (kh TimeKeyboardHelper) GetData() string {
 	return kh.Data
 }
@@ -146,7 +155,7 @@ func (kh *TimeKeyboardHelper) SetData(data string) {
 
 func (kh TimeKeyboardHelper) GetBtnData(val interface{}) string {
 	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("15:04"))
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, kh.Data, "set", dt.Format("15:04"))
 }
 
 func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -209,14 +218,14 @@ func (kh *TimeKeyboardHelper) Parse(Data string) (err error) {
 	return
 }
 
-func NewCountKeyboardHelper(msg string, prefix string, min int, max int) CountKeyboardHelper {
+func NewCountKeyboardHelper(msg string, state string, min int, max int) CountKeyboardHelper {
 	return CountKeyboardHelper{Min: min, Max: max, Step: 1,
-		Columns: 4, Msg: msg, Prefix: prefix}
+		Columns: 4, Msg: msg, State: state}
 }
 
 type CountKeyboardHelper struct {
 	Msg      string
-	Prefix   string
+	State    string
 	Action   string
 	Count    int
 	BackData string
@@ -231,6 +240,10 @@ func (kh CountKeyboardHelper) GetText() string {
 	return kh.Msg
 }
 
+func (kh CountKeyboardHelper) GetState() string {
+	return kh.State
+}
+
 func (kh *CountKeyboardHelper) SetData(data string) {
 	kh.Data = data
 }
@@ -241,7 +254,7 @@ func (kh CountKeyboardHelper) GetData() string {
 
 func (kh CountKeyboardHelper) GetBtnData(val interface{}) string {
 	count := val.(int)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", strconv.Itoa(count))
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, kh.Data, "set", strconv.Itoa(count))
 }
 
 func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -294,11 +307,11 @@ func (kh *CountKeyboardHelper) Parse(Data string) (err error) {
 type ActionButton struct {
 	Text   string
 	Data   string
-	Prefix string
+	Action string
 }
 
 type ActionsKeyboardHelper struct {
-	Action   string
+	State    string
 	Msg      string
 	Data     string
 	BackData string
@@ -308,6 +321,10 @@ type ActionsKeyboardHelper struct {
 
 func (kh ActionsKeyboardHelper) GetText() string {
 	return kh.Msg
+}
+
+func (kh ActionsKeyboardHelper) GetState() string {
+	return kh.State
 }
 
 func (kh ActionsKeyboardHelper) GetData() string {
@@ -324,7 +341,7 @@ func (kh ActionsKeyboardHelper) GetBtnData(val interface{}) string {
 	if act.Data != "" {
 		data = act.Data
 	}
-	return fmt.Sprintf("%s_%s", act.Prefix, data)
+	return fmt.Sprintf("%s_%s", act.Action, data)
 }
 
 func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -359,7 +376,7 @@ func (tkh *ActionsKeyboardHelper) Parse(Data string) (err error) {
 		return
 	}
 	tkh.Data = splitedData[1]
-	tkh.Action = splitedData[0]
+	tkh.State = splitedData[0]
 	return
 }
 
@@ -368,14 +385,14 @@ type EnumItem struct {
 	Item string
 }
 
-func NewEnumKeyboardHelper(msg string, prefix string, enums []EnumItem) EnumKeyboardHelper {
+func NewEnumKeyboardHelper(msg string, state string, enums []EnumItem) EnumKeyboardHelper {
 	return EnumKeyboardHelper{Enums: enums,
-		Columns: 2, Msg: msg, Prefix: prefix}
+		Columns: 2, Msg: msg, State: state}
 }
 
 type EnumKeyboardHelper struct {
 	Msg      string
-	Prefix   string
+	State    string
 	Action   string
 	Choice   string
 	BackData string
@@ -388,6 +405,10 @@ func (kh EnumKeyboardHelper) GetText() string {
 	return kh.Msg
 }
 
+func (kh EnumKeyboardHelper) GetState() string {
+	return kh.State
+}
+
 func (kh *EnumKeyboardHelper) SetData(data string) {
 	kh.Data = data
 }
@@ -397,7 +418,7 @@ func (kh EnumKeyboardHelper) GetData() string {
 }
 
 func (kh EnumKeyboardHelper) GetBtnData(val interface{}) string {
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", val)
+	return fmt.Sprintf("%s_%s_%s_%s", kh.State, kh.Data, "set", val)
 }
 
 func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
