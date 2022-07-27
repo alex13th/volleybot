@@ -36,8 +36,9 @@ func NewPerson(firstname string) (person Person, err error) {
 	}
 
 	person = Person{
-		Firstname: firstname,
-		Id:        uuid.New(),
+		Firstname:     firstname,
+		Id:            uuid.New(),
+		LocationRoles: make(map[uuid.UUID][]string),
 	}
 	return
 }

@@ -3,7 +3,6 @@ package telegram
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/goodsign/monday"
@@ -18,58 +17,100 @@ func (e HelperError) Error() string {
 	return e.Msg
 }
 
-type KeyboardHelper interface {
-	GetText() string
-	GetKeyboard() [][]InlineKeyboardButton
-	GetBtnData(interface{}) string
-	GetData() string
-	Parse(string) error
-	SetData(string)
+type MessageRequestHelper interface {
+	GetEditMR() EditMessageTextRequest
+	GetMR() MessageRequest
 }
 
-func NewDateKeyboardHelper(msg string, prefix string) DateKeyboardHelper {
-	return DateKeyboardHelper{Action: "get",
-		Days: 6, Columns: 2, DateFormat: "Mon, 02.01", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
+type CallbackDataParser interface {
+	GetAction() string
+	GetPrefix() string
+	GetState() State
+	GetValue() string
+	Parse(string) error
+	SetState(state State)
+}
+
+type KeyboardHelper interface {
+	GetKeyboard() [][]InlineKeyboardButton
+	GetText() string
+}
+
+type BaseKeyboardHelper struct {
+	State
+	BackData string
+	Text     string
+}
+
+func (kh BaseKeyboardHelper) GetText() string {
+	return kh.Text
+}
+
+func (kh *BaseKeyboardHelper) SetBackData(data string) {
+	kh.BackData = data
+}
+
+type DateTimeResources struct {
+	DateBtn  string
+	DateMsg  string
+	DayCount int
+	TimeBtn  string
+	TimeMsg  string
+}
+
+func NewDateTimeResourcesRu() DateTimeResources {
+	return DateTimeResources{
+		DateBtn: "📆 Дата", DateMsg: "❓Какая дата❓", DayCount: 30,
+		TimeBtn: "⏰ Время", TimeMsg: "❓В какое время❓",
+	}
+}
+
+func NewDateKeyboardHelper() DateKeyboardHelper {
+	kh := DateKeyboardHelper{Days: 6, Columns: 2, DateFormat: "Mon, 02.01", Location: time.Local}
+	return kh
+}
+
+func NewDateKeyboardHelperRu() (h DateKeyboardHelper) {
+	h = NewDateKeyboardHelper()
+	h.Locale = monday.LocaleRuRU
+	return
 }
 
 type DateKeyboardHelper struct {
-	Msg        string
-	Prefix     string
-	Action     string
+	BaseKeyboardHelper
 	Date       time.Time
-	Data       string
-	BackData   string
+	Location   *time.Location
 	Days       int
 	DateFormat string
 	Columns    int
 	Locale     monday.Locale
 }
 
-func (kh DateKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh DateKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh *DateKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
-func (kh DateKeyboardHelper) GetBtnData(val interface{}) string {
-	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("2006-02-01"))
+func (kh *DateKeyboardHelper) Parse() (err error) {
+	if kh.Action == "set" {
+		if kh.Date, err = time.ParseInLocation("2006-01-02", kh.Value, kh.Location); err != nil {
+			err = HelperError{
+				Msg:       fmt.Sprintf("parse date error: %s", err.Error()),
+				AnswerMsg: "Can't parse date"}
+			return
+		}
+		kh.Date = time.Date(kh.Date.Year(), kh.Date.Month(), kh.Date.Day(), 0, 0, 0, 0, kh.Location)
+	}
+	return
 }
 
 func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	currDate := time.Now()
 	for i := 1; i <= kh.Days; i++ {
+		st := kh.State
 		btnDate := currDate.AddDate(0, 0, i-1)
 		btnText := monday.Format(btnDate, kh.DateFormat, kh.Locale)
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnDate)})
+		st.Action = "set"
+		st.Value = btnDate.Format("2006-01-02")
+
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText,
+			CallbackData: st.String()})
 		if i%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
 			kbdRow = []InlineKeyboardButton{}
@@ -86,42 +127,21 @@ func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (kh *DateKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
-	if kh.Action == "set" {
-		kh.Date, err = time.Parse("2006-02-01", splitedData[3])
-		if err != nil {
-			err = HelperError{
-				Msg:       fmt.Sprintf("parse date error: %s", err.Error()),
-				AnswerMsg: "Can't parse date"}
-			return
-		}
-	}
-	kh.Data = splitedData[1]
+func NewTimeKeyboardHelper() TimeKeyboardHelper {
+	kh := TimeKeyboardHelper{StartHour: 7, EndHour: 21, Columns: 3, TimeFormat: "15:04", Location: time.Local}
+	return kh
+}
+
+func NewTimeKeyboardHelperRu() (h TimeKeyboardHelper) {
+	h = NewTimeKeyboardHelper()
+	h.Locale = monday.LocaleRuRU
 	return
 }
 
-func NewTimeKeyboardHelper(msg string, prefix string) TimeKeyboardHelper {
-	return TimeKeyboardHelper{Action: "get", StartHour: 7, EndHour: 21,
-		Columns: 3, TimeFormat: "15:04", Locale: monday.LocaleRuRU,
-		Msg: msg, Prefix: prefix}
-}
-
 type TimeKeyboardHelper struct {
-	Msg         string
-	Prefix      string
-	Action      string
+	BaseKeyboardHelper
+	Location    *time.Location
 	Time        time.Time
-	Data        string
-	BackData    string
 	StartHour   int
 	StartMinute int
 	EndHour     int
@@ -132,31 +152,30 @@ type TimeKeyboardHelper struct {
 	Locale      monday.Locale
 }
 
-func (kh TimeKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh TimeKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh *TimeKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
-func (kh TimeKeyboardHelper) GetBtnData(val interface{}) string {
-	dt := val.(time.Time)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", dt.Format("15:04"))
-}
-
 func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+	if kh.StartHour < 0 {
+		kh.StartHour = 24 + kh.StartHour
+	}
+	if kh.StartMinute < 0 {
+		kh.StartMinute = 60 + kh.StartMinute
+	}
+	if kh.EndHour < 0 {
+		kh.EndHour = 24 + kh.EndHour
+	}
+	if kh.EndMinute < 0 {
+		kh.EndMinute = 60 + kh.EndMinute
+	}
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
 	for i := kh.StartHour; i <= kh.EndHour; i++ {
 		btnTime := time.Date(0, 0, 0, i, 0, 0, 0, time.Local)
 		count++
 		btnText := monday.Format(btnTime, kh.TimeFormat, kh.Locale)
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnTime)})
+		st := kh.State
+		st.Value = btnTime.Format("15:04")
+		st.Action = "set"
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText,
+			CallbackData: st.String()})
 		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
 			kbdRow = []InlineKeyboardButton{}
@@ -166,7 +185,10 @@ func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 				count++
 				btnTime = btnTime.Add(time.Minute * time.Duration(kh.Step))
 				btnText := monday.Format(btnTime, kh.TimeFormat, kh.Locale)
-				kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText, CallbackData: kh.GetBtnData(btnTime)})
+				st.Value = btnTime.Format("15:04")
+				st.Action = "set"
+				kbdRow = append(kbdRow, InlineKeyboardButton{Text: btnText,
+					CallbackData: st.String()})
 				if count%kh.Columns == 0 {
 					kbd = append(kbd, kbdRow)
 					kbdRow = []InlineKeyboardButton{}
@@ -185,70 +207,43 @@ func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (kh *TimeKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
-
+func (kh *TimeKeyboardHelper) Parse() (err error) {
 	if kh.Action == "set" {
-		kh.Time, err = time.Parse("15:04", splitedData[3])
+		kh.Time, err = time.Parse("15:04", kh.Value)
 		if err != nil {
 			err = HelperError{
 				Msg:       fmt.Sprintf("parse time error: %s", err.Error()),
 				AnswerMsg: "Can't parse time"}
 			return
 		}
+		kh.Time = time.Date(0, 0, 0, kh.Time.Hour(), kh.Time.Minute(), 0, 0, kh.Location)
 	}
-	kh.Data = splitedData[1]
 	return
 }
 
-func NewCountKeyboardHelper(msg string, prefix string, min int, max int) CountKeyboardHelper {
-	return CountKeyboardHelper{Min: min, Max: max, Step: 1,
-		Columns: 4, Msg: msg, Prefix: prefix}
+func NewCountKeyboardHelper() CountKeyboardHelper {
+	kh := CountKeyboardHelper{Min: 1, Max: 4, Step: 1, Columns: 4}
+	return kh
 }
 
 type CountKeyboardHelper struct {
-	Msg      string
-	Prefix   string
-	Action   string
-	Count    int
-	BackData string
-	Data     string
-	Min      int
-	Max      int
-	Step     int
-	Columns  int
-}
-
-func (kh CountKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh *CountKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
-func (kh CountKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh CountKeyboardHelper) GetBtnData(val interface{}) string {
-	count := val.(int)
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", strconv.Itoa(count))
+	BaseKeyboardHelper
+	Count   int
+	Min     int
+	Max     int
+	Step    int
+	Columns int
 }
 
 func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
 	for i := kh.Min; i <= kh.Max; i = i + kh.Step {
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: strconv.Itoa(i), CallbackData: kh.GetBtnData(i)})
+		st := kh.State
+		st.Action = "set"
+		st.Value = strconv.Itoa(i)
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: strconv.Itoa(i),
+			CallbackData: st.String()})
 		count++
 		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
@@ -267,19 +262,9 @@ func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (kh *CountKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse count"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
-
+func (kh *CountKeyboardHelper) Parse() (err error) {
 	if kh.Action == "set" {
-		kh.Count, err = strconv.Atoi(splitedData[3])
+		kh.Count, err = strconv.Atoi(kh.Value)
 		if err != nil {
 			err = HelperError{
 				Msg:       fmt.Sprintf("parse count error: %s", err.Error()),
@@ -287,44 +272,24 @@ func (kh *CountKeyboardHelper) Parse(Data string) (err error) {
 			return
 		}
 	}
-	kh.Data = splitedData[1]
 	return
 }
 
 type ActionButton struct {
 	Text   string
 	Data   string
-	Prefix string
+	Action string
+}
+
+func NewActionsKeyboardHelper() ActionsKeyboardHelper {
+	kh := ActionsKeyboardHelper{Columns: 2}
+	return kh
 }
 
 type ActionsKeyboardHelper struct {
-	Action   string
-	Msg      string
-	Data     string
-	BackData string
-	Columns  int
-	Actions  []ActionButton
-}
-
-func (kh ActionsKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh ActionsKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh *ActionsKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
-func (kh ActionsKeyboardHelper) GetBtnData(val interface{}) string {
-	act := val.(ActionButton)
-	data := kh.Data
-	if act.Data != "" {
-		data = act.Data
-	}
-	return fmt.Sprintf("%s_%s", act.Prefix, data)
+	BaseKeyboardHelper
+	Columns int
+	Actions []ActionButton
 }
 
 func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
@@ -333,7 +298,12 @@ func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	}
 	kbdRow := []InlineKeyboardButton{}
 	for i, act := range kh.Actions {
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: act.Text, CallbackData: kh.GetBtnData(act)})
+		st := kh.State
+		st.Action = act.Action
+		if act.Data != "" {
+			st.Data = act.Data
+		}
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: act.Text, CallbackData: st.String()})
 		if (i+1)%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
 			kbdRow = []InlineKeyboardButton{}
@@ -350,61 +320,30 @@ func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	return
 }
 
-func (tkh *ActionsKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect CallbackQuery data format",
-			AnswerMsg: "Can't parse data"}
-		return
-	}
-	tkh.Data = splitedData[1]
-	tkh.Action = splitedData[0]
-	return
-}
-
 type EnumItem struct {
 	Id   string
 	Item string
 }
 
-func NewEnumKeyboardHelper(msg string, prefix string, enums []EnumItem) EnumKeyboardHelper {
-	return EnumKeyboardHelper{Enums: enums,
-		Columns: 2, Msg: msg, Prefix: prefix}
+func NewEnumKeyboardHelper(enums []EnumItem) EnumKeyboardHelper {
+	return EnumKeyboardHelper{Enums: enums, Columns: 2}
 }
 
 type EnumKeyboardHelper struct {
-	Msg      string
-	Prefix   string
-	Action   string
-	Choice   string
-	BackData string
-	Data     string
-	Enums    []EnumItem
-	Columns  int
-}
-
-func (kh EnumKeyboardHelper) GetText() string {
-	return kh.Msg
-}
-
-func (kh *EnumKeyboardHelper) SetData(data string) {
-	kh.Data = data
-}
-
-func (kh EnumKeyboardHelper) GetData() string {
-	return kh.Data
-}
-
-func (kh EnumKeyboardHelper) GetBtnData(val interface{}) string {
-	return fmt.Sprintf("%s_%s_%s_%s", kh.Prefix, kh.Data, "set", val)
+	BaseKeyboardHelper
+	Choice  string
+	Columns int
+	Enums   []EnumItem
 }
 
 func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
 	for _, val := range kh.Enums {
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: val.Item, CallbackData: kh.GetBtnData(val.Id)})
+		st := kh.State
+		st.Action = "set"
+		st.Value = val.Id
+		kbdRow = append(kbdRow, InlineKeyboardButton{Text: val.Item, CallbackData: st.String()})
 		count++
 		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
@@ -420,23 +359,5 @@ func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
-}
-
-func (kh *EnumKeyboardHelper) Parse(Data string) (err error) {
-	splitedData := strings.Split(Data, "_")
-	if len(splitedData) < 2 {
-		err = HelperError{
-			Msg:       "incorrect Date button data format",
-			AnswerMsg: "Can't parse date"}
-		return
-	} else if len(splitedData) > 2 {
-		kh.Action = splitedData[2]
-	}
-
-	if kh.Action == "set" {
-		kh.Choice = splitedData[3]
-	}
-	kh.Data = splitedData[1]
 	return
 }

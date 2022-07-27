@@ -18,22 +18,22 @@ func CreateTestReserves() (repo *MemoryRepository, pl []person.Person, rl []Rese
 
 	rl = make([]Reserve, 4)
 
-	rl[0], _ = NewReserve(pl[0],
+	rl[0] = NewReserve(pl[0],
 		time.Date(2021, 12, 04, 12, 0, 0, 0, time.UTC),
 		time.Date(2021, 12, 04, 14, 0, 0, 0, time.UTC),
 	)
 
-	rl[1], _ = NewReserve(pl[1],
+	rl[1] = NewReserve(pl[1],
 		time.Date(2021, 12, 04, 16, 0, 0, 0, time.UTC),
 		time.Date(2021, 12, 04, 20, 0, 0, 0, time.UTC),
 	)
 
-	rl[2], _ = NewReserve(pl[0],
+	rl[2] = NewReserve(pl[0],
 		time.Date(2021, 12, 05, 10, 0, 0, 0, time.UTC),
 		time.Date(2021, 12, 05, 11, 0, 0, 0, time.UTC),
 	)
 
-	rl[3], _ = NewReserve(pl[1],
+	rl[3] = NewReserve(pl[1],
 		time.Date(2021, 12, 05, 20, 0, 0, 0, time.UTC),
 		time.Date(2021, 12, 05, 23, 0, 0, 0, time.UTC),
 	)
@@ -52,11 +52,8 @@ func TestMemory_GetReserve(t *testing.T) {
 
 	p, _ := person.NewPerson("Firstname")
 	dur, _ := time.ParseDuration("2h")
-	res, err := NewReserve(p, time.Now(), time.Now().Add(dur))
+	res := NewReserve(p, time.Now(), time.Now().Add(dur))
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	id := res.Id
 
 	repo := MemoryRepository{
@@ -108,13 +105,9 @@ func TestMemory_AddReserve(t *testing.T) {
 			}
 
 			duration, _ := time.ParseDuration(tc.duration)
-			res, err := NewReserve(person.Person{Firstname: "Lily"}, time.Now(), time.Now().Add(duration))
+			res := NewReserve(person.Person{Firstname: "Lily"}, time.Now(), time.Now().Add(duration))
 
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			_, err = repo.Add(res)
+			_, err := repo.Add(res)
 			if err != tc.expectedErr {
 				t.Errorf("Expected error %v, got %v", tc.expectedErr, err)
 			}

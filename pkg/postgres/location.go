@@ -1,8 +1,9 @@
-package location
+package postgres
 
 import (
 	"context"
 	"fmt"
+	"volleybot/pkg/domain/location"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -13,7 +14,7 @@ type PgRepository struct {
 	TableName string
 }
 
-func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
+func NewLocationRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 	pgrep.TableName = "locations"
 	if err != nil {
 		return
@@ -24,7 +25,7 @@ func NewPgRepository(dbpool *pgxpool.Pool) (pgrep PgRepository, err error) {
 	return
 }
 
-func (rep *PgRepository) Get(id uuid.UUID) (loc Location, err error) {
+func (rep *PgRepository) Get(id uuid.UUID) (loc location.Location, err error) {
 	sql := "SELECT location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s " +
 		"WHERE location_id = $1"
@@ -38,7 +39,7 @@ func (rep *PgRepository) Get(id uuid.UUID) (loc Location, err error) {
 	return
 }
 
-func (rep *PgRepository) GetByName(name string) (loc Location, err error) {
+func (rep *PgRepository) GetByName(name string) (loc location.Location, err error) {
 	sql := "SELECT location_id, location_name, location_descr, location_chat_id, location_court_count " +
 		"FROM %s " +
 		"WHERE location_name = $1"
@@ -52,7 +53,7 @@ func (rep *PgRepository) GetByName(name string) (loc Location, err error) {
 	return
 }
 
-func (rep *PgRepository) Add(l Location) (loc Location, err error) {
+func (rep *PgRepository) Add(l location.Location) (loc location.Location, err error) {
 	sql := "INSERT INTO %s " +
 		"(location_id, location_name, location_descr, location_chat_id, location_court_count) " +
 		"VALUES ($1, $2, $3, $4, $5) " +
@@ -72,7 +73,7 @@ func (rep *PgRepository) Add(l Location) (loc Location, err error) {
 	return
 }
 
-func (rep *PgRepository) Update(loc Location) (err error) {
+func (rep *PgRepository) Update(loc location.Location) (err error) {
 	sql := "UPDATE %s SET " +
 		"location_name = $1, location_descr = $2, location_chat_id = $3, location_court_count = $4" +
 		"WHERE location_id = $5"

@@ -96,7 +96,7 @@ func TestBotSendMessage(t *testing.T) {
 		Text:   "Message text",
 	}
 
-	botResp := tb.SendMessage(req)
+	botResp, _ := tb.SendMessage(req)
 
 	t.Run("Response Ok", func(t *testing.T) {
 		if !botResp.Ok {
