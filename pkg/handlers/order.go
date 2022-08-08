@@ -309,10 +309,11 @@ func (oh *OrderBotHandler) StartTimeCallback(cq *telegram.CallbackQuery) (result
 	if th.Action == "set" {
 		dur := res.GetDuration()
 		res.StartTime = time.Date(res.StartTime.Year(), res.StartTime.Month(), res.StartTime.Day(),
-			th.Time.Hour(), 0, 0, 0, time.Local)
+			th.Time.Hour(), th.Time.Minute(), 0, 0, time.Local)
 		res.EndTime = res.StartTime.Add(dur)
 		return oh.ReserveHandler.UpdateReserveCQ(res, cq, "ordershow", false)
 	} else {
+		th.Step = 30
 		rm := NewReserveMessager(res, &th, oh.Resources)
 		mr := rm.GetEditMR(cq.Message.Chat.Id)
 		cq.Message.EditText(oh.Bot, "", &mr)
