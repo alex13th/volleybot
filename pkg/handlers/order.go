@@ -57,7 +57,7 @@ func NewOrderHandler(tb *telegram.Bot, os *services.OrderService, sr telegram.St
 	oh.ActivityHelper = telegram.NewEnumKeyboardHelper(oh.Resources.Activity.Message, "orderactivity", activities)
 
 	oh.CourtsHelper = telegram.NewCountKeyboardHelper(oh.Resources.Court.Message, "ordercourts", 1, oh.Resources.Court.Max)
-	oh.SetsHelper = telegram.NewCountKeyboardHelper(oh.Resources.Set.Message, "ordersets", 1, oh.Resources.Court.Max)
+	oh.SetsHelper = telegram.NewCountKeyboardHelper(oh.Resources.Set.Message, "ordersets", 1, oh.Resources.Set.Max)
 	oh.PlayerCountHelper = telegram.NewCountKeyboardHelper(
 		oh.Resources.MaxPlayer.Message, "orderplayers", oh.Resources.MaxPlayer.Min, oh.Resources.MaxPlayer.Max)
 	oh.JoinCountHelper = telegram.NewCountKeyboardHelper(
