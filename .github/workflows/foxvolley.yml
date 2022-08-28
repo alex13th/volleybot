@@ -2,7 +2,7 @@ name: Foxvolley
 
 on:
   push:
-    branches: [ master ]
+    branches: [ foxvolley ]
 
 env:
   BOT_NAME: foxbot

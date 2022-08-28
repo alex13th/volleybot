@@ -58,9 +58,9 @@ func (rl StaticOrderResourceLoader) GetResource() (or OrderResources) {
 	or.MaxPlayer.Max = or.Court.Max * or.Court.MaxPlayers
 	or.Price.Message = "❓Почем будет поиграть❓"
 	or.Price.Button = "💰 Стоимость"
-	or.Price.Min = 0
-	or.Price.Max = 2000
-	or.Price.Step = 100
+	or.Price.Min = 300
+	or.Price.Max = 1500
+	or.Price.Step = 50
 	or.Cancel.Button = "💥Отменить"
 	or.Cancel.Message = fmt.Sprintf("\n🧨*ВНИМАНИЕ!!!*🧨\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться кнопкой \"%s\"",
 		or.JoinPlayer.LeaveButton)
