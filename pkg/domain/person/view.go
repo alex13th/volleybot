@@ -38,6 +38,8 @@ func (tgv *TelegramView) GetLevelText() (text string) {
 func (tgv *TelegramView) GetSexText() (text string) {
 	if tgv.Person.Sex != 0 {
 		text = Sex(tgv.Person.Sex).Emoji() + " " + tgv.Person.Sex.String()
+	} else {
+		text = "Не определен"
 	}
 	return
 }

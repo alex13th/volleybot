@@ -49,7 +49,6 @@ func (p ShowStateProvider) GetRequests() []telegram.StateRequest {
 
 func (p ShowStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 	res := p.Resources
-	msg := p.Message
 	ah := telegram.ActionsKeyboardHelper{}
 	ah.BaseKeyboardHelper = p.GetBaseKeyboardHelper("")
 	ah.Actions = []telegram.ActionButton{}
@@ -58,7 +57,7 @@ func (p ShowStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 		return &ah
 	}
 	ah.Columns = 2
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		if p.reserve.Person.TelegramId == p.Person.TelegramId || p.Person.CheckLocationRole(p.reserve.Location, "admin") {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "date", Text: res.DateTime.DateBtn})
@@ -75,19 +74,19 @@ func (p ShowStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 		}
 	}
 	if p.reserve.Ordered() {
-		if msg.Chat.Id <= 0 || !p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
+		if p.State.ChatId <= 0 || !p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "join", Text: res.JoinBtn})
 		}
-		if msg.Chat.Id > 0 || p.reserve.MaxPlayers-p.reserve.PlayerCount(uuid.Nil) > 1 {
+		if p.State.ChatId > 0 || p.reserve.MaxPlayers-p.reserve.PlayerCount(uuid.Nil) > 1 {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "joinm", Text: res.JoinMultiBtn})
 		}
-		if msg.Chat.Id > 0 && p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
+		if p.State.ChatId > 0 && p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "jtime", Text: res.JoinTimeBtn})
 		}
-		if msg.Chat.Id <= 0 || p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
+		if p.State.ChatId <= 0 || p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "leave", Text: res.JoinLeaveBtn})
 		}
@@ -252,19 +251,18 @@ type JoinPlayersStateProvider struct {
 func (p JoinPlayersStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 	if p.State.Action == "joinm" {
 		p.kh = p.GetKeyboardHelper()
-		rlist = append(rlist, telegram.StateRequest{State: p.State, Request: p.GetEditMR()})
+		rlist = append(rlist, telegram.StateRequest{State: p.State, Request: p.GetEditMR(p.GetMR())})
 	}
 	return
 }
 
 func (p JoinPlayersStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	msg := p.Message
 	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 1, Step: 1}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
 
 	kh.Min = 1
-	if msg.Chat.Id > 0 {
+	if p.State.ChatId > 0 {
 		kh.Max = p.reserve.MaxPlayers - p.reserve.PlayerCount(p.Person.Id)
 		if !p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) || p.reserve.PlayerInReserve(p.Person.Id) {
 			kh.Max = p.reserve.MaxPlayers
@@ -348,11 +346,11 @@ type DescStateProvider struct {
 func (p DescStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 	if p.State.Action == "done" {
 		rlist = append(rlist, telegram.StateRequest{Clear: true, State: p.State})
-		req := telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: p.Resources.DoneMessage}
+		req := telegram.MessageRequest{ChatId: p.State.ChatId, Text: p.Resources.DoneMessage}
 		return append(rlist, telegram.StateRequest{Request: &req})
 	}
 	if p.State.Action == "desc" {
-		req := telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: p.Resources.Message}
+		req := telegram.MessageRequest{ChatId: p.State.ChatId, Text: p.Resources.Message}
 		p.State.MessageId = -1
 		return append(rlist, telegram.StateRequest{State: p.State, Request: &req})
 	}

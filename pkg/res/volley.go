@@ -22,6 +22,7 @@ func (rl StaticVolleyResourceLoader) GetResource() (or VolleyResources) {
 	or.Volley.Main = bvbot.NewMainResourcesRu()
 	or.Volley.MaxPlayer = bvbot.NewMaxPlayersResourcesRu()
 	or.Volley.Price = bvbot.NewPriceResourcesRu()
+	or.Volley.Profile = bvbot.ProfileResourcesRu()
 	or.Volley.RemovePlayer = bvbot.RemovePlayerResourcesRu()
 	or.Volley.Settings = bvbot.NewSettingsResourcesRu()
 	or.Volley.Show = bvbot.NewShowResourcesRu()
@@ -37,7 +38,7 @@ type VolleyResources struct {
 	Command     telegram.BotCommand
 	Location    location.Location
 	ReserveView reserve.TelegramViewResources
-	Volley      bvbot.MessageProcessorResources
+	Volley      bvbot.StateResources
 }
 
 type OrderResourceLoader interface {

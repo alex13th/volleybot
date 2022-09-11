@@ -96,14 +96,14 @@ func (rep *VolleyPgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player,
 }
 
 func (rep *VolleyPgRepository) Get(rid uuid.UUID) (res volley.Volley, err error) {
-	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
+	sql_str := "SELECT reserve_id, person_id, location_id, start_time, end_time, price, " +
 		"min_level, court_count, max_players, approved, canceled, description, activity " +
 		"FROM %s " +
 		"WHERE reserve_id = $1"
 	sql_str = fmt.Sprintf(sql_str, rep.TableName)
 	row := rep.dbpool.QueryRow(context.Background(), sql_str, rid)
 
-	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
+	err = row.Scan(&res.Id, &res.Person.Id, &res.Location.Id, &res.StartTime, &res.EndTime, &res.Price,
 		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity)
 	if err != nil {
 		return

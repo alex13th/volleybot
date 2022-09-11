@@ -36,13 +36,13 @@ type ActionsStateProvider struct {
 func (p ActionsStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 	if p.State.Action == "pub" {
 		show_p := ShowStateProvider{BaseStateProvider: p.BaseStateProvider, Resources: p.ShowResources}
-		show_p.Message.Chat = &telegram.Chat{Id: p.Location.ChatId}
+		show_p.State.ChatId = p.Location.ChatId
 		show_p.State.State = "show"
 		show_p.State.Action = "show"
 		return show_p.GetRequests()
 	}
 	if p.State.Action == "copy" {
-		req := &telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: p.Resources.CopyDoneMessage}
+		req := &telegram.MessageRequest{ChatId: p.State.ChatId, Text: p.Resources.CopyDoneMessage}
 		return append(rlist, telegram.StateRequest{State: p.State, Request: req})
 	}
 	p.kh = p.GetKeyboardHelper()
@@ -51,7 +51,6 @@ func (p ActionsStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 
 func (p ActionsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	msg := p.Message
 	kh := telegram.ActionsKeyboardHelper{}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper("")
 	kh.Actions = []telegram.ActionButton{}
@@ -59,7 +58,7 @@ func (p ActionsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 		return &kh
 	}
 	kh.Columns = 2
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		if p.reserve.Person.TelegramId == p.Person.TelegramId || p.Person.CheckLocationRole(p.reserve.Location, "admin") {
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
 				Action: "cancel", Text: res.CancelBtn})
@@ -120,7 +119,6 @@ func (p CancelStateProvider) GetRequests() (reqlist []telegram.StateRequest) {
 
 func (p CancelStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	msg := p.Message
 	kh := telegram.ActionsKeyboardHelper{}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(p.Resources.Text)
 	kh.Actions = []telegram.ActionButton{}
@@ -128,7 +126,7 @@ func (p CancelStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 		return &kh
 	}
 	kh.Columns = 2
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		if p.reserve.Person.TelegramId == p.Person.TelegramId || p.Person.CheckLocationRole(p.reserve.Location, "admin") {
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
 				Action: "confirm", Text: res.ConfirmBtn})
@@ -181,8 +179,7 @@ func (p RemovePlayerStateProvider) GetRequests() []telegram.StateRequest {
 }
 
 func (p RemovePlayerStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
-	msg := p.Message
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		pllist := []telegram.EnumItem{}
 		for _, pl := range p.reserve.Players {
 			pllist = append(pllist, telegram.EnumItem{Id: strconv.Itoa(pl.TelegramId), Item: pl.String()})

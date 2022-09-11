@@ -52,12 +52,7 @@ func (p *VolleyBotService) ProceedCallback(cq *telegram.CallbackQuery) (err erro
 		log.Println(err.Error())
 		return
 	}
-	bp, err := p.GetBaseStateProvider(cq.From.Id, st, *cq.Message)
-	if err != nil {
-		p.LogErrors([]error{err})
-		return
-	}
-	p.LogErrors(p.Proceed(bp))
+	p.LogErrors(p.Proceed(cq.From.Id, st, *cq.Message))
 	_, err = cq.Answer(p.Bot, "Ok", nil)
 	return
 }
@@ -69,13 +64,9 @@ func (p *VolleyBotService) ProceedMessage(msg *telegram.Message) (err error) {
 		st := telegram.NewState()
 		st.Action = "start"
 		st.State = "main"
+		st.ChatId = msg.Chat.Id
 		st.Prefix = "res"
-		bp, err := p.GetBaseStateProvider(msg.From.Id, st, *msg)
-		if err != nil {
-			p.LogErrors([]error{err})
-			return err
-		}
-		p.LogErrors(p.Proceed(bp))
+		p.LogErrors(p.Proceed(msg.From.Id, st, *msg))
 		return err
 	}
 
@@ -90,26 +81,26 @@ func (p *VolleyBotService) ProceedMessage(msg *telegram.Message) (err error) {
 	st := slist[0]
 	stmsg := *msg
 	stmsg.MessageId = st.MessageId
-	bp, err := p.GetBaseStateProvider(msg.From.Id, st, stmsg)
-	if err != nil {
-		p.LogErrors([]error{err})
-		return
-	}
-	p.LogErrors(p.Proceed(bp))
+	p.LogErrors(p.Proceed(msg.From.Id, st, stmsg))
 	return
 }
 
-func (p *VolleyBotService) Proceed(bp bvbot.BaseStateProvider) (errs []error) {
+func (p *VolleyBotService) Proceed(tid int, st telegram.State, msg telegram.Message) (errs []error) {
 	var (
-		err     error
-		reqlist []telegram.StateRequest
-		sp      telegram.StateProvider
-		state   telegram.State
+		err      error
+		reqlist  []telegram.StateRequest
+		sp       telegram.StateProvider
+		newstate telegram.State
 	)
-	if sp, err = p.GetStateProvider(bp); sp == nil {
+	bld, err := p.GetStateBuilder(tid, st, msg)
+	if err != nil {
 		return append(errs, err)
 	}
-	if state, err = sp.Proceed(); sp == nil {
+
+	if sp, err = bld.GetStateProvider(st); sp == nil {
+		return append(errs, err)
+	}
+	if newstate, err = sp.Proceed(); sp == nil {
 		return append(errs, err)
 	}
 	// Adding incoming state requests
@@ -118,21 +109,23 @@ func (p *VolleyBotService) Proceed(bp bvbot.BaseStateProvider) (errs []error) {
 	reqlist = []telegram.StateRequest{}
 
 	// Adding result state requests
-	bp, err = bvbot.NewBaseStateProvider(state, bp.Message, bp.Person, bp.Location, bp.Repository,
-		p.Resources.Volley.MaxPlayer.GroupChatWarning)
+	bld, err = p.GetStateBuilder(tid, newstate, msg)
 	if err != nil {
 		return append(errs, err)
 	}
-	if state.Updated {
-		p.UpdateMessages(bp)
-	}
-	if sp, err = p.GetStateProvider(bp); sp == nil {
+	if sp, err = bld.GetStateProvider(newstate); sp == nil {
 		errs = append(errs, err)
 	} else {
 		reqlist = append(reqlist, sp.GetRequests()...)
 	}
 
-	return append(errs, p.SendRequests(reqlist)...)
+	errs = append(errs, p.SendRequests(reqlist)...)
+
+	if newstate.Updated {
+		p.UpdateMessages(newstate, bld)
+	}
+
+	return
 }
 
 func (s *VolleyBotService) SendRequests(reqlist []telegram.StateRequest) (errs []error) {
@@ -162,7 +155,7 @@ func (s *VolleyBotService) SendRequests(reqlist []telegram.StateRequest) (errs [
 	return
 }
 
-func (s *VolleyBotService) GetBaseStateProvider(tid int, state telegram.State, msg telegram.Message) (bp bvbot.BaseStateProvider, err error) {
+func (s *VolleyBotService) GetStateBuilder(tid int, state telegram.State, msg telegram.Message) (bld telegram.StateBuilder, err error) {
 	p, err := s.PersonRepository.GetByTelegramId(tid)
 	if err != nil {
 		p, _ = person.NewPerson(msg.From.FirstName)
@@ -177,102 +170,16 @@ func (s *VolleyBotService) GetBaseStateProvider(tid int, state telegram.State, m
 		return
 	}
 
-	bp, err = bvbot.NewBaseStateProvider(state, msg, p, loc, s.VolleyRepository,
-		s.Resources.Volley.MaxPlayer.GroupChatWarning)
-	if err != nil {
-		return
-	}
-	return
+	return bvbot.NewBvStateBuilder(loc, msg, p, s.VolleyRepository, s.Resources.Volley, state)
 }
 
-func (p *VolleyBotService) GetStateProvider(bp bvbot.BaseStateProvider) (sp telegram.StateProvider, err error) {
-	bp.BackState = bp.State
-	switch bp.State.State {
-	case "main":
-		bp.BackState = telegram.State{}
-		sp = bvbot.MainStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Main}
-	case "listd":
-		bp.BackState.State = "main"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.ListdStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.List}
-	case "show":
-		bp.BackState.State = "main"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.ShowStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Show}
-	case "actions":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.ActionsStateProvider{BaseStateProvider: bp,
-			Resources: p.Resources.Volley.Actions, ShowResources: p.Resources.Volley.Show}
-	case "date":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.DateStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Show.DateTime}
-	case "desc":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = &bvbot.DescStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Description}
-	case "time":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.TimeStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Show.DateTime}
-	case "sets":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.SetsStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Sets}
-	case "joinm":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.JoinPlayersStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Join}
-	case "jtime":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.JoinTimeStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Join}
-	case "settings":
-		bp.BackState.State = "show"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.SettingsStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Settings}
-	case "courts":
-		bp.BackState.State = "settings"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.CourtsStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Courts}
-	case "max":
-		bp.BackState.State = "settings"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.MaxPlayersStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.MaxPlayer}
-	case "price":
-		bp.BackState.State = "settings"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.PriceStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Price}
-	case "level":
-		bp.BackState.State = "settings"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.LevelStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Level}
-	case "activity":
-		bp.BackState.State = "settings"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.ActivityStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.Activity}
-	case "cancel":
-		bp.BackState.State = "actions"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.CancelStateProvider{BaseStateProvider: bp,
-			Resources: p.Resources.Volley.Cancel, ShowResources: p.Resources.Volley.Show}
-	case "rmpl":
-		bp.BackState.State = "actions"
-		bp.BackState.Action = bp.BackState.State
-		sp = bvbot.RemovePlayerStateProvider{BaseStateProvider: bp, Resources: p.Resources.Volley.RemovePlayer}
-	}
-	return
-}
-
-func (p *VolleyBotService) UpdateMessages(bp bvbot.BaseStateProvider) {
-	slist, _ := p.StateRepository.GetByData(bp.State.Data)
+func (p *VolleyBotService) UpdateMessages(sta telegram.State, bld telegram.StateBuilder) {
+	slist, _ := p.StateRepository.GetByData(sta.Data)
 	sort.Slice(slist, func(i, j int) bool {
 		return slist[i].MessageId > slist[j].MessageId
 	})
-	cid := bp.Message.Chat.Id
-	mid := bp.Message.MessageId
-	bp.Message = telegram.Message{Chat: &telegram.Chat{Id: bp.Message.Chat.Id}}
+	cid := sta.ChatId
+	mid := sta.MessageId
 	notified := map[int]bool{}
 	for _, st := range slist {
 		var (
@@ -291,10 +198,7 @@ func (p *VolleyBotService) UpdateMessages(bp bvbot.BaseStateProvider) {
 		}
 		notified[st.ChatId] = true
 
-		bp.Message.Chat.Id = st.ChatId
-		bp.Message.MessageId = st.MessageId
-		bp.State = st
-		if sp, _ = p.GetStateProvider(bp); sp != nil {
+		if sp, _ = bld.GetStateProvider(st); sp != nil {
 			reqlist = append(reqlist, sp.GetRequests()...)
 		}
 		for _, req := range reqlist {

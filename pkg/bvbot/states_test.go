@@ -25,6 +25,9 @@ func TestMainStateKbd(t *testing.T) {
 		{
 			{Text: res.ListDateBtn, CallbackData: "res_main_listd"},
 		},
+		{
+			{Text: res.ProfileBtn, CallbackData: "res_main_profile"},
+		},
 	}
 
 	admin, _ := person.NewPerson("Admin")
@@ -47,8 +50,9 @@ func TestMainStateKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_main_main")
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, "")
 			sp := MainStateProvider{BaseStateProvider: bp, Resources: res}
 			acts := sp.GetKeyboardHelper().GetKeyboard()
@@ -159,8 +163,9 @@ func TestShowKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_show_show_" + test.res.Id.String())
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
 			bp.reserve = test.res
 			sp := ShowStateProvider{BaseStateProvider: bp, Resources: res}
@@ -217,8 +222,9 @@ func TestSettingsStateKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_settings_settings_" + test.res.Id.String())
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
 			bp.reserve = test.res
 			sp := SettingsStateProvider{BaseStateProvider: bp, Resources: res}
@@ -272,8 +278,9 @@ func TestActionsStateKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_actions_actions_" + test.res.Id.String())
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
 			bp.reserve = test.res
 			sp := ActionsStateProvider{BaseStateProvider: bp, Resources: res}
@@ -310,8 +317,9 @@ func TestJoinmStateKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_joinm_joinm_" + test.res.Id.String())
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
 			bp.reserve = test.res
 			sp := JoinPlayersStateProvider{BaseStateProvider: bp, Resources: res}
@@ -363,8 +371,9 @@ func TestCancelStateKbd(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			msg := telegram.Message{Chat: &telegram.Chat{Id: test.cid}}
+			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_cancel_cancel_" + test.res.Id.String())
+			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
 			bp.reserve = test.res
 			sp := CancelStateProvider{BaseStateProvider: bp, Resources: res, ShowResources: sres}

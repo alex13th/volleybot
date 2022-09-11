@@ -38,7 +38,6 @@ func (p SettingsStateProvider) GetRequests() []telegram.StateRequest {
 
 func (p SettingsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	msg := p.Message
 	ah := telegram.ActionsKeyboardHelper{}
 	ah.BaseKeyboardHelper = p.GetBaseKeyboardHelper("")
 	ah.Actions = []telegram.ActionButton{}
@@ -47,7 +46,7 @@ func (p SettingsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 		return &ah
 	}
 	ah.Columns = 2
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		if p.reserve.Person.TelegramId == p.Person.TelegramId || p.Person.CheckLocationRole(p.reserve.Location, "admin") {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "activity", Text: res.ActivityBtn})

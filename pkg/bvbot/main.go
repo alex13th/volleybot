@@ -14,6 +14,7 @@ type MainResources struct {
 	NoReservesMessage string
 	ParseMode         string
 	PreviewDuration   time.Duration
+	ProfileBtn        string
 	Text              string
 	TodayBtn          string
 }
@@ -26,6 +27,7 @@ func NewMainResourcesRu() (r MainResources) {
 	r.Text = "Выберите действие"
 	r.ParseMode = "Markdown"
 	r.PreviewDuration = time.Duration(time.Hour * 24)
+	r.ProfileBtn = "😎 Профиль"
 	r.TodayBtn = "Сегодня"
 	return
 }
@@ -38,27 +40,16 @@ type MainStateProvider struct {
 func (p MainStateProvider) GetMR() (mr *telegram.MessageRequest) {
 	txt := ""
 	txt += p.Resources.Text
-	kh := p.GetKeyboardHelper()
+
 	var kbd telegram.InlineKeyboardMarkup
+	kh := p.GetKeyboardHelper()
 	kbd.InlineKeyboard = kh.GetKeyboard()
-	if len(kbd.InlineKeyboard) > 0 {
-		mr = &telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: txt, ReplyMarkup: kbd, ParseMode: p.Resources.ParseMode}
-	} else {
-		mr = &telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: txt, ParseMode: p.Resources.ParseMode}
 
-	}
-	return
-}
-
-func (p *MainStateProvider) GetEditMR() (mer *telegram.EditMessageTextRequest) {
-	mr := p.GetMR()
-	mer = &telegram.EditMessageTextRequest{MessageId: p.Message.MessageId, ChatId: mr.ChatId, Text: mr.Text, ParseMode: mr.ParseMode,
-		ReplyMarkup: mr.ReplyMarkup}
-	return
+	return p.CreateMR(p.State.ChatId, txt, p.Resources.ParseMode, kbd)
 }
 
 func (p MainStateProvider) GetRequests() (rlist []telegram.StateRequest) {
-	if p.Message.Chat.Id < 0 {
+	if p.State.ChatId < 0 {
 		return
 	}
 	var sreq telegram.StateRequest
@@ -69,7 +60,7 @@ func (p MainStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 	}
 	if p.State.Action == "main" {
 		sreq.State = p.State
-		sreq.Request = p.GetEditMR()
+		sreq.Request = p.GetEditMR(p.GetMR())
 		return append(rlist, sreq)
 	}
 	return
@@ -77,13 +68,12 @@ func (p MainStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 
 func (p MainStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 	res := p.Resources
-	msg := p.Message
 	ah := telegram.ActionsKeyboardHelper{}
 	ah.BaseKeyboardHelper = p.GetBaseKeyboardHelper("")
 	ah.Actions = []telegram.ActionButton{}
 
 	ah.Columns = 1
-	if msg.Chat.Id == p.Person.TelegramId {
+	if p.State.ChatId == p.Person.TelegramId {
 		if p.Person.CheckLocationRole(p.Location, "admin") || p.Person.CheckLocationRole(p.Location, "order") {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "order", Text: res.NewReserveBtn})
@@ -92,6 +82,8 @@ func (p MainStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 			Action: "today", Text: res.TodayBtn})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Action: "listd", Text: res.ListDateBtn})
+		ah.Actions = append(ah.Actions, telegram.ActionButton{
+			Action: "profile", Text: res.ProfileBtn})
 	}
 	return &ah
 }
@@ -104,6 +96,8 @@ func (p MainStateProvider) Proceed() (st telegram.State, err error) {
 		p.State.Data = p.reserve.Base64Id()
 		p.State.Action = "show"
 	} else if p.State.Action == "listd" {
+		return p.BaseStateProvider.Proceed()
+	} else if p.State.Action == "profile" {
 		return p.BaseStateProvider.Proceed()
 	} else if p.State.Action == "today" {
 		p.State.State = "listd"
@@ -179,9 +173,9 @@ func (p ListdStateProvider) GetMR() (mr *telegram.MessageRequest) {
 	}
 	txt += p.Resources.Text
 	if len(kbd.InlineKeyboard) > 0 {
-		mr = &telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: txt, ReplyMarkup: kbd, ParseMode: p.Resources.ParseMode}
+		mr = &telegram.MessageRequest{ChatId: p.State.ChatId, Text: txt, ReplyMarkup: kbd, ParseMode: p.Resources.ParseMode}
 	} else {
-		mr = &telegram.MessageRequest{ChatId: p.Message.Chat.Id, Text: txt, ParseMode: p.Resources.ParseMode}
+		mr = &telegram.MessageRequest{ChatId: p.State.ChatId, Text: txt, ParseMode: p.Resources.ParseMode}
 
 	}
 	return
@@ -189,7 +183,7 @@ func (p ListdStateProvider) GetMR() (mr *telegram.MessageRequest) {
 
 func (p *ListdStateProvider) GetEditMR() (mer *telegram.EditMessageTextRequest) {
 	mr := p.GetMR()
-	mer = &telegram.EditMessageTextRequest{MessageId: p.Message.MessageId, ChatId: mr.ChatId, Text: mr.Text, ParseMode: mr.ParseMode,
+	mer = &telegram.EditMessageTextRequest{MessageId: p.State.MessageId, ChatId: mr.ChatId, Text: mr.Text, ParseMode: mr.ParseMode,
 		ReplyMarkup: mr.ReplyMarkup}
 	return
 }
@@ -208,7 +202,7 @@ func (p *ListdStateProvider) InitReserves() {
 }
 
 func (p ListdStateProvider) GetRequests() (rlist []telegram.StateRequest) {
-	if p.Message.Chat.Id < 0 {
+	if p.State.ChatId < 0 {
 		return
 	}
 	if p.State.Action == "show" {
