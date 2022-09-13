@@ -12,6 +12,10 @@ var (
 	ErrUpdateState      = errors.New("failed to update the state in the repository")
 )
 
+type StateBuilder interface {
+	GetStateProvider(State) (StateProvider, error)
+}
+
 type StateProvider interface {
 	GetRequests() []StateRequest
 	Proceed() (State, error)

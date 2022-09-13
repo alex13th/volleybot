@@ -2,9 +2,9 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
+	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/volley"
 
@@ -20,12 +20,11 @@ func AddWhereParam(wsql *string, params *[]interface{}, param interface{}, cond 
 	*wsql += " " + cond + " $" + strconv.Itoa(len(*params))
 }
 
-func NewVolleyPgRepository(dbpool *pgxpool.Pool) (rep VolleyPgRepository, err error) {
+func NewVolleyPgRepository(dbpool *pgxpool.Pool, PersonRepository person.PersonRepository, LocationRepository location.LocationRepository) (rep VolleyPgRepository, err error) {
+	rep.PersonRepository = PersonRepository
+	rep.LocationRepository = LocationRepository
 	rep.TableName = "reserves"
-	rep.PersonsTableName = "persons"
-	rep.LocationsTableName = "locations"
 	rep.PlayersTableName = "reserve_players"
-	rep.ViewName = "vw_reserves"
 	rep.PlayerSpName = "sp_reserve_player_update"
 
 	if err != nil {
@@ -38,11 +37,10 @@ func NewVolleyPgRepository(dbpool *pgxpool.Pool) (rep VolleyPgRepository, err er
 
 type VolleyPgRepository struct {
 	dbpool             *pgxpool.Pool
+	PersonRepository   person.PersonRepository
+	LocationRepository location.LocationRepository
 	TableName          string
-	PersonsTableName   string
-	LocationsTableName string
 	PlayersTableName   string
-	ViewName           string
 	PlayerSpName       string
 }
 
@@ -54,32 +52,24 @@ func (rep *VolleyPgRepository) UpdateDB() (err error) {
 		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000), activity INT);"
 
 	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT, arrive_time TIMESTAMP);"
-	vw_sql := "CREATE OR REPLACE VIEW %[4]s AS " +
-		"SELECT reserve_id, r.person_id AS person_id, start_time, end_time, " +
-		"price, min_level, court_count, max_players, ordered, approved, canceled, description, activity, " +
-		"telegram_id, firstname, lastname, fullname, " +
-		"l.location_id AS location_id, location_name, location_descr, location_chat_id, location_court_count " +
-		"FROM %[1]s AS r " +
-		"INNER JOIN %[3]s AS p ON r.person_id = p.person_id " +
-		"LEFT OUTER JOIN %[6]s AS l ON r.location_id = l.location_id; "
 	sp_sql := "CREATE OR REPLACE PROCEDURE " +
-		"%[5]s(res_id UUID, per_id UUID, c INT, at TIMESTAMP) " +
+		"%[3]s(res_id UUID, per_id UUID, c INT, at TIMESTAMP) " +
 		"LANGUAGE plpgsql AS $$ " +
 		"DECLARE cur_count INT;\n" +
 		"BEGIN\n" +
 		"SELECT SUM(count) INTO cur_count " +
 		"FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id; " +
-		"CASE\n" +
-		"WHEN c = 0 THEN\n" +
+		"IF cur_count = 0 THEN\n" +
 		"DELETE FROM %[2]s WHERE reserve_id = res_id AND person_id = per_id;\n" +
+		"END IF;\n" +
+		"CASE\n" +
 		"WHEN cur_count > 0 THEN\n" +
 		"UPDATE %[2]s SET count = c, arrive_time = at WHERE reserve_id = res_id AND person_id = per_id;\n" +
 		"ELSE\n" +
 		"INSERT INTO %[2]s (reserve_id, person_id, count, arrive_time) VALUES (res_id, per_id, c, at);\n" +
 		"END CASE;\n" +
 		"END;$$;"
-	sql = fmt.Sprintf(sql+pl_sql+vw_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PersonsTableName,
-		rep.ViewName, rep.PlayerSpName, rep.LocationsTableName)
+	sql = fmt.Sprintf(sql+pl_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PlayerSpName)
 	_, err = rep.dbpool.Exec(context.Background(), sql)
 
 	if err != nil {
@@ -90,49 +80,36 @@ func (rep *VolleyPgRepository) UpdateDB() (err error) {
 }
 
 func (rep *VolleyPgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player, err error) {
-	sql := "SELECT count, arrive_time, p.person_id, telegram_id, firstname, lastname, fullname, sex, level " +
-		"FROM %s AS pl " +
-		"INNER JOIN %s AS p ON pl.person_id = p.person_id " +
+	sql := "SELECT player_id, count, arrive_time, person_id " +
+		"FROM %s " +
 		"WHERE reserve_id = $1 " +
 		"ORDER BY player_id "
-	sql = fmt.Sprintf(sql, rep.PlayersTableName, rep.PersonsTableName)
+	sql = fmt.Sprintf(sql, rep.PlayersTableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	pl := person.Player{}
 	for rows.Next() {
-		rows.Scan(&pl.Count, &pl.ArriveTime, &pl.Id, &pl.TelegramId, &pl.Firstname, &pl.Lastname, &pl.Fullname, &pl.Sex, &pl.Level)
+		rows.Scan(&pl.PlayerId, &pl.Count, &pl.ArriveTime, &pl.Id)
+		pl.Person, _ = rep.PersonRepository.Get(pl.Id)
 		plist = append(plist, pl)
 	}
 	return
 }
 
 func (rep *VolleyPgRepository) Get(rid uuid.UUID) (res volley.Volley, err error) {
-	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, activity, " +
-		"telegram_id, firstname, lastname, fullname, " +
-		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
+	sql_str := "SELECT reserve_id, person_id, location_id, start_time, end_time, price, " +
+		"min_level, court_count, max_players, approved, canceled, description, activity " +
 		"FROM %s " +
 		"WHERE reserve_id = $1"
-	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
+	sql_str = fmt.Sprintf(sql_str, rep.TableName)
 	row := rep.dbpool.QueryRow(context.Background(), sql_str, rid)
 
-	var (
-		lname, ldescr    sql.NullString
-		lchatid, lcourts sql.NullInt64
-	)
-
-	err = row.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity,
-		&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-		&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
+	err = row.Scan(&res.Id, &res.Person.Id, &res.Location.Id, &res.StartTime, &res.EndTime, &res.Price,
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity)
 	if err != nil {
 		return
 	}
-	if lname.Valid {
-		res.Location.Name = lname.String
-		res.Location.Description = ldescr.String
-		res.Location.ChatId = int(lchatid.Int64)
-		res.Location.CourtCount = int(lcourts.Int64)
-	}
+	res.Person, _ = rep.PersonRepository.Get(res.Person.Id)
+	res.Location, _ = rep.LocationRepository.Get(res.Location.Id)
 	plist, err := rep.GetPlayers(res.Id)
 	res.Players = plist
 	return
@@ -140,11 +117,9 @@ func (rep *VolleyPgRepository) Get(rid uuid.UUID) (res volley.Volley, err error)
 
 func (rep *VolleyPgRepository) GetByFilter(filter volley.Volley, oredered bool, sorted bool) (rmap []volley.Volley, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, activity, " +
-		"telegram_id, firstname, lastname, fullname, " +
-		"location_id, location_name, location_descr, location_chat_id, location_court_count " +
+		"min_level, court_count, max_players, approved, canceled, description, activity " +
 		"FROM %s "
-	sql_str = fmt.Sprintf(sql_str, rep.ViewName)
+	sql_str = fmt.Sprintf(sql_str, rep.TableName)
 	wheresql := ""
 
 	params := []interface{}{}
@@ -178,23 +153,14 @@ func (rep *VolleyPgRepository) GetByFilter(filter volley.Volley, oredered bool, 
 
 	for rows.Next() {
 		res := volley.Volley{}
-		var (
-			lname, ldescr    sql.NullString
-			lchatid, lcourts sql.NullInt64
-		)
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity,
-			&res.Person.TelegramId, &res.Person.Firstname, &res.Person.Lastname, &res.Person.Fullname,
-			&res.Location.Id, &lname, &ldescr, &lchatid, &lcourts)
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
+			&res.Description, &res.Activity)
 		if err != nil {
 			return
 		}
-		if lname.Valid {
-			res.Location.Name = lname.String
-			res.Location.Description = ldescr.String
-			res.Location.ChatId = int(lchatid.Int64)
-			res.Location.CourtCount = int(lcourts.Int64)
-		}
+		res.Person, _ = rep.PersonRepository.Get(res.Person.Id)
+		res.Location, _ = rep.LocationRepository.Get(res.Location.Id)
 		res.Players, err = rep.GetPlayers(res.Id)
 		rmap = append(rmap, res)
 	}
@@ -256,6 +222,7 @@ func (rep *VolleyPgRepository) AddPlayer(r volley.Volley, pl person.Player) (res
 	}
 	defer rows.Close()
 	res, err = rep.Get(r.Id)
+	res.Person, _ = rep.PersonRepository.Get(res.Person.Id)
 	return
 }
 

@@ -1,9 +1,9 @@
 package res
 
 import (
+	"volleybot/pkg/bvbot"
 	"volleybot/pkg/domain/location"
 	"volleybot/pkg/domain/reserve"
-	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
 )
 
@@ -11,21 +11,22 @@ type StaticVolleyResourceLoader struct{}
 
 func (rl StaticVolleyResourceLoader) GetResource() (or VolleyResources) {
 	or.ReserveView = reserve.NewTelegramResourcesRu()
-	or.Volley.Actions = volley.NewActionsResourcesRu()
-	or.Volley.Activity = volley.NewAcivityResourcesRu()
-	or.Volley.Cancel = volley.NewCancelResourcesRu()
-	or.Volley.Courts = volley.NewCourtsResourcesRu()
-	or.Volley.Description = volley.NewDescResourcesRu()
-	or.Volley.Join = volley.NewJoinPlayersResourcesRu()
-	or.Volley.Level = volley.NewLevelResourcesRu()
-	or.Volley.List = volley.NewListResourcesRu()
-	or.Volley.Main = volley.NewMainResourcesRu()
-	or.Volley.MaxPlayer = volley.NewMaxPlayersResourcesRu()
-	or.Volley.Price = volley.NewPriceResourcesRu()
-	or.Volley.RemovePlayer = volley.RemovePlayerResourcesRu()
-	or.Volley.Settings = volley.NewSettingsResourcesRu()
-	or.Volley.Show = volley.NewShowResourcesRu()
-	or.Volley.Sets = volley.NewSetsResourcesRu()
+	or.Volley.Actions = bvbot.NewActionsResourcesRu()
+	or.Volley.Activity = bvbot.NewAcivityResourcesRu()
+	or.Volley.Cancel = bvbot.NewCancelResourcesRu()
+	or.Volley.Courts = bvbot.NewCourtsResourcesRu()
+	or.Volley.Description = bvbot.NewDescResourcesRu()
+	or.Volley.Join = bvbot.NewJoinPlayersResourcesRu()
+	or.Volley.Level = bvbot.NewLevelResourcesRu()
+	or.Volley.List = bvbot.NewListResourcesRu()
+	or.Volley.Main = bvbot.NewMainResourcesRu()
+	or.Volley.MaxPlayer = bvbot.NewMaxPlayersResourcesRu()
+	or.Volley.Price = bvbot.NewPriceResourcesRu()
+	or.Volley.Profile = bvbot.ProfileResourcesRu()
+	or.Volley.RemovePlayer = bvbot.RemovePlayerResourcesRu()
+	or.Volley.Settings = bvbot.NewSettingsResourcesRu()
+	or.Volley.Show = bvbot.NewShowResourcesRu()
+	or.Volley.Sets = bvbot.NewSetsResourcesRu()
 	or.Volley.BackBtn = "Назад"
 	or.Volley.DescMessage = "Отлично. Отправьте мне в чат описание активности."
 	or.Command.Command = "volley"
@@ -37,7 +38,7 @@ type VolleyResources struct {
 	Command     telegram.BotCommand
 	Location    location.Location
 	ReserveView reserve.TelegramViewResources
-	Volley      volley.MessageProcessorResources
+	Volley      bvbot.StateResources
 }
 
 type OrderResourceLoader interface {

@@ -52,12 +52,12 @@ func main() {
 	}
 
 	vres := res.StaticVolleyResourceLoader{}.GetResource()
-	rrep, _ := postgres.NewVolleyPgRepository(dbpool)
-	rrep.UpdateDB()
 	lrep, _ := postgres.NewLocationRepository(dbpool)
 	lrep.UpdateDB()
 	prep, _ := postgres.NewPersonPgRepository(dbpool)
 	prep.UpdateDB()
+	rrep, _ := postgres.NewVolleyPgRepository(dbpool, &prep, &lrep)
+	rrep.UpdateDB()
 	strep, _ := postgres.NewStateRepository(dbpool)
 	strep.UpdateDB()
 	vservice := services.VolleyBotService{Bot: tb, Resources: &vres, StateRepository: &strep,

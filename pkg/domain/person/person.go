@@ -85,6 +85,7 @@ func (user *Person) CheckLocationRole(l location.Location, role string) bool {
 
 type Player struct {
 	Person
+	PlayerId   int
 	Count      int
 	ArriveTime time.Time
 }
