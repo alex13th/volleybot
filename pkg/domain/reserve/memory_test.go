@@ -50,7 +50,7 @@ func TestMemory_GetReserve(t *testing.T) {
 		expectedErr error
 	}
 
-	p, _ := person.NewPerson("Firstname")
+	p := person.NewPerson("Firstname")
 	dur, _ := time.ParseDuration("2h")
 	res := NewReserve(p, time.Now(), time.Now().Add(dur))
 

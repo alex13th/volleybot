@@ -51,11 +51,11 @@ func (kh *BaseKeyboardHelper) SetBackData(data string) {
 }
 
 type DateTimeResources struct {
-	DateBtn  string
-	DateMsg  string
-	DayCount int
-	TimeBtn  string
-	TimeMsg  string
+	DateBtn  string `json:"date_btn"`
+	DateMsg  string `json:"date_msg"`
+	DayCount int    `json:"daye_count"`
+	TimeBtn  string `json:"time_btn"`
+	TimeMsg  string `json:"time_msg"`
 }
 
 func NewDateTimeResourcesRu() DateTimeResources {

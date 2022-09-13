@@ -2,19 +2,19 @@ package bvbot
 
 import (
 	"strconv"
-	"volleybot/pkg/domain/person"
+	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
 
 	"github.com/google/uuid"
 )
 
 type ActionsResources struct {
-	BackBtn         string
-	CancelBtn       string
-	CopyBtn         string
-	CopyDoneMessage string
-	PublishBtn      string
-	RemovePlayerBtn string
+	BackBtn         string `json:"back_btn"`
+	CancelBtn       string `json:"cancel_btn"`
+	CopyBtn         string `json:"copy_btn"`
+	CopyDoneMessage string `json:"copy_done_msg"`
+	PublishBtn      string `json:"publish_btn"`
+	RemovePlayerBtn string `json:"remove_player_btn"`
 }
 
 func NewActionsResourcesRu() (r ActionsResources) {
@@ -87,10 +87,10 @@ func (p ActionsStateProvider) Proceed() (st telegram.State, err error) {
 }
 
 type CancelResources struct {
-	BackBtn    string
-	Text       string
-	ConfirmBtn string
-	AbortBtn   string
+	AbortBtn   string `json:"abort_btn"`
+	BackBtn    string `json:"back_btn"`
+	Text       string `json:"text"`
+	ConfirmBtn string `json:"confirm_btn"`
 }
 
 func NewCancelResourcesRu() (r CancelResources) {
@@ -144,12 +144,12 @@ func (p CancelStateProvider) Proceed() (telegram.State, error) {
 		p.State.Updated = true
 	}
 	if p.State.Action == "leave" {
-		rpl := p.reserve.GetPlayer(p.Person.Id)
-		if rpl.Id == uuid.Nil {
-			rpl = person.Player{Person: p.Person}
+		mb := p.reserve.GetMember(p.Person.Id)
+		if mb.Id == uuid.Nil {
+			mb = volley.Member{Player: volley.NewPlayer(p.Person)}
 		}
-		rpl.Count = 0
-		p.reserve.JoinPlayer(person.Player{Person: p.Person, Count: 0})
+		mb.Count = 0
+		p.reserve.JoinPlayer(volley.Member{Player: mb.Player, Count: 0})
 		p.State.Action = p.BackState.State
 		p.State.Updated = true
 	}
@@ -181,8 +181,8 @@ func (p RemovePlayerStateProvider) GetRequests() []telegram.StateRequest {
 func (p RemovePlayerStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	if p.State.ChatId == p.Person.TelegramId {
 		pllist := []telegram.EnumItem{}
-		for _, pl := range p.reserve.Players {
-			pllist = append(pllist, telegram.EnumItem{Id: strconv.Itoa(pl.TelegramId), Item: pl.String()})
+		for _, mb := range p.reserve.Members {
+			pllist = append(pllist, telegram.EnumItem{Id: strconv.Itoa(mb.TelegramId), Item: mb.String()})
 		}
 		kh := telegram.NewEnumKeyboardHelper(pllist)
 		kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(p.Resources.Message)
@@ -195,7 +195,7 @@ func (p RemovePlayerStateProvider) Proceed() (telegram.State, error) {
 	if p.State.Action == "set" {
 		kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 		ptid, _ := strconv.Atoi(kh.Value)
-		rpl := p.reserve.GetPlayerByTelegramId(ptid)
+		rpl := p.reserve.GetMemberByTelegramId(ptid)
 		rpl.Count = 0
 		p.reserve.JoinPlayer(rpl)
 		p.State.Action = p.BackState.State

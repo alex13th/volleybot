@@ -158,7 +158,7 @@ func (s *VolleyBotService) SendRequests(reqlist []telegram.StateRequest) (errs [
 func (s *VolleyBotService) GetStateBuilder(tid int, state telegram.State, msg telegram.Message) (bld telegram.StateBuilder, err error) {
 	p, err := s.PersonRepository.GetByTelegramId(tid)
 	if err != nil {
-		p, _ = person.NewPerson(msg.From.FirstName)
+		p = person.NewPerson(msg.From.FirstName)
 		p.TelegramId = msg.From.Id
 		p.Lastname = msg.From.LastName
 		if p, err = s.PersonRepository.Add(p); err != nil {

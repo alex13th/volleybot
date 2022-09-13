@@ -23,9 +23,11 @@ func AddWhereParam(wsql *string, params *[]interface{}, param interface{}, cond 
 func NewVolleyPgRepository(dbpool *pgxpool.Pool, PersonRepository person.PersonRepository, LocationRepository location.LocationRepository) (rep VolleyPgRepository, err error) {
 	rep.PersonRepository = PersonRepository
 	rep.LocationRepository = LocationRepository
-	rep.TableName = "reserves"
-	rep.PlayersTableName = "reserve_players"
-	rep.PlayerSpName = "sp_reserve_player_update"
+	rep.TableName = "bvreserves"
+	rep.MembersTableName = "bvreserve_members"
+	rep.MembersSpName = "sp_bvreserve_member_update"
+	rep.PlayersTableName = "bvplayers"
+	rep.PlayersSpName = "sp_bvplayer_update"
 
 	if err != nil {
 		return
@@ -40,20 +42,23 @@ type VolleyPgRepository struct {
 	PersonRepository   person.PersonRepository
 	LocationRepository location.LocationRepository
 	TableName          string
+	MembersTableName   string
+	MembersSpName      string
 	PlayersTableName   string
-	PlayerSpName       string
+	PlayersSpName      string
 }
 
 func (rep *VolleyPgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %[1]s " +
 		"(reserve_id UUID PRIMARY KEY, person_id UUID, location_id UUID, " +
 		"start_time TIMESTAMP, end_time TIMESTAMP, price INT, " +
-		"min_level INT, court_count INT, max_players INT, " +
+		"min_level INT, court_count INT, max_players INT, net_type INT, " +
 		"ordered BOOL, approved BOOL, canceled BOOL, description varchar(4000), activity INT);"
 
-	pl_sql := "CREATE TABLE IF NOT EXISTS %[2]s (player_id serial, reserve_id UUID, person_id UUID, count INT, arrive_time TIMESTAMP);"
+	mb_sql := "CREATE TABLE IF NOT EXISTS %[2]s (member_id serial, reserve_id UUID, person_id UUID, count INT, arrive_time TIMESTAMP);"
+	pl_sql := "CREATE TABLE IF NOT EXISTS %[3]s (person_id UUID PRIMARY KEY, level INT);"
 	sp_sql := "CREATE OR REPLACE PROCEDURE " +
-		"%[3]s(res_id UUID, per_id UUID, c INT, at TIMESTAMP) " +
+		"%[4]s(res_id UUID, per_id UUID, c INT, at TIMESTAMP) " +
 		"LANGUAGE plpgsql AS $$ " +
 		"DECLARE cur_count INT;\n" +
 		"BEGIN\n" +
@@ -69,7 +74,18 @@ func (rep *VolleyPgRepository) UpdateDB() (err error) {
 		"INSERT INTO %[2]s (reserve_id, person_id, count, arrive_time) VALUES (res_id, per_id, c, at);\n" +
 		"END CASE;\n" +
 		"END;$$;"
-	sql = fmt.Sprintf(sql+pl_sql+sp_sql, rep.TableName, rep.PlayersTableName, rep.PlayerSpName)
+	sp_pl_sql := "CREATE OR REPLACE PROCEDURE " +
+		"%[5]s(per_id UUID, lvl INT) " +
+		"LANGUAGE plpgsql AS $$ " +
+		"BEGIN\n" +
+		"IF (SELECT COUNT(*) FROM %[3]s WHERE person_id = per_id) = 0 THEN\n" +
+		"INSERT INTO %[3]s (person_id, level) VALUES (per_id, lvl);\n" +
+		"ELSE\n" +
+		"UPDATE %[3]s SET level = lvl WHERE person_id = per_id;\n" +
+		"END IF;\n" +
+		"END;$$;"
+	sql = fmt.Sprintf(sql+mb_sql+pl_sql+sp_sql+sp_pl_sql, rep.TableName, rep.MembersTableName, rep.PlayersTableName,
+		rep.MembersSpName, rep.PlayersSpName)
 	_, err = rep.dbpool.Exec(context.Background(), sql)
 
 	if err != nil {
@@ -79,45 +95,46 @@ func (rep *VolleyPgRepository) UpdateDB() (err error) {
 	return
 }
 
-func (rep *VolleyPgRepository) GetPlayers(rid uuid.UUID) (plist []person.Player, err error) {
-	sql := "SELECT player_id, count, arrive_time, person_id " +
+func (rep *VolleyPgRepository) GetMembers(rid uuid.UUID) (mlist []volley.Member, err error) {
+	sql := "SELECT member_id, count, arrive_time, person_id " +
 		"FROM %s " +
 		"WHERE reserve_id = $1 " +
-		"ORDER BY player_id "
-	sql = fmt.Sprintf(sql, rep.PlayersTableName)
+		"ORDER BY member_id "
+	sql = fmt.Sprintf(sql, rep.MembersTableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
-	pl := person.Player{}
+	var mb volley.Member
 	for rows.Next() {
-		rows.Scan(&pl.PlayerId, &pl.Count, &pl.ArriveTime, &pl.Id)
-		pl.Person, _ = rep.PersonRepository.Get(pl.Id)
-		plist = append(plist, pl)
+		rows.Scan(&mb.MemberId, &mb.Count, &mb.ArriveTime, &mb.Id)
+		p, _ := rep.PersonRepository.Get(mb.Id)
+		mb.Player, _ = rep.GetPlayer(p)
+		mlist = append(mlist, mb)
 	}
 	return
 }
 
 func (rep *VolleyPgRepository) Get(rid uuid.UUID) (res volley.Volley, err error) {
 	sql_str := "SELECT reserve_id, person_id, location_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, activity " +
+		"min_level, court_count, max_players, net_type, approved, canceled, description, activity " +
 		"FROM %s " +
 		"WHERE reserve_id = $1"
 	sql_str = fmt.Sprintf(sql_str, rep.TableName)
 	row := rep.dbpool.QueryRow(context.Background(), sql_str, rid)
 
 	err = row.Scan(&res.Id, &res.Person.Id, &res.Location.Id, &res.StartTime, &res.EndTime, &res.Price,
-		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled, &res.Description, &res.Activity)
+		&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.NetType, &res.Approved, &res.Canceled, &res.Description, &res.Activity)
 	if err != nil {
 		return
 	}
 	res.Person, _ = rep.PersonRepository.Get(res.Person.Id)
 	res.Location, _ = rep.LocationRepository.Get(res.Location.Id)
-	plist, err := rep.GetPlayers(res.Id)
-	res.Players = plist
+	plist, err := rep.GetMembers(res.Id)
+	res.Members = plist
 	return
 }
 
 func (rep *VolleyPgRepository) GetByFilter(filter volley.Volley, oredered bool, sorted bool) (rmap []volley.Volley, err error) {
 	sql_str := "SELECT reserve_id, person_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, canceled, description, activity " +
+		"min_level, court_count, max_players, net_type, approved, canceled, description, activity " +
 		"FROM %s "
 	sql_str = fmt.Sprintf(sql_str, rep.TableName)
 	wheresql := ""
@@ -154,14 +171,14 @@ func (rep *VolleyPgRepository) GetByFilter(filter volley.Volley, oredered bool, 
 	for rows.Next() {
 		res := volley.Volley{}
 		err = rows.Scan(&res.Id, &res.Person.Id, &res.StartTime, &res.EndTime, &res.Price,
-			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.Approved, &res.Canceled,
+			&res.MinLevel, &res.CourtCount, &res.MaxPlayers, &res.NetType, &res.Approved, &res.Canceled,
 			&res.Description, &res.Activity)
 		if err != nil {
 			return
 		}
 		res.Person, _ = rep.PersonRepository.Get(res.Person.Id)
 		res.Location, _ = rep.LocationRepository.Get(res.Location.Id)
-		res.Players, err = rep.GetPlayers(res.Id)
+		res.Members, err = rep.GetMembers(res.Id)
 		rmap = append(rmap, res)
 	}
 	return
@@ -170,14 +187,14 @@ func (rep *VolleyPgRepository) GetByFilter(filter volley.Volley, oredered bool, 
 func (rep *VolleyPgRepository) Add(r volley.Volley) (res volley.Volley, err error) {
 	sql := "INSERT INTO %s " +
 		"(reserve_id, person_id, location_id, start_time, end_time, price, " +
-		"min_level, court_count, max_players, approved, ordered, canceled, description, activity) " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) " +
+		"min_level, court_count, max_players, net_type, approved, ordered, canceled, description, activity) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) " +
 		"RETURNING reserve_id"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	row := rep.dbpool.QueryRow(context.Background(), sql,
 		r.Id, r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity)
+		r.CourtCount, r.MaxPlayers, r.NetType, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity)
 
 	var ReserveId uuid.UUID
 	err = row.Scan(&ReserveId)
@@ -193,30 +210,30 @@ func (rep *VolleyPgRepository) Add(r volley.Volley) (res volley.Volley, err erro
 func (rep *VolleyPgRepository) Update(r volley.Volley) (err error) {
 	sql := "UPDATE %s SET " +
 		"person_id = $1, location_id = $2, start_time = $3, end_time = $4, " +
-		"price = $5, min_level = $6, court_count = $7, max_players = $8, " +
-		"approved = $9, ordered = $10, canceled = $11, description = $12, activity = $13  " +
-		"WHERE reserve_id = $14"
+		"price = $5, min_level = $6, court_count = $7, max_players = $8, net_type = $9, " +
+		"approved = $10, ordered = $11, canceled = $12, description = $13, activity = $14  " +
+		"WHERE reserve_id = $15"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
 	rows, err := rep.dbpool.Query(context.Background(), sql,
 		r.Person.Id, r.Location.Id, r.StartTime, r.GetEndTime(), r.Price, r.MinLevel,
-		r.CourtCount, r.MaxPlayers, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity, r.Id)
+		r.CourtCount, r.MaxPlayers, r.NetType, r.Approved, r.Ordered(), r.Canceled, r.Description, r.Activity, r.Id)
 	if err != nil {
 		return
 	}
 	defer rows.Close()
-	for _, pl := range r.Players {
-		rep.UpdatePlayer(r, pl)
+	for _, mb := range r.Members {
+		rep.UpdateMember(r, mb)
 	}
 	return
 }
 
-func (rep *VolleyPgRepository) AddPlayer(r volley.Volley, pl person.Player) (res volley.Volley, err error) {
+func (rep *VolleyPgRepository) AddMember(r volley.Volley, mb volley.Member) (res volley.Volley, err error) {
 	sql := "INSERT INTO %s (reserve_id, person_id, count, arrive_time) " +
 		"VALUES ($1, $2, $3, $4)"
-	sql = fmt.Sprintf(sql, rep.PlayersTableName)
+	sql = fmt.Sprintf(sql, rep.MembersTableName)
 
-	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, pl.Id, pl.Count, pl.ArriveTime)
+	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime)
 	if err != nil {
 		return
 	}
@@ -226,8 +243,39 @@ func (rep *VolleyPgRepository) AddPlayer(r volley.Volley, pl person.Player) (res
 	return
 }
 
-func (rep *VolleyPgRepository) UpdatePlayer(r volley.Volley, pl person.Player) (res volley.Volley, err error) {
-	sql := "call " + rep.PlayerSpName + " ($1, $2, $3, $4);"
-	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, pl.Id, pl.Count, pl.ArriveTime)
+func (rep *VolleyPgRepository) UpdateMember(r volley.Volley, mb volley.Member) (res volley.Volley, err error) {
+	sql := "call " + rep.MembersSpName + " ($1, $2, $3, $4);"
+	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime)
+	return
+}
+
+func (rep *VolleyPgRepository) AddPlayer(pl volley.Player) (res volley.Player, err error) {
+	sql := "INSERT INTO %s (person_id, level) " +
+		"VALUES ($1, $2, $3)"
+	sql = fmt.Sprintf(sql, rep.PlayersTableName)
+
+	rows, err := rep.dbpool.Query(context.Background(), sql, pl.Id, pl.Level)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	return
+}
+
+func (rep *VolleyPgRepository) GetPlayer(p person.Person) (pl volley.Player, err error) {
+	sql := "SELECT level FROM %s WHERE person_id = $1"
+	row := rep.dbpool.QueryRow(context.Background(), fmt.Sprintf(sql, rep.PlayersTableName), p.Id)
+	row.Scan(&pl.Level)
+	pl.Person = p
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (rep *VolleyPgRepository) UpdatePlayer(pl volley.Player) (err error) {
+	sql := "call " + rep.PlayersSpName + " ($1, $2);"
+	_, err = rep.dbpool.Exec(context.Background(), sql, pl.Id, pl.Level)
+	rep.PersonRepository.Update(pl.Person)
 	return
 }

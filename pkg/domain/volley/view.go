@@ -37,7 +37,7 @@ type TelegramView struct {
 
 func (tgv *TelegramView) String() string {
 	plcount := 0
-	for _, pl := range tgv.Volley.Players {
+	for _, pl := range tgv.Volley.Members {
 		plcount += pl.Count
 	}
 	return fmt.Sprintf("%s %s %s (%d/%d)", tgv.Volley.Activity.Emoji(),
@@ -67,7 +67,10 @@ func (tgv *TelegramView) GetText() (text string) {
 		tgv.DateLabel, monday.Format(tgv.Reserve.StartTime, "Monday, 02.01.2006", tgv.Locale),
 		tgv.TimeLabel, tgv.GetTimeText())
 	if tgv.Volley.MinLevel > 0 {
-		text += fmt.Sprintf("\n💪*Уровень*: %s", person.PlayerLevel(tgv.Volley.MinLevel))
+		text += fmt.Sprintf("\n💪*Уровень*: %s", PlayerLevel(tgv.Volley.MinLevel))
+	}
+	if tgv.Volley.NetType > 0 {
+		text += fmt.Sprintf("\n*Сетка*: %s", NetType(tgv.Volley.NetType))
 	}
 
 	if tgv.Volley.Price > 0 {
@@ -80,21 +83,21 @@ func (tgv *TelegramView) GetText() (text string) {
 	if tgv.Volley.MaxPlayers > 0 {
 		text += fmt.Sprintf("\n*Игроков:* %d", tgv.Volley.MaxPlayers)
 	}
-	text += tgv.GetPlayersText()
+	text += tgv.GetMembersText()
 	return
 }
 
-func (tgv *TelegramView) GetPlayersText() (text string) {
+func (tgv *TelegramView) GetMembersText() (text string) {
 	count := 1
 	over := false
-	for _, pl := range tgv.Volley.Players {
-		if pl.Count == 0 {
+	for _, mb := range tgv.Volley.Members {
+		if mb.Count == 0 {
 			continue
 		}
-		pvw := person.NewTelegramViewRu(pl.Person)
+		pvw := NewPlayerTelegramView(mb.Player)
 		text += fmt.Sprintf("\n%d. %s", count, pvw.String())
-		if !pl.ArriveTime.IsZero() {
-			text += fmt.Sprintf(" (%s)", pl.ArriveTime.Format("15:04"))
+		if !mb.ArriveTime.IsZero() {
+			text += fmt.Sprintf(" (%s)", mb.ArriveTime.Format("15:04"))
 		}
 		count++
 		if !over && count > tgv.Volley.MaxPlayers {
@@ -102,8 +105,8 @@ func (tgv *TelegramView) GetPlayersText() (text string) {
 			text += "\n\n*Резерв:*"
 			count = 1
 		}
-		for i := 1; i < pl.Count; i++ {
-			text += fmt.Sprintf("\n%d. %s+%d", count, pl.String(), i)
+		for i := 1; i < mb.Count; i++ {
+			text += fmt.Sprintf("\n%d. %s+%d", count, mb.String(), i)
 			count++
 			if !over && count > tgv.Volley.MaxPlayers {
 				over = true
@@ -132,5 +135,36 @@ func (tgv *TelegramView) GetTimeText() (text string) {
 			text += fmt.Sprintf("-%s", tgv.Reserve.EndTime.Format("15:04"))
 		}
 	}
+	return
+}
+
+type PlayerTelegramView struct {
+	Player
+	ParseMode string
+}
+
+func NewPlayerTelegramView(p Player) PlayerTelegramView {
+	return PlayerTelegramView{Player: p, ParseMode: "Markdown"}
+}
+
+func (tgv *PlayerTelegramView) String() (text string) {
+	pv := person.NewTelegramViewRu(tgv.Person)
+	text = PlayerLevel(tgv.Level).Emoji()
+	text += pv.String()
+	return
+}
+
+func (tgv PlayerTelegramView) GetText() (text string) {
+	pv := person.NewTelegramViewRu(tgv.Person)
+	text = pv.GetText()
+	text += fmt.Sprintf("\n*Уровень*: %s", tgv.GetLevelText())
+	return
+}
+
+func (tgv *PlayerTelegramView) GetLevelText() (text string) {
+	if tgv.Level > 0 {
+		text = PlayerLevel(tgv.Level).Emoji() + " "
+	}
+	text += PlayerLevel(tgv.Level).String()
 	return
 }

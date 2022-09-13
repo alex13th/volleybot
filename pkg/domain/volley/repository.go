@@ -8,9 +8,12 @@ import (
 
 type Repository interface {
 	Add(Volley) (Volley, error)
-	AddPlayer(Volley, person.Player) (Volley, error)
+	AddMember(Volley, Member) (Volley, error)
+	AddPlayer(Player) (Player, error)
 	Get(uuid.UUID) (Volley, error)
 	GetByFilter(res Volley, oredered bool, sorted bool) ([]Volley, error)
-	UpdatePlayer(Volley, person.Player) (Volley, error)
+	GetPlayer(person.Person) (Player, error)
+	UpdateMember(Volley, Member) (Volley, error)
+	UpdatePlayer(Player) error
 	Update(Volley) error
 }

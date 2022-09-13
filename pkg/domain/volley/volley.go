@@ -13,7 +13,7 @@ func NewVolley(p person.Person, start time.Time, end time.Time) Volley {
 		Reserve:    reserve.NewReserve(p, start, end),
 		CourtCount: 1,
 		MaxPlayers: 6,
-		Players:    []person.Player{}}
+		Members:    []Member{}}
 }
 
 type Volley struct {
@@ -22,7 +22,8 @@ type Volley struct {
 	MinLevel   int              `json:"min_level"`
 	CourtCount int              `json:"court_count"`
 	MaxPlayers int              `json:"max_players"`
-	Players    []person.Player  `json:"players"`
+	NetType    NetType          `json:"net_type"`
+	Members    []Member         `json:"members"`
 }
 
 func (res *Volley) Copy() (result Volley) {
@@ -32,34 +33,34 @@ func (res *Volley) Copy() (result Volley) {
 }
 
 func (v *Volley) HasPlayerByTelegramId(id int) bool {
-	for _, pl := range v.Players {
-		if pl.Person.TelegramId == id {
-			return pl.Count > 0
+	for _, mb := range v.Members {
+		if mb.Person.TelegramId == id {
+			return mb.Count > 0
 		}
 	}
 	return false
 }
 
 func (v *Volley) PlayerCount(pid uuid.UUID) (count int) {
-	for i, pl := range v.Players {
-		if v.Players[i].Id != pid {
+	for i, pl := range v.Members {
+		if v.Members[i].Id != pid {
 			count += pl.Count
 		}
 	}
 	return
 }
 
-func (v *Volley) GetPlayer(pid uuid.UUID) (pl person.Player) {
-	for _, pl := range v.Players {
-		if pl.Id == pid {
-			return pl
+func (v *Volley) GetMember(pid uuid.UUID) (mb Member) {
+	for _, mb := range v.Members {
+		if mb.Id == pid {
+			return mb
 		}
 	}
 	return
 }
 
-func (v *Volley) GetPlayerByTelegramId(tid int) (pl person.Player) {
-	for _, pl := range v.Players {
+func (v *Volley) GetMemberByTelegramId(tid int) (pl Member) {
+	for _, pl := range v.Members {
 		if pl.TelegramId == tid {
 			return pl
 		}
@@ -68,32 +69,32 @@ func (v *Volley) GetPlayerByTelegramId(tid int) (pl person.Player) {
 }
 
 func (v *Volley) RemovePlayerByTelegramId(tid int) {
-	newplist := []person.Player{}
-	for _, pl := range v.Players {
+	newplist := []Member{}
+	for _, pl := range v.Members {
 		if pl.TelegramId != tid {
 			newplist = append(newplist, pl)
 		}
 	}
-	v.Players = newplist
+	v.Members = newplist
 }
 
 func (v *Volley) PlayerInReserve(pid uuid.UUID) bool {
 	count := 0
-	for _, pl := range v.Players {
-		if pl.Id == pid {
+	for _, mb := range v.Members {
+		if mb.Id == pid {
 			return count >= v.MaxPlayers
 		}
-		count += pl.Count
+		count += mb.Count
 	}
 	return count >= v.MaxPlayers
 }
 
-func (v *Volley) JoinPlayer(pl person.Player) {
-	for i, p := range v.Players {
-		if p.Id == pl.Id {
-			v.Players[i] = pl
+func (v *Volley) JoinPlayer(mb Member) {
+	for i, m := range v.Members {
+		if m.Id == mb.Id {
+			v.Members[i] = mb
 			return
 		}
 	}
-	v.Players = append(v.Players, pl)
+	v.Members = append(v.Members, mb)
 }

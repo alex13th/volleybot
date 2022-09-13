@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/reserve"
 
 	"github.com/google/uuid"
@@ -99,21 +98,21 @@ func (mr *MemoryRepository) Update(memr Volley) error {
 	return fmt.Errorf("reserve does not exist: %w", reserve.ErrUpdateReserve)
 }
 
-func (mr *MemoryRepository) AddPlayer(r Volley, pl person.Player) (Volley, error) {
-	for i, p := range r.Players {
-		if p.Id == pl.Id {
-			r.Players[i] = pl
+func (mr *MemoryRepository) AddMember(r Volley, mb Member) (Volley, error) {
+	for i, p := range r.Members {
+		if p.Id == mb.Id {
+			r.Members[i] = mb
 			return r, nil
 		}
 	}
-	r.Players = append(r.Players, pl)
+	r.Members = append(r.Members, mb)
 	return r, nil
 }
 
-func (mr *MemoryRepository) UpdatePlayer(r Volley, pl person.Player) (Volley, error) {
-	for i, p := range r.Players {
-		if p.Id == pl.Id {
-			r.Players[i] = pl
+func (mr *MemoryRepository) UpdateMember(r Volley, mb Member) (Volley, error) {
+	for i, p := range r.Members {
+		if p.Id == mb.Id {
+			r.Members[i] = mb
 			return r, nil
 		}
 	}

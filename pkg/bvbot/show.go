@@ -1,7 +1,7 @@
 package bvbot
 
 import (
-	"volleybot/pkg/domain/person"
+	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
 
 	"github.com/google/uuid"
@@ -103,22 +103,22 @@ func (p ShowStateProvider) Proceed() (telegram.State, error) {
 		p.State.Action = "show"
 	}
 	if p.State.Action == "join" {
-		rpl := p.reserve.GetPlayer(p.Person.Id)
-		if rpl.Id == uuid.Nil {
-			rpl = person.Player{Person: p.Person}
+		mb := p.reserve.GetMember(p.Person.Id)
+		if mb.Id == uuid.Nil {
+			mb = volley.Member{Player: volley.Player{Person: p.Person}}
 		}
-		rpl.Count = 1
-		p.reserve.JoinPlayer(rpl)
+		mb.Count = 1
+		p.reserve.JoinPlayer(mb)
 		p.State.Action = "show"
 		p.State.Updated = true
 	}
 	if p.State.Action == "leave" {
-		rpl := p.reserve.GetPlayer(p.Person.Id)
-		if rpl.Id == uuid.Nil {
-			rpl = person.Player{Person: p.Person}
+		mb := p.reserve.GetMember(p.Person.Id)
+		if mb.Id == uuid.Nil {
+			mb.Player = volley.Player{Person: p.Person}
 		}
-		rpl.Count = 0
-		p.reserve.JoinPlayer(person.Player{Person: p.Person, Count: 0})
+		mb.Count = 0
+		p.reserve.JoinPlayer(volley.Member{Player: mb.Player, Count: 0})
 		p.State.Action = "show"
 		p.State.Updated = true
 	}
@@ -227,11 +227,11 @@ func (p SetsStateProvider) Proceed() (telegram.State, error) {
 }
 
 type JoinResources struct {
-	BackBtn  string
-	Columns  int
-	Courts   CourtsResources
-	DateTime telegram.DateTimeResources
-	Message  string
+	BackBtn  string                     `json:"back_btn"`
+	Columns  int                        `json:"columns"`
+	Courts   CourtsResources            `json:"courts"`
+	DateTime telegram.DateTimeResources `json:"date_time"`
+	Message  string                     `json:"message"`
 }
 
 func NewJoinPlayersResourcesRu() (r JoinResources) {
@@ -266,8 +266,8 @@ func (p JoinPlayersStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 		kh.Max = p.reserve.MaxPlayers - p.reserve.PlayerCount(p.Person.Id)
 		if !p.reserve.HasPlayerByTelegramId(p.Person.TelegramId) || p.reserve.PlayerInReserve(p.Person.Id) {
 			kh.Max = p.reserve.MaxPlayers
-		} else if kh.Max <= p.reserve.GetPlayer(p.Person.Id).Count {
-			kh.Max = p.reserve.GetPlayer(p.Person.Id).Count
+		} else if kh.Max <= p.reserve.GetMember(p.Person.Id).Count {
+			kh.Max = p.reserve.GetMember(p.Person.Id).Count
 		}
 	} else {
 		kh.Max = p.reserve.MaxPlayers - p.reserve.PlayerCount(uuid.Nil)
@@ -280,12 +280,12 @@ func (p JoinPlayersStateProvider) Proceed() (telegram.State, error) {
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
 		kh.Parse()
-		rpl := p.reserve.GetPlayer(p.Person.Id)
-		if rpl.Id == uuid.Nil {
-			rpl = person.Player{Person: p.Person}
+		mb := p.reserve.GetMember(p.Person.Id)
+		if mb.Id == uuid.Nil {
+			mb.Player = volley.Player{Person: p.Person}
 		}
-		rpl.Count = kh.Count
-		p.reserve.JoinPlayer(rpl)
+		mb.Count = kh.Count
+		p.reserve.JoinPlayer(mb)
 		p.State.Updated = true
 		p.State.Action = p.BackState.State
 	}
@@ -316,7 +316,7 @@ func (p JoinTimeStateProvider) Proceed() (telegram.State, error) {
 	if p.State.Action == "set" {
 		kh := p.GetKeyboardHelper().(*telegram.TimeKeyboardHelper)
 		kh.Parse()
-		pl := p.reserve.GetPlayerByTelegramId(p.Person.TelegramId)
+		pl := p.reserve.GetMemberByTelegramId(p.Person.TelegramId)
 		pl.ArriveTime = kh.Time
 		p.reserve.JoinPlayer(pl)
 		p.State.Updated = true
@@ -326,9 +326,9 @@ func (p JoinTimeStateProvider) Proceed() (telegram.State, error) {
 }
 
 type DescResources struct {
-	BackBtn     string
-	Message     string
-	DoneMessage string
+	BackBtn     string `json:"back_btn"`
+	Message     string `json:"message"`
+	DoneMessage string `json:"done_message"`
 }
 
 func NewDescResourcesRu() (r DescResources) {

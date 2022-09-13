@@ -22,7 +22,7 @@ func (rl StaticVolleyResourceLoader) GetResource() (or VolleyResources) {
 	or.Volley.Main = bvbot.NewMainResourcesRu()
 	or.Volley.MaxPlayer = bvbot.NewMaxPlayersResourcesRu()
 	or.Volley.Price = bvbot.NewPriceResourcesRu()
-	or.Volley.Profile = bvbot.ProfileResourcesRu()
+	or.Volley.Profile = bvbot.NewProfileResourcesRu()
 	or.Volley.RemovePlayer = bvbot.RemovePlayerResourcesRu()
 	or.Volley.Settings = bvbot.NewSettingsResourcesRu()
 	or.Volley.Show = bvbot.NewShowResourcesRu()

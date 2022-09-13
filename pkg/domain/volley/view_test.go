@@ -28,7 +28,7 @@ func TestTelegramView(t *testing.T) {
 				StartTime: time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
 				Price:     600},
-				MinLevel:   int(person.Middle),
+				MinLevel:   int(Middle),
 				MaxPlayers: 6,
 			},
 			text: "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
@@ -42,7 +42,7 @@ func TestTelegramView(t *testing.T) {
 				EndTime:     time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
 				Price:       600,
 				Description: "Some description."},
-				MinLevel:   int(person.Middle),
+				MinLevel:   int(Middle),
 				MaxPlayers: 6,
 			},
 			text: "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
@@ -67,10 +67,10 @@ func TestTelegramView(t *testing.T) {
 				StartTime: time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC)},
 				MaxPlayers: 4,
-				Players: []person.Player{
-					{Person: pl1, Count: 2},
-					{Person: pl2, Count: 3},
-					{Person: pl3, Count: 1}}},
+				Members: []Member{
+					{Player: Player{Person: pl1}, Count: 2},
+					{Player: Player{Person: pl2}, Count: 3},
+					{Player: Player{Person: pl3}, Count: 1}}},
 			text: "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
 				"*Игроков:* 4\n1. 👤 Elly\n2. Elly+1\n3. 👤 Steve\n4. Steve+1" +
 				"\n\n*Резерв:*\n1. Steve+2\n2. [👤 Tina](tg://user?id=123456)",
@@ -82,10 +82,11 @@ func TestTelegramView(t *testing.T) {
 				StartTime: time.Date(2021, 12, 04, 15, 0, 0, 0, time.UTC),
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC)},
 				MaxPlayers: 4,
-				Players: []person.Player{
-					{Person: pl1, Count: 2},
-					{Person: pl2, Count: 0},
-					{Person: pl3, Count: 1}}},
+				Members: []Member{
+					{Player: Player{Person: pl1}, Count: 2},
+					{Player: Player{Person: pl2}, Count: 0},
+					{Player: Player{Person: pl3}, Count: 1},
+				}},
 			text: "🏐 *СВОБОДНЫЕ ИГРЫ* 🏐\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
 				"*Игроков:* 4\n1. 👤 Elly\n2. Elly+1\n3. [👤 Tina](tg://user?id=123456)\n4.",
 			str: "🏐 Сб, 04.12 15:00-17:00 (3/4)",
@@ -97,7 +98,7 @@ func TestTelegramView(t *testing.T) {
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC),
 				Canceled:  true},
 				MaxPlayers: 12,
-				Players:    []person.Player{{Person: pl1, Count: 2}},
+				Members:    []Member{{Player: Player{Person: pl1}, Count: 2}},
 			},
 			text: "🔥 *ОТМЕНА* 🔥\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
 				"*Игроков:* 12\n1. 👤 Elly\n2. Elly+1\n3.\n.\n.\n12.",
@@ -110,7 +111,7 @@ func TestTelegramView(t *testing.T) {
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC)},
 				MaxPlayers: 12,
 				Activity:   10,
-				Players:    []person.Player{{Person: pl1, Count: 2}},
+				Members:    []Member{{Player: Player{Person: pl1}, Count: 2}},
 			},
 			text: "‼️ *ТРЕНИРОВКА* ‼️\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
 				"*Игроков:* 12\n1. 👤 Elly\n2. Elly+1\n3.\n.\n.\n12.",
@@ -123,7 +124,7 @@ func TestTelegramView(t *testing.T) {
 				EndTime:   time.Date(2021, 12, 04, 17, 0, 0, 0, time.UTC)},
 				MaxPlayers: 12,
 				Activity:   30,
-				Players:    []person.Player{{Person: pl1, Count: 2, ArriveTime: time.Date(0, 0, 0, 15, 15, 0, 0, time.UTC)}},
+				Members:    []Member{{Player: Player{Person: pl1}, Count: 2, ArriveTime: time.Date(0, 0, 0, 15, 15, 0, 0, time.UTC)}},
 			},
 			text: "🎾 *ПЛЯЖНЫЙ ТЕННИС* 🎾\n\n*Elly*\n📆 Суббота, 04.12.2021\n⏰ 15:00-17:00\n" +
 				"*Игроков:* 12\n1. 👤 Elly (15:15)\n2. Elly+1\n3.\n.\n.\n12.",

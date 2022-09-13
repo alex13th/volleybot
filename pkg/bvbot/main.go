@@ -8,15 +8,15 @@ import (
 )
 
 type MainResources struct {
-	ListCaption       string
-	ListDateBtn       string
-	NewReserveBtn     string
-	NoReservesMessage string
-	ParseMode         string
-	PreviewDuration   time.Duration
-	ProfileBtn        string
-	Text              string
-	TodayBtn          string
+	ListCaption       string        `json:"list_caption"`
+	ListDateBtn       string        `json:"List_date_btn"`
+	NewReserveBtn     string        `json:"new_reserve_msg"`
+	NoReservesMessage string        `json:"no_reserve_msg"`
+	ParseMode         string        `json:"parse_mode"`
+	PreviewDuration   time.Duration `json:"duration"`
+	ProfileBtn        string        `json:"profile_btn"`
+	Text              string        `json:"text"`
+	TodayBtn          string        `json:"today_btn"`
 }
 
 func NewMainResourcesRu() (r MainResources) {
@@ -125,11 +125,11 @@ func (p MainStateProvider) NewReserve() (r volley.Volley) {
 }
 
 type ListResources struct {
-	ListCaption       string
-	NoReservesMessage string
-	ParseMode         string
-	PreviewDuration   time.Duration
-	Text              string
+	ListCaption       string        `json:"list_caption"`
+	NoReservesMessage string        `json:"no_reserve_message"`
+	ParseMode         string        `json:"parse_mode"`
+	PreviewDuration   time.Duration `json:"duration"`
+	Text              string        `json:"text"`
 }
 
 func NewListResourcesRu() (r ListResources) {

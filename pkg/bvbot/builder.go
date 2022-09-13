@@ -122,11 +122,11 @@ func (p BaseStateProvider) CreateMR(cid int, txt string, pmode string, kbd teleg
 }
 
 func (p *BaseStateProvider) NotifyPlayers(action string) (reqlist []telegram.StateRequest) {
-	for _, pl := range p.reserve.Players {
-		if pl.Person.TelegramId != p.Person.TelegramId {
-			if param, ok := pl.Settings[action]; ok && param == "on" {
+	for _, mb := range p.reserve.Members {
+		if mb.Person.TelegramId != p.Person.TelegramId {
+			if param, ok := mb.Settings[action]; ok && param == "on" {
 				mr := p.GetMR()
-				mr.ChatId = pl.TelegramId
+				mr.ChatId = mb.TelegramId
 				reqlist = append(reqlist, telegram.StateRequest{Request: mr})
 			}
 		}
@@ -160,7 +160,8 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "profile":
 		bp.BackState.State = "main"
 		bp.BackState.Action = bp.BackState.State
-		sp = ProfileStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = ProfileStateProvider{PlayerStateProvider: pp}
 	case "show":
 		bp.BackState.State = "main"
 		bp.BackState.Action = bp.BackState.State
@@ -218,6 +219,10 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
 		sp = ActivityStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Activity}
+	case "nettype":
+		bp.BackState.State = "settings"
+		bp.BackState.Action = bp.BackState.State
+		sp = NetTypeStateProvider{BaseStateProvider: bp}
 	case "cancel":
 		bp.BackState.State = "actions"
 		bp.BackState.Action = bp.BackState.State
@@ -227,6 +232,31 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.State = "actions"
 		bp.BackState.Action = bp.BackState.State
 		sp = RemovePlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.RemovePlayer}
+	case "plevel":
+		bp.BackState.State = "profile"
+		bp.BackState.Action = bp.BackState.State
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = PLevelStateProvider{PlayerStateProvider: pp, Resources: bld.Resources.Level}
+	case "sex":
+		bp.BackState.State = "profile"
+		bp.BackState.Action = bp.BackState.State
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = SexStateProvider{PlayerStateProvider: pp}
+	case "notifies":
+		bp.BackState.State = "profile"
+		bp.BackState.Action = bp.BackState.State
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = NotifiesStateProvider{PlayerStateProvider: pp}
+	case "pcancel":
+		bp.BackState.State = "notifies"
+		bp.BackState.Action = bp.BackState.State
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = NotifyCancelStateProvider{ParamStateProvider{PlayerStateProvider: pp}}
+	case "pnotify":
+		bp.BackState.State = "notifies"
+		bp.BackState.Action = bp.BackState.State
+		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
+		sp = NotifyChangeStateProvider{ParamStateProvider{PlayerStateProvider: pp}}
 	}
 	return
 }
