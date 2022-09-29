@@ -116,8 +116,7 @@ func NewLocationConfigRepository(dbpool *pgxpool.Pool) (pgrep LocationConfigPgRe
 
 func (rep *LocationConfigPgRepository) UpdateDB() (err error) {
 	sql := "CREATE TABLE IF NOT EXISTS %s (" +
-		"location_id UUID, service_name VARCHAR(20), location_config JSONB, " +
-		"location_chat_id BIGINT, location_court_count INT) "
+		"location_id UUID, service_name VARCHAR(20), location_config JSONB)"
 	rows, err := rep.dbpool.Query(context.Background(), fmt.Sprintf(sql, rep.TableName))
 
 	if err != nil {

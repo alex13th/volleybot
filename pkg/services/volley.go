@@ -59,8 +59,12 @@ func (s *VolleyBotService) GetLocationConfig(l location.Location) (conf bvbot.Co
 	err = s.ConfigRepository.Get(l, s.name, &conf)
 
 	if err != nil {
-		conf = bvbot.NewConfig()
-		err = s.ConfigRepository.Add(l, s.name, conf)
+		if (conf == bvbot.Config{}) {
+			conf = bvbot.NewConfig()
+			err = s.ConfigRepository.Add(l, s.name, conf)
+		} else {
+			err = s.ConfigRepository.Update(l, s.name, conf)
+		}
 	}
 
 	return

@@ -175,14 +175,11 @@ func NewCourtsResourcesRu() CourtsResources {
 
 type PriceResources struct {
 	Columns int
-	Min     int
-	Max     int
 	Message string
-	Step    int
 }
 
 func NewPriceResourcesRu() PriceResources {
-	return PriceResources{Columns: 4, Min: 0, Max: 2000, Message: "❓Почем будет поиграть❓", Step: 100}
+	return PriceResources{Columns: 4, Message: "❓Почем будет поиграть❓"}
 }
 
 type AcivityResources struct {

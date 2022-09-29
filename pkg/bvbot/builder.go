@@ -186,11 +186,11 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "max":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer}
+		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer, Config: bld.Config.Courts}
 	case "price":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price}
+		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price, Config: bld.Config.Price}
 	case "level":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State

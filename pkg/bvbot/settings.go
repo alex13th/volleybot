@@ -114,6 +114,7 @@ func (p CourtsStateProvider) Proceed() (telegram.State, error) {
 type PriceStateProvider struct {
 	BaseStateProvider
 	Resources PriceResources
+	Config    PriceConfig
 }
 
 func (p PriceStateProvider) GetRequests() []telegram.StateRequest {
@@ -122,9 +123,9 @@ func (p PriceStateProvider) GetRequests() []telegram.StateRequest {
 }
 
 func (p PriceStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
-	res := p.Resources
-	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: res.Min, Max: res.Max, Step: res.Step}
-	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
+	kh := telegram.CountKeyboardHelper{Columns: p.Resources.Columns,
+		Min: p.Config.Min, Max: p.Config.Max, Step: p.Config.Step}
+	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(p.Resources.Message)
 	return &kh
 }
 
