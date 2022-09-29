@@ -235,15 +235,23 @@ type CountKeyboardHelper struct {
 	Columns int
 }
 
+func (kh CountKeyboardHelper) GetButton(v int) (btn InlineKeyboardButton) {
+	st := kh.State
+	st.Action = "set"
+	st.Value = strconv.Itoa(v)
+	return InlineKeyboardButton{Text: strconv.Itoa(v), CallbackData: st.String()}
+}
+
 func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
+	if kh.Min*kh.Max > 0 {
+		kbdRow = append(kbdRow, kh.GetButton(0))
+		kbd = append(kbd, kbdRow)
+		kbdRow = []InlineKeyboardButton{}
+	}
 	count := 0
 	for i := kh.Min; i <= kh.Max; i = i + kh.Step {
-		st := kh.State
-		st.Action = "set"
-		st.Value = strconv.Itoa(i)
-		kbdRow = append(kbdRow, InlineKeyboardButton{Text: strconv.Itoa(i),
-			CallbackData: st.String()})
+		kbdRow = append(kbdRow, kh.GetButton(i))
 		count++
 		if count%kh.Columns == 0 {
 			kbd = append(kbd, kbdRow)
