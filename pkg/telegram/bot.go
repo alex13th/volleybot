@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -50,6 +51,9 @@ func (tb *Bot) GetUpdates() (botResp UpdateResponse, err error) {
 }
 
 func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error) {
+	if request == nil {
+		return httpResp, errors.New("request in nil")
+	}
 	values, method, err := request.GetParams()
 
 	if err != nil {
@@ -68,7 +72,7 @@ func (tb *Bot) SendRequest(request Request) (httpResp *http.Response, err error)
 	return
 }
 
-func (tb *Bot) SendMessage(req Request) (resp MessageResponse) {
+func (tb *Bot) SendMessage(req Request) (resp MessageResponse, err error) {
 	httpResp, err := tb.SendRequest(req)
 
 	if err == nil {
@@ -77,13 +81,9 @@ func (tb *Bot) SendMessage(req Request) (resp MessageResponse) {
 	}
 	if err != nil {
 		resp.Description = err.Error()
+		return resp, err
 	}
-	return
-}
-
-func (tb *Bot) SendMessageAsync(req Request, chm chan MessageResponse) {
-	resp := tb.SendMessage(req)
-	chm <- resp
+	return resp, err
 }
 
 func (tb *Bot) NewPoller() (lp LongPoller, err error) {

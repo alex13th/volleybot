@@ -13,10 +13,7 @@ func TestMemory_GetPerson(t *testing.T) {
 		expectedErr error
 	}
 
-	p, err := NewPerson("Firstname")
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := NewPerson("Firstname")
 	id := p.Id
 
 	repo := MemoryRepository{
@@ -67,12 +64,8 @@ func TestMemory_AddPerson(t *testing.T) {
 				persons: map[uuid.UUID]Person{},
 			}
 
-			p, err := NewPerson(tc.firstname)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			_, err = repo.Add(p)
+			p := NewPerson(tc.firstname)
+			_, err := repo.Add(p)
 			if err != tc.expectedErr {
 				t.Errorf("Expected error %v, got %v", tc.expectedErr, err)
 			}

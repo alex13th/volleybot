@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-type CallbackQueryFunc func(cq *CallbackQuery) (MessageResponse, error)
-type MessageFunc func(m *Message) (MessageResponse, error)
-type MessageStateFunc func(m *Message, state State) (MessageResponse, error)
+type CallbackQueryFunc func(cq *CallbackQuery) error
+type MessageFunc func(m *Message) error
+type MessageStateFunc func(m *Message, state State) error
 
 type UpdateHandler interface {
 	ProceedUpdate(tb *Bot, update Update)
@@ -43,7 +43,7 @@ func (uh BaseUpdateHandler) ProceedUpdate(tb *Bot, update Update) {
 }
 
 type CallbackHandler interface {
-	ProceedCallback(*CallbackQuery) (MessageResponse, error)
+	ProceedCallback(*CallbackQuery) error
 }
 
 type BaseCallbackHandler struct {
@@ -51,7 +51,7 @@ type BaseCallbackHandler struct {
 	Handler CallbackQueryFunc
 }
 
-func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 	return h.Handler(cb)
 }
 
@@ -61,16 +61,16 @@ type PrefixCallbackHandler struct {
 	Handler CallbackQueryFunc
 }
 
-func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 	var prefix []string = strings.Split(cb.Data, "_")
 	if len(prefix) > 1 && prefix[0] == h.Prefix {
 		return h.Handler(cb)
 	}
-	return MessageResponse{}, errors.New("data hasn't prefix")
+	return errors.New("data hasn't prefix")
 }
 
 type MessageHandler interface {
-	ProceedMessage(tm *Message) (MessageResponse, error)
+	ProceedMessage(tm *Message) error
 }
 
 type BaseMessageHandler struct {
@@ -78,7 +78,7 @@ type BaseMessageHandler struct {
 	Handler MessageFunc
 }
 
-func (h *BaseMessageHandler) ProceedMessage(m *Message) (MessageResponse, error) {
+func (h *BaseMessageHandler) ProceedMessage(m *Message) error {
 	return h.Handler(m)
 }
 
@@ -94,7 +94,7 @@ func (h *CommandHandler) GetCommands() []BotCommand {
 	return h.Commands
 }
 
-func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+func (h *CommandHandler) ProceedMessage(m *Message) (err error) {
 	if h.IsRegexp {
 		var re *regexp.Regexp
 		re, err = regexp.Compile(h.Command)
@@ -119,12 +119,15 @@ type StateMessageHandler struct {
 	StateRepository StateRepository
 }
 
-func (h *StateMessageHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+func (h *StateMessageHandler) ProceedMessage(m *Message) error {
 	slist, err := h.StateRepository.Get(m.Chat.Id)
+	if err != nil {
+		return err
+	}
 	for _, st := range slist {
 		if st.State == h.State {
 			return h.Handler(m, st)
 		}
 	}
-	return
+	return err
 }
