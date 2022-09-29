@@ -7,30 +7,34 @@ import (
 	"volleybot/pkg/telegram"
 )
 
+type VolleyResourceLoader interface {
+	GetResources() (or VolleyResources)
+}
+
 type StaticVolleyResourceLoader struct{}
 
-func (rl StaticVolleyResourceLoader) GetResource() (or VolleyResources) {
-	or.ReserveView = reserve.NewTelegramResourcesRu()
-	or.Volley.Actions = bvbot.NewActionsResourcesRu()
-	or.Volley.Activity = bvbot.NewAcivityResourcesRu()
-	or.Volley.Cancel = bvbot.NewCancelResourcesRu()
-	or.Volley.Courts = bvbot.NewCourtsResourcesRu()
-	or.Volley.Description = bvbot.NewDescResourcesRu()
-	or.Volley.Join = bvbot.NewJoinPlayersResourcesRu()
-	or.Volley.Level = bvbot.NewLevelResourcesRu()
-	or.Volley.List = bvbot.NewListResourcesRu()
-	or.Volley.Main = bvbot.NewMainResourcesRu()
-	or.Volley.MaxPlayer = bvbot.NewMaxPlayersResourcesRu()
-	or.Volley.Price = bvbot.NewPriceResourcesRu()
-	or.Volley.Profile = bvbot.NewProfileResourcesRu()
-	or.Volley.RemovePlayer = bvbot.RemovePlayerResourcesRu()
-	or.Volley.Settings = bvbot.NewSettingsResourcesRu()
-	or.Volley.Show = bvbot.NewShowResourcesRu()
-	or.Volley.Sets = bvbot.NewSetsResourcesRu()
-	or.Volley.BackBtn = "Назад"
-	or.Volley.DescMessage = "Отлично. Отправьте мне в чат описание активности."
-	or.Command.Command = "volley"
-	or.Command.Description = "Пляжный волейбол"
+func (rl StaticVolleyResourceLoader) GetResources() (res VolleyResources) {
+	res.ReserveView = reserve.NewTelegramResourcesRu()
+	res.Resources.Actions = bvbot.NewActionsResourcesRu()
+	res.Resources.Activity = bvbot.NewAcivityResourcesRu()
+	res.Resources.Cancel = bvbot.NewCancelResourcesRu()
+	res.Resources.Courts = bvbot.NewCourtsResourcesRu()
+	res.Resources.Description = bvbot.NewDescResourcesRu()
+	res.Resources.Join = bvbot.NewJoinPlayersResourcesRu()
+	res.Resources.Level = bvbot.NewLevelResourcesRu()
+	res.Resources.List = bvbot.NewListResourcesRu()
+	res.Resources.Main = bvbot.NewMainResourcesRu()
+	res.Resources.MaxPlayer = bvbot.NewMaxPlayersResourcesRu()
+	res.Resources.Price = bvbot.NewPriceResourcesRu()
+	res.Resources.Profile = bvbot.NewProfileResourcesRu()
+	res.Resources.RemovePlayer = bvbot.RemovePlayerResourcesRu()
+	res.Resources.Settings = bvbot.NewSettingsResourcesRu()
+	res.Resources.Show = bvbot.NewShowResourcesRu()
+	res.Resources.Sets = bvbot.NewSetsResourcesRu()
+	res.Resources.BackBtn = "Назад"
+	res.Resources.DescMessage = "Отлично. Отправьте мне в чат описание активности."
+	res.Command.Command = "volley"
+	res.Command.Description = "Пляжный волейбол"
 	return
 }
 
@@ -38,17 +42,5 @@ type VolleyResources struct {
 	Command     telegram.BotCommand
 	Location    location.Location
 	ReserveView reserve.TelegramViewResources
-	Volley      bvbot.StateResources
-}
-
-type OrderResourceLoader interface {
-	GetResource() VolleyResources
-}
-
-type StaticPersonResourceLoader struct{}
-
-func (rl StaticPersonResourceLoader) GetResource() (r PersonResources) {
-	r.ProfileCommand.Command = "profile"
-	r.ProfileCommand.Description = "настройки профиля пользователя"
-	return
+	Resources   bvbot.Resources
 }

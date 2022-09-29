@@ -1,5 +1,4 @@
 ---
-
 inputs:
   bot_name:
     description: 'Bot name'

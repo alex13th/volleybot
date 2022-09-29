@@ -8,24 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type ActionsResources struct {
-	BackBtn         string `json:"back_btn"`
-	CancelBtn       string `json:"cancel_btn"`
-	CopyBtn         string `json:"copy_btn"`
-	CopyDoneMessage string `json:"copy_done_msg"`
-	PublishBtn      string `json:"publish_btn"`
-	RemovePlayerBtn string `json:"remove_player_btn"`
-}
-
-func NewActionsResourcesRu() (r ActionsResources) {
-	r.BackBtn = "Назад"
-	r.CancelBtn = "💥Отменить"
-	r.CopyBtn = "🫂 Копировать"
-	r.CopyDoneMessage = "Копия сделана! 👆"
-	r.PublishBtn = "Опубликовать"
-	r.RemovePlayerBtn = "Удалить игрока"
-	return
-}
 
 type ActionsStateProvider struct {
 	BaseStateProvider
@@ -86,20 +68,6 @@ func (p ActionsStateProvider) Proceed() (st telegram.State, err error) {
 	return p.BaseStateProvider.Proceed()
 }
 
-type CancelResources struct {
-	AbortBtn   string `json:"abort_btn"`
-	BackBtn    string `json:"back_btn"`
-	Text       string `json:"text"`
-	ConfirmBtn string `json:"confirm_btn"`
-}
-
-func NewCancelResourcesRu() (r CancelResources) {
-	r.BackBtn = "Передумал"
-	r.ConfirmBtn = "🧨 Уверен"
-	r.Text = "\n🧨*ВНИМАНИЕ!!!*🧨\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться кнопкой \"Не буду\""
-	return
-}
-
 type CancelStateProvider struct {
 	BaseStateProvider
 	Resources     CancelResources
@@ -155,19 +123,6 @@ func (p CancelStateProvider) Proceed() (telegram.State, error) {
 	}
 	return p.BaseStateProvider.Proceed()
 }
-
-type RemovePlayerResources struct {
-	BackBtn         string
-	Message         string
-	RemovePlayerBtn string
-}
-
-func RemovePlayerResourcesRu() (r RemovePlayerResources) {
-	r.BackBtn = "Назад"
-	r.RemovePlayerBtn = "Удалить игрока"
-	return
-}
-
 type RemovePlayerStateProvider struct {
 	BaseStateProvider
 	Resources RemovePlayerResources

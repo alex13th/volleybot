@@ -7,27 +7,6 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-type StateResources struct {
-	Actions      ActionsResources
-	Activity     AcivityResources
-	Courts       CourtsResources
-	Cancel       CancelResources
-	Description  DescResources
-	Join         JoinResources
-	Level        LevelResources
-	List         ListResources
-	Main         MainResources
-	MaxPlayer    MaxPlayersResources
-	Profile      ProfileResources
-	RemovePlayer RemovePlayerResources
-	Price        PriceResources
-	Settings     SettingsResources
-	Sets         SetsResources
-	Show         ShowResources
-	BackBtn      string
-	DescMessage  string
-}
-
 type BaseStateProvider struct {
 	reserve    volley.Volley
 	kh         telegram.KeyboardHelper
@@ -136,12 +115,13 @@ func (p *BaseStateProvider) NotifyPlayers(action string) (reqlist []telegram.Sta
 
 type BvStateBuilder struct {
 	BaseStateProvider
-	Resources StateResources
+	Config    Config
+	Resources Resources
 }
 
-func NewBvStateBuilder(loc location.Location, msg telegram.Message, p person.Person, rep volley.Repository, res StateResources, st telegram.State) (bld BvStateBuilder, err error) {
+func NewBvStateBuilder(loc location.Location, msg telegram.Message, p person.Person, rep volley.Repository, res Resources, conf Config, st telegram.State) (bld BvStateBuilder, err error) {
 	bp, err := NewBaseStateProvider(st, msg, p, loc, rep, "")
-	bld = BvStateBuilder{BaseStateProvider: bp, Resources: res}
+	bld = BvStateBuilder{BaseStateProvider: bp, Resources: res, Config: conf}
 	return
 }
 
@@ -202,15 +182,15 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "courts":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = CourtsStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Courts}
+		sp = CourtsStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Courts, Config: bld.Config.Courts}
 	case "max":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer}
+		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer, Config: bld.Config.Courts}
 	case "price":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price}
+		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price, Config: bld.Config.Price}
 	case "level":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State

@@ -11,11 +11,22 @@ import (
 	"volleybot/pkg/telegram"
 )
 
+func NewVolleyBotService(tb *telegram.Bot, vres *res.VolleyResources, strep telegram.StateRepository,
+	lrep location.LocationRepository, rrep volley.Repository, prep person.PersonRepository, confrep location.LocationConfigRepository) VolleyBotService {
+
+	s := VolleyBotService{Bot: tb, Resources: vres, StateRepository: strep, LocationRepository: lrep, VolleyRepository: rrep,
+		PersonRepository: prep, ConfigRepository: confrep}
+	s.name = "beach_volley"
+	return s
+}
+
 type VolleyBotService struct {
+	name               string
 	Bot                *telegram.Bot
 	Prefix             string
 	Resources          *res.VolleyResources
 	LocationRepository location.LocationRepository
+	ConfigRepository   location.LocationConfigRepository
 	PersonRepository   person.PersonRepository
 	VolleyRepository   volley.Repository
 	StateRepository    telegram.StateRepository
@@ -41,6 +52,21 @@ func (s *VolleyBotService) GetLocation() (l location.Location, err error) {
 		l, _ = location.NewLocation(s.Resources.Location.Name)
 		l, err = s.LocationRepository.Add(l)
 	}
+	return
+}
+
+func (s *VolleyBotService) GetLocationConfig(l location.Location) (conf bvbot.Config, err error) {
+	err = s.ConfigRepository.Get(l, s.name, &conf)
+
+	if err != nil {
+		if (conf == bvbot.Config{}) {
+			conf = bvbot.NewConfig()
+			err = s.ConfigRepository.Add(l, s.name, conf)
+		} else {
+			err = s.ConfigRepository.Update(l, s.name, conf)
+		}
+	}
+
 	return
 }
 
@@ -169,8 +195,8 @@ func (s *VolleyBotService) GetStateBuilder(tid int, state telegram.State, msg te
 	if err != nil {
 		return
 	}
-
-	return bvbot.NewBvStateBuilder(loc, msg, p, s.VolleyRepository, s.Resources.Volley, state)
+	conf, _ := s.GetLocationConfig(loc)
+	return bvbot.NewBvStateBuilder(loc, msg, p, s.VolleyRepository, s.Resources.Resources, conf, state)
 }
 
 func (p *VolleyBotService) UpdateMessages(sta telegram.State, bld telegram.StateBuilder) {

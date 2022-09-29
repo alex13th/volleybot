@@ -51,7 +51,7 @@ func main() {
 		return
 	}
 
-	vres := res.StaticVolleyResourceLoader{}.GetResource()
+	vres := res.StaticVolleyResourceLoader{}.GetResources()
 	lrep, _ := postgres.NewLocationRepository(dbpool)
 	lrep.UpdateDB()
 	prep, _ := postgres.NewPersonPgRepository(dbpool)
@@ -60,8 +60,10 @@ func main() {
 	rrep.UpdateDB()
 	strep, _ := postgres.NewStateRepository(dbpool)
 	strep.UpdateDB()
-	vservice := services.VolleyBotService{Bot: tb, Resources: &vres, StateRepository: &strep,
-		LocationRepository: &lrep, VolleyRepository: &rrep, PersonRepository: &prep}
+	confrep, _ := postgres.NewLocationConfigRepository(dbpool)
+	confrep.UpdateDB()
+
+	vservice := services.NewVolleyBotService(tb, &vres, &strep, &lrep, &rrep, &prep, &confrep)
 
 	if os.Getenv("LOCATION") != "" {
 		vres.Location.Name = os.Getenv("LOCATION")
