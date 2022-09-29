@@ -7,27 +7,6 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-type SettingsResources struct {
-	ActivityBtn string
-	BackBtn     string
-	CourtBtn    string
-	LevelBtn    string
-	MaxBtn      string
-	NetTypeBtn  string
-	PriceBtn    string
-}
-
-func NewSettingsResourcesRu() (r SettingsResources) {
-	r.ActivityBtn = "Вид активности"
-	r.BackBtn = "Назад"
-	r.CourtBtn = "🏐 Площадки"
-	r.LevelBtn = "💪 Уровень"
-	r.MaxBtn = "👫 Мест"
-	r.NetTypeBtn = "📏 Вид сетки"
-	r.PriceBtn = "💰 Стоимость"
-	return
-}
-
 type SettingsStateProvider struct {
 	BaseStateProvider
 	Resources SettingsResources
@@ -67,26 +46,10 @@ func (p SettingsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	return &ah
 }
 
-type MaxPlayersResources struct {
-	BackBtn          string `json:"back_btn"`
-	Columns          int    `json:"columns"`
-	Courts           CourtsResources
-	GroupChatWarning string `json:"group_chat_warning"`
-	Message          string `json:"message"`
-}
-
-func NewMaxPlayersResourcesRu() (r MaxPlayersResources) {
-	r.BackBtn = "Назад"
-	r.Columns = 4
-	r.Courts = NewCourtsResourcesRu()
-	r.GroupChatWarning = "⚠️*Внимание* - здесь функция добавления игроков ограничена числом игроков записи. " +
-		"В чате с ботом можно добавить больше игроков в резерв!"
-	return
-}
-
 type MaxPlayersStateProvider struct {
 	BaseStateProvider
 	Resources MaxPlayersResources
+	Config    CourtsConfig
 }
 
 func (p MaxPlayersStateProvider) GetRequests() []telegram.StateRequest {
@@ -96,7 +59,12 @@ func (p MaxPlayersStateProvider) GetRequests() []telegram.StateRequest {
 
 func (p MaxPlayersStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 4, Max: res.Courts.MaxPlayers * p.reserve.CourtCount, Step: 1}
+	kh := telegram.CountKeyboardHelper{
+		Columns: res.Columns,
+		Min:     p.Config.MinPlayers,
+		Max:     p.Config.MaxPlayers * p.reserve.CourtCount,
+		Step:    1,
+	}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
 	return &kh
 }
@@ -113,20 +81,10 @@ func (p MaxPlayersStateProvider) Proceed() (telegram.State, error) {
 	return p.BaseStateProvider.Proceed()
 }
 
-type CourtsResources struct {
-	Columns    int    `json:"columns"`
-	Max        int    `json:"max"`
-	MaxPlayers int    `json:"max_players"`
-	Message    string `json:"message"`
-}
-
-func NewCourtsResourcesRu() CourtsResources {
-	return CourtsResources{Columns: 4, Max: 4, Message: "❓Сколько нужно кортов❓", MaxPlayers: 12}
-}
-
 type CourtsStateProvider struct {
 	BaseStateProvider
 	Resources CourtsResources
+	Config    CourtsConfig
 }
 
 func (p CourtsStateProvider) GetRequests() []telegram.StateRequest {
@@ -136,7 +94,7 @@ func (p CourtsStateProvider) GetRequests() []telegram.StateRequest {
 
 func (p CourtsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 1, Max: res.Max, Step: 1}
+	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 1, Max: p.Config.Max, Step: 1}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
 	return &kh
 }
@@ -151,18 +109,6 @@ func (p CourtsStateProvider) Proceed() (telegram.State, error) {
 		p.State.Action = p.BackState.State
 	}
 	return p.BaseStateProvider.Proceed()
-}
-
-type PriceResources struct {
-	Columns int
-	Min     int
-	Max     int
-	Message string
-	Step    int
-}
-
-func NewPriceResourcesRu() PriceResources {
-	return PriceResources{Columns: 4, Min: 0, Max: 2000, Message: "❓Почем будет поиграть❓", Step: 100}
 }
 
 type PriceStateProvider struct {
@@ -192,15 +138,6 @@ func (p PriceStateProvider) Proceed() (telegram.State, error) {
 		p.State.Action = p.BackState.State
 	}
 	return p.BaseStateProvider.Proceed()
-}
-
-type AcivityResources struct {
-	Columns int    `json:"columns"`
-	Message string `json:"message"`
-}
-
-func NewAcivityResourcesRu() AcivityResources {
-	return AcivityResources{Columns: 1, Message: "❓Какой будет вид активности❓"}
 }
 
 type ActivityStateProvider struct {
@@ -235,15 +172,6 @@ func (p ActivityStateProvider) Proceed() (telegram.State, error) {
 		p.State.Action = p.BackState.State
 	}
 	return p.BaseStateProvider.Proceed()
-}
-
-type LevelResources struct {
-	Columns int    `json:"columns"`
-	Message string `json:"message"`
-}
-
-func NewLevelResourcesRu() LevelResources {
-	return LevelResources{Columns: 3, Message: "❓Какой минимальный уровень игроков❓"}
 }
 
 type LevelStateProvider struct {

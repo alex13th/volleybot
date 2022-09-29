@@ -7,31 +7,6 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-type MainResources struct {
-	ListCaption       string        `json:"list_caption"`
-	ListDateBtn       string        `json:"List_date_btn"`
-	NewReserveBtn     string        `json:"new_reserve_msg"`
-	NoReservesMessage string        `json:"no_reserve_msg"`
-	ParseMode         string        `json:"parse_mode"`
-	PreviewDuration   time.Duration `json:"duration"`
-	ProfileBtn        string        `json:"profile_btn"`
-	Text              string        `json:"text"`
-	TodayBtn          string        `json:"today_btn"`
-}
-
-func NewMainResourcesRu() (r MainResources) {
-	r.ListCaption = "* Ближайшие активности *"
-	r.ListDateBtn = "Найти по дате"
-	r.NewReserveBtn = "✨ Забронировать"
-	r.NoReservesMessage = "На ближайшее время активности не запланированы"
-	r.Text = "Выберите действие"
-	r.ParseMode = "Markdown"
-	r.PreviewDuration = time.Duration(time.Hour * 24)
-	r.ProfileBtn = "😎 Профиль"
-	r.TodayBtn = "Сегодня"
-	return
-}
-
 type MainStateProvider struct {
 	BaseStateProvider
 	Resources MainResources
@@ -121,23 +96,6 @@ func (p MainStateProvider) NewReserve() (r volley.Volley) {
 	etime := stime.Add(time.Duration(time.Hour))
 
 	r = volley.NewVolley(p.Person, stime, etime)
-	return
-}
-
-type ListResources struct {
-	ListCaption       string        `json:"list_caption"`
-	NoReservesMessage string        `json:"no_reserve_message"`
-	ParseMode         string        `json:"parse_mode"`
-	PreviewDuration   time.Duration `json:"duration"`
-	Text              string        `json:"text"`
-}
-
-func NewListResourcesRu() (r ListResources) {
-	r.ListCaption = "* Ближайшие активности *"
-	r.NoReservesMessage = "На ближайшее время активности не запланированы"
-	r.Text = "Выберите действие"
-	r.ParseMode = "Markdown"
-	r.PreviewDuration = time.Duration(time.Hour * 24)
 	return
 }
 

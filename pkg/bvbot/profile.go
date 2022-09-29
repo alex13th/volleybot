@@ -9,27 +9,6 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-type ProfileResources struct {
-	CancelNotifyBtn string
-	LevelBtn        string
-	NotifiesBtn     string
-	NotifyBtn       string
-	ParseMode       string
-	SexBtn          string
-	Text            string
-}
-
-func NewProfileResourcesRu() (r ProfileResources) {
-	r.CancelNotifyBtn = "При отмене"
-	r.LevelBtn = "Уровень"
-	r.NotifiesBtn = "Оповещения"
-	r.NotifyBtn = "При изменениях"
-	r.ParseMode = "Markdown"
-	r.SexBtn = "Пол"
-	r.Text = ""
-	return
-}
-
 type PlayerStateProvider struct {
 	BaseStateProvider
 	Resources ProfileResources
