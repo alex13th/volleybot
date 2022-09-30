@@ -63,7 +63,7 @@ func TestSettingsStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_settings_settings_" + test.res.Id.String())
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := SettingsStateProvider{BaseStateProvider: bp, Resources: res}
 			acts := sp.GetKeyboardHelper().GetKeyboard()

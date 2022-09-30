@@ -59,7 +59,7 @@ func TestActionsStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_actions_actions_" + test.res.Id.String())
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := ActionsStateProvider{BaseStateProvider: bp, Resources: res}
 			acts := sp.GetKeyboardHelper().GetKeyboard()
@@ -112,7 +112,7 @@ func TestCancelStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_cancel_cancel_" + test.res.Id.String())
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := CancelStateProvider{BaseStateProvider: bp, Resources: res, ShowResources: sres}
 

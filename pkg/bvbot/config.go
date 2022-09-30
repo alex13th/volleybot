@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -63,4 +64,64 @@ type PriceConfig struct {
 
 func NewPriceConfig() PriceConfig {
 	return PriceConfig{Min: 0, Max: 2000, Step: 100}
+}
+
+type ConfigTelegramView struct {
+	Config
+	ParseMode string
+}
+
+func NewConfigTelegramViewRu(cfg Config) ConfigTelegramView {
+	return ConfigTelegramView{Config: cfg, ParseMode: "Markdown"}
+}
+
+func (tgv ConfigTelegramView) GetText() (text string) {
+	text = NewConfigCourtsTelegramViewRu(tgv.Config.Courts).GetText()
+	text += "\n\n"
+	text += NewConfigPriceTelegramViewRu(tgv.Config.Price).GetText()
+	return
+}
+
+type ConfigCourtsTelegramView struct {
+	CourtsConfig
+	Resources ConfigCourtsResources
+	ParseMode string
+}
+
+func NewConfigCourtsTelegramViewRu(cfg CourtsConfig) ConfigCourtsTelegramView {
+	return ConfigCourtsTelegramView{
+		CourtsConfig: cfg,
+		Resources:    NewConfigCourtsResourcesRu(),
+		ParseMode:    "Markdown",
+	}
+}
+
+func (tgv ConfigCourtsTelegramView) GetText() (text string) {
+	text = "⚙️*Настройки кортов:*"
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.Max, tgv.CourtsConfig.Max)
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.MinPlayers, tgv.CourtsConfig.MinPlayers)
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.MaxPlayers, tgv.CourtsConfig.MaxPlayers)
+	return
+}
+
+type ConfigPriceTelegramView struct {
+	PriceConfig
+	Resources ConfigPriceResources
+	ParseMode string
+}
+
+func NewConfigPriceTelegramViewRu(cfg PriceConfig) ConfigPriceTelegramView {
+	return ConfigPriceTelegramView{
+		PriceConfig: cfg,
+		Resources:   NewConfigPriceResourcesRu(),
+		ParseMode:   "Markdown",
+	}
+}
+
+func (tgv ConfigPriceTelegramView) GetText() (text string) {
+	text = "⚙️*Настройки цены:*"
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.Min, tgv.PriceConfig.Min)
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.Max, tgv.PriceConfig.Max)
+	text += fmt.Sprintf("\n*%s*: %v", tgv.Resources.Step, tgv.PriceConfig.Step)
+	return
 }
