@@ -121,7 +121,7 @@ func TestShowKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_show_show_" + test.res.Id.String())
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := ShowStateProvider{BaseStateProvider: bp, Resources: res}
 			acts := sp.GetKeyboardHelper().GetKeyboard()
@@ -160,7 +160,7 @@ func TestJoinmStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_joinm_joinm_" + test.res.Id.String())
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := JoinPlayersStateProvider{BaseStateProvider: bp, Resources: res}
 			kbd := sp.GetKeyboardHelper().(*telegram.CountKeyboardHelper)

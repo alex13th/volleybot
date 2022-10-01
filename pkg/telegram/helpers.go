@@ -228,11 +228,12 @@ func NewCountKeyboardHelper() CountKeyboardHelper {
 
 type CountKeyboardHelper struct {
 	BaseKeyboardHelper
-	Count   int
-	Min     int
-	Max     int
-	Step    int
-	Columns int
+	AlwaysZero bool
+	Count      int
+	Min        int
+	Max        int
+	Step       int
+	Columns    int
 }
 
 func (kh CountKeyboardHelper) GetButton(v int) (btn InlineKeyboardButton) {
@@ -244,7 +245,7 @@ func (kh CountKeyboardHelper) GetButton(v int) (btn InlineKeyboardButton) {
 
 func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 	kbdRow := []InlineKeyboardButton{}
-	if kh.Min*kh.Max > 0 {
+	if kh.Min*kh.Max > 0 && kh.AlwaysZero {
 		kbdRow = append(kbdRow, kh.GetButton(0))
 		kbd = append(kbd, kbdRow)
 		kbdRow = []InlineKeyboardButton{}

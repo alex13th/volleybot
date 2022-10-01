@@ -30,11 +30,11 @@ func TestMainStateKbd(t *testing.T) {
 	admin := person.NewPerson("Admin")
 	admin.LocationRoles[loc.Id] = []string{"admin"}
 	admin.TelegramId = 321
-	akbd := [][]telegram.InlineKeyboardButton{
-		{
-			{Text: res.NewReserveBtn, CallbackData: "res_main_order"},
-		},
+	okbd := [][]telegram.InlineKeyboardButton{
+		{{Text: res.NewReserveBtn, CallbackData: "res_main_order"}},
 	}
+
+	akbd := []telegram.InlineKeyboardButton{{Text: res.ConfigBtn, CallbackData: "res_main_config"}}
 
 	tests := map[string]struct {
 		p   person.Person
@@ -42,7 +42,7 @@ func TestMainStateKbd(t *testing.T) {
 		kbd [][]telegram.InlineKeyboardButton
 	}{
 		"User chat": {p: person.Person{TelegramId: 100}, cid: 100, kbd: kbd},
-		"Admin":     {p: admin, cid: admin.TelegramId, kbd: append(akbd, kbd...)},
+		"Admin":     {p: admin, cid: admin.TelegramId, kbd: append(append(okbd, kbd...), akbd)},
 	}
 
 	for name, test := range tests {
@@ -50,7 +50,7 @@ func TestMainStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_main_main")
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, nil, "")
 			sp := MainStateProvider{BaseStateProvider: bp, Resources: res}
 			acts := sp.GetKeyboardHelper().GetKeyboard()
 			if !reflect.DeepEqual(acts, test.kbd) {

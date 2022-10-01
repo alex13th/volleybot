@@ -8,19 +8,23 @@ import (
 )
 
 type BaseStateProvider struct {
-	reserve    volley.Volley
-	kh         telegram.KeyboardHelper
-	BackState  telegram.State
-	Message    telegram.Message
-	Person     person.Person
-	Repository volley.Repository
-	Location   location.Location
-	State      telegram.State
-	Text       string
+	reserve          volley.Volley
+	kh               telegram.KeyboardHelper
+	name             string
+	BackState        telegram.State
+	Message          telegram.Message
+	Person           person.Person
+	Repository       volley.Repository
+	ConfigRepository location.LocationConfigRepository
+	Location         location.Location
+	State            telegram.State
+	Text             string
 }
 
-func NewBaseStateProvider(state telegram.State, msg telegram.Message, p person.Person, loc location.Location, rep volley.Repository, text string) (sp BaseStateProvider, err error) {
-	sp = BaseStateProvider{State: state, Message: msg, Person: p, Location: loc, Repository: rep, Text: text}
+func NewBaseStateProvider(state telegram.State, msg telegram.Message, p person.Person, loc location.Location,
+	rep volley.Repository, cfgrep location.LocationConfigRepository, text string) (sp BaseStateProvider, err error) {
+	sp = BaseStateProvider{State: state, Message: msg, Person: p, Location: loc, Repository: rep, ConfigRepository: cfgrep, Text: text}
+	sp.name = "beach_volley"
 	if rep != nil && state.Data != "" {
 		id, err := volley.Volley{}.IdFromBase64(state.Data)
 		if err != nil {
@@ -113,15 +117,33 @@ func (p *BaseStateProvider) NotifyPlayers(action string) (reqlist []telegram.Sta
 	return
 }
 
+func (p BaseStateProvider) GetLocationConfig() (conf Config) {
+	err := p.ConfigRepository.Get(p.Location, p.name, &conf)
+
+	if err != nil {
+		if (conf == Config{}) {
+			conf = NewConfig()
+			p.ConfigRepository.Add(p.Location, p.name, conf)
+		} else {
+			p.ConfigRepository.Update(p.Location, p.name, conf)
+		}
+	}
+
+	return
+}
+
+func (p BaseStateProvider) UpdateLocationConfig(conf Config) error {
+	return p.ConfigRepository.Update(p.Location, p.name, &conf)
+}
+
 type BvStateBuilder struct {
 	BaseStateProvider
-	Config    Config
 	Resources Resources
 }
 
-func NewBvStateBuilder(loc location.Location, msg telegram.Message, p person.Person, rep volley.Repository, res Resources, conf Config, st telegram.State) (bld BvStateBuilder, err error) {
-	bp, err := NewBaseStateProvider(st, msg, p, loc, rep, "")
-	bld = BvStateBuilder{BaseStateProvider: bp, Resources: res, Config: conf}
+func NewBvStateBuilder(loc location.Location, msg telegram.Message, p person.Person, rep volley.Repository, res Resources, cfgrep location.LocationConfigRepository, st telegram.State) (bld BvStateBuilder, err error) {
+	bp, err := NewBaseStateProvider(st, msg, p, loc, rep, cfgrep, "")
+	bld = BvStateBuilder{BaseStateProvider: bp, Resources: res}
 	return
 }
 
@@ -133,6 +155,10 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "main":
 		bp.BackState = telegram.State{}
 		sp = MainStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Main}
+	case "config":
+		bp.BackState.State = "main"
+		bp.BackState.Action = bp.BackState.State
+		sp = ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
 	case "listd":
 		bp.BackState.State = "main"
 		bp.BackState.Action = bp.BackState.State
@@ -182,15 +208,15 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "courts":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = CourtsStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Courts, Config: bld.Config.Courts}
+		sp = CourtsStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Courts}
 	case "max":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer, Config: bld.Config.Courts}
+		sp = MaxPlayersStateProvider{BaseStateProvider: bp, Resources: bld.Resources.MaxPlayer}
 	case "price":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price, Config: bld.Config.Price}
+		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price}
 	case "level":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
@@ -237,6 +263,47 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.Action = bp.BackState.State
 		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
 		sp = NotifyChangeStateProvider{ParamStateProvider{PlayerStateProvider: pp}}
+	case "cfgcourts":
+		bp.BackState.State = "config"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtmax":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMaxStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtminpl":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMinPlayersStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtmaxpl":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMaxPlayersStateProvider{ConfigStateProvider: cfgp}
+	case "cfgprice":
+		bp.BackState.State = "config"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricemin":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceMinStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricemax":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceMaxStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricestep":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceStepStateProvider{ConfigStateProvider: cfgp}
 	}
+
 	return
 }

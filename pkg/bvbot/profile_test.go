@@ -42,7 +42,7 @@ func TestProfileStateKbd(t *testing.T) {
 			msg := telegram.Message{}
 			st, _ := telegram.NewState().Parse("res_profile_profile")
 			st.ChatId = test.cid
-			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, "")
+			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, nil, "")
 			pp := PlayerStateProvider{BaseStateProvider: bp, Resources: res}
 			sp := ProfileStateProvider{PlayerStateProvider: pp}
 			acts := sp.GetKeyboardHelper().GetKeyboard()
