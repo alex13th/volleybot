@@ -263,6 +263,26 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.Action = bp.BackState.State
 		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
 		sp = NotifyChangeStateProvider{ParamStateProvider{PlayerStateProvider: pp}}
+	case "cfgcourts":
+		bp.BackState.State = "config"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtmax":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMaxStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtminpl":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMinPlayersStateProvider{ConfigStateProvider: cfgp}
+	case "cfgcourtmaxpl":
+		bp.BackState.State = "cfgcourts"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigCourtsMaxPlayersStateProvider{ConfigStateProvider: cfgp}
 	case "cfgprice":
 		bp.BackState.State = "config"
 		bp.BackState.Action = bp.BackState.State

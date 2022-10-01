@@ -231,10 +231,10 @@ func NewConfigCourtsResourcesRu() ConfigCourtsResources {
 		CourtBtn:      "Настройки площадок",
 		Max:           "Площадок",
 		MaxBtn:        "Площадки",
-		MinPlayers:    "Игороков (min)",
-		MinPlayersBtn: "Игороков (min)",
-		MaxPlayers:    "Игороков (max)",
-		MaxPlayersBtn: "Игороков (max)",
+		MinPlayers:    "Игроков (min)",
+		MinPlayersBtn: "Игроков (min)",
+		MaxPlayers:    "Игроков (max)",
+		MaxPlayersBtn: "Игроков (max)",
 	}
 }
 
