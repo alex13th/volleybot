@@ -309,3 +309,52 @@ func TestDeleteMessageRequestParams(t *testing.T) {
 		})
 	}
 }
+
+func TestGetInvoiceParams(t *testing.T) {
+	tests := map[string]struct {
+		request *InvoiceRequest
+		want    map[string]string
+	}{
+		"Required parameters": {
+			request: &InvoiceRequest{
+				ChatId:        586350636,
+				Title:         "Test invoice",
+				Description:   "Test Description",
+				Payload:       "Test pyload",
+				ProviderToken: "TOKEN",
+				Currency:      "RUB",
+				Prices:        []LabeledPrice{{Label: "GOOD", Amount: 10}},
+			},
+			want: map[string]string{
+				"chat_id":        "586350636",
+				"title":          "Test invoice",
+				"description":    "Test Description",
+				"payload":        "Test pyload",
+				"provider_token": "TOKEN",
+				"currency":       "RUB",
+				"prices":         `[{"label":"GOOD","amount":10}]`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			values, method, err := test.request.GetParams()
+
+			if err != nil {
+				t.Fail()
+			}
+
+			if method != "sendInvoice" {
+				t.Fail()
+			}
+
+			for name, val := range test.want {
+				valStr := values.Get(name)
+				if valStr != val {
+					t.Fail()
+				}
+			}
+		})
+	}
+}
