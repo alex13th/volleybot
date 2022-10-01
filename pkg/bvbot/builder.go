@@ -132,6 +132,10 @@ func (p BaseStateProvider) GetLocationConfig() (conf Config) {
 	return
 }
 
+func (p BaseStateProvider) UpdateLocationConfig(conf Config) error {
+	return p.ConfigRepository.Update(p.Location, p.name, &conf)
+}
+
 type BvStateBuilder struct {
 	BaseStateProvider
 	Resources Resources
@@ -212,8 +216,7 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "price":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
-		cfg := bld.GetLocationConfig()
-		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price, Config: cfg.Price}
+		sp = PriceStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Price}
 	case "level":
 		bp.BackState.State = "settings"
 		bp.BackState.Action = bp.BackState.State
@@ -260,6 +263,27 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.Action = bp.BackState.State
 		pp := PlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Profile}
 		sp = NotifyChangeStateProvider{ParamStateProvider{PlayerStateProvider: pp}}
+	case "cfgprice":
+		bp.BackState.State = "config"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricemin":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceMinStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricemax":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceMaxStateProvider{ConfigStateProvider: cfgp}
+	case "cfgpricestep":
+		bp.BackState.State = "cfgprice"
+		bp.BackState.Action = bp.BackState.State
+		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
+		sp = ConfigPriceStepStateProvider{ConfigStateProvider: cfgp}
 	}
+
 	return
 }
