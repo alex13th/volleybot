@@ -151,7 +151,7 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 	case "main":
 		bp.BackState = telegram.State{}
 		sp = MainStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Main}
-	case "lsettings":
+	case "config":
 		bp.BackState.State = "main"
 		bp.BackState.Action = bp.BackState.State
 		cfg := bld.GetLocationConfig()

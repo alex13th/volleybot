@@ -32,7 +32,7 @@ type MainResources struct {
 	ParseMode         string        `json:"parse_mode"`
 	PreviewDuration   time.Duration `json:"duration"`
 	ProfileBtn        string        `json:"profile_btn"`
-	SettingsBtn       string        `json:"settings_btn"`
+	ConfigBtn         string        `json:"config_btn"`
 	Text              string        `json:"text"`
 	TodayBtn          string        `json:"today_btn"`
 }
@@ -45,7 +45,7 @@ func NewMainResourcesRu() (r MainResources) {
 	r.Text = "Выберите действие"
 	r.ParseMode = "Markdown"
 	r.ProfileBtn = "😎 Профиль"
-	r.SettingsBtn = "🛠 Настройки"
+	r.ConfigBtn = "🛠 Настройки"
 	r.TodayBtn = "Сегодня"
 	return
 }

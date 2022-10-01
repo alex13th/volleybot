@@ -30,10 +30,11 @@ func TestMainStateKbd(t *testing.T) {
 	admin := person.NewPerson("Admin")
 	admin.LocationRoles[loc.Id] = []string{"admin"}
 	admin.TelegramId = 321
-	akbd := [][]telegram.InlineKeyboardButton{
+	okbd := [][]telegram.InlineKeyboardButton{
 		{{Text: res.NewReserveBtn, CallbackData: "res_main_order"}},
-		{{Text: res.SettingsBtn, CallbackData: "res_main_lsettings"}},
 	}
+
+	akbd := []telegram.InlineKeyboardButton{{Text: res.ConfigBtn, CallbackData: "res_main_config"}}
 
 	tests := map[string]struct {
 		p   person.Person
@@ -41,7 +42,7 @@ func TestMainStateKbd(t *testing.T) {
 		kbd [][]telegram.InlineKeyboardButton
 	}{
 		"User chat": {p: person.Person{TelegramId: 100}, cid: 100, kbd: kbd},
-		"Admin":     {p: admin, cid: admin.TelegramId, kbd: append(akbd, kbd...)},
+		"Admin":     {p: admin, cid: admin.TelegramId, kbd: append(append(okbd, kbd...), akbd)},
 	}
 
 	for name, test := range tests {

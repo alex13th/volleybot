@@ -52,8 +52,6 @@ func (p MainStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 		if p.Person.CheckLocationRole(p.Location, "admin") || p.Person.CheckLocationRole(p.Location, "order") {
 			ah.Actions = append(ah.Actions, telegram.ActionButton{
 				Action: "order", Text: res.NewReserveBtn})
-			ah.Actions = append(ah.Actions, telegram.ActionButton{
-				Action: "lsettings", Text: res.SettingsBtn})
 		}
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Action: "today", Text: res.TodayBtn})
@@ -61,6 +59,10 @@ func (p MainStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 			Action: "listd", Text: res.ListDateBtn})
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Action: "profile", Text: res.ProfileBtn})
+	}
+	if p.Person.CheckLocationRole(p.Location, "admin") {
+		ah.Actions = append(ah.Actions, telegram.ActionButton{
+			Action: "config", Text: res.ConfigBtn})
 	}
 	return &ah
 }
@@ -76,7 +78,7 @@ func (p MainStateProvider) Proceed() (st telegram.State, err error) {
 		return p.BaseStateProvider.Proceed()
 	} else if p.State.Action == "profile" {
 		return p.BaseStateProvider.Proceed()
-	} else if p.State.Action == "lsettings" {
+	} else if p.State.Action == "config" {
 		return p.BaseStateProvider.Proceed()
 	} else if p.State.Action == "today" {
 		p.State.State = "listd"
