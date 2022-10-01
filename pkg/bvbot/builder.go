@@ -269,7 +269,10 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
 		sp = ConfigCourtsStateProvider{ConfigStateProvider: cfgp}
 	case "cfgcourtmax":
-		bp.BackState.State = "cfgcourts"
+		bp.BackState.State = "cfgcourts"<<<<<<< feature/location_config
+267
+ 
+
 		bp.BackState.Action = bp.BackState.State
 		cfgp := ConfigStateProvider{BaseStateProvider: bp, Resources: bld.Resources.Config}
 		sp = ConfigCourtsMaxStateProvider{ConfigStateProvider: cfgp}
