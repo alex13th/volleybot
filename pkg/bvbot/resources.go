@@ -5,6 +5,7 @@ import "time"
 type Resources struct {
 	Actions      ActionsResources
 	Activity     AcivityResources
+	Config       ConfigResources
 	Courts       CourtsResources
 	Cancel       CancelResources
 	Description  DescResources
@@ -31,6 +32,7 @@ type MainResources struct {
 	ParseMode         string        `json:"parse_mode"`
 	PreviewDuration   time.Duration `json:"duration"`
 	ProfileBtn        string        `json:"profile_btn"`
+	ConfigBtn         string        `json:"config_btn"`
 	Text              string        `json:"text"`
 	TodayBtn          string        `json:"today_btn"`
 }
@@ -43,6 +45,7 @@ func NewMainResourcesRu() (r MainResources) {
 	r.Text = "Выберите действие"
 	r.ParseMode = "Markdown"
 	r.ProfileBtn = "😎 Профиль"
+	r.ConfigBtn = "🛠 Настройки"
 	r.TodayBtn = "Сегодня"
 	return
 }
@@ -198,4 +201,61 @@ type LevelResources struct {
 
 func NewLevelResourcesRu() LevelResources {
 	return LevelResources{Columns: 3, Message: "❓Какой минимальный уровень игроков❓"}
+}
+
+type ConfigResources struct {
+	Courts    ConfigCourtsResources `json:"courts"`
+	Price     ConfigPriceResources  `json:"price"`
+	ParseMode string
+}
+
+func NewConfigResourcesRu() (cfg ConfigResources) {
+	cfg.ParseMode = "markdown"
+	cfg.Courts = NewConfigCourtsResourcesRu()
+	cfg.Price = NewConfigPriceResourcesRu()
+	return
+}
+
+type ConfigCourtsResources struct {
+	CourtBtn      string `json:"courts_btn"`
+	Max           string `json:"max"`
+	MaxBtn        string `json:"max_btn"`
+	MaxPlayers    string `json:"max_players"`
+	MaxPlayersBtn string `json:"max_players_btn"`
+	MinPlayers    string `json:"min_players"`
+	MinPlayersBtn string `json:"min_players_btn"`
+}
+
+func NewConfigCourtsResourcesRu() ConfigCourtsResources {
+	return ConfigCourtsResources{
+		CourtBtn:      "Настройки площадок",
+		Max:           "Площадок",
+		MaxBtn:        "Площадки",
+		MinPlayers:    "Игороков (min)",
+		MinPlayersBtn: "Игороков (min)",
+		MaxPlayers:    "Игороков (max)",
+		MaxPlayersBtn: "Игороков (max)",
+	}
+}
+
+type ConfigPriceResources struct {
+	PriceBtn string `json:"price_btn"`
+	Min      string `json:"min"`
+	MinBtn   string `json:"min_btn"`
+	Max      string `json:"max"`
+	MaxBtn   string `json:"max_btn"`
+	Step     string `json:"step"`
+	StepBtn  string `json:"step_btn"`
+}
+
+func NewConfigPriceResourcesRu() ConfigPriceResources {
+	return ConfigPriceResources{
+		PriceBtn: "Настройки цены",
+		Min:      "Цена (min)",
+		MinBtn:   "Цена (min)",
+		Max:      "Цена (max)",
+		MaxBtn:   "Цена (max)",
+		Step:     "Шаг",
+		StepBtn:  "Шаг",
+	}
 }

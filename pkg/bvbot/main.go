@@ -60,6 +60,10 @@ func (p MainStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Action: "profile", Text: res.ProfileBtn})
 	}
+	if p.Person.CheckLocationRole(p.Location, "admin") {
+		ah.Actions = append(ah.Actions, telegram.ActionButton{
+			Action: "config", Text: res.ConfigBtn})
+	}
 	return &ah
 }
 
@@ -73,6 +77,8 @@ func (p MainStateProvider) Proceed() (st telegram.State, err error) {
 	} else if p.State.Action == "listd" {
 		return p.BaseStateProvider.Proceed()
 	} else if p.State.Action == "profile" {
+		return p.BaseStateProvider.Proceed()
+	} else if p.State.Action == "config" {
 		return p.BaseStateProvider.Proceed()
 	} else if p.State.Action == "today" {
 		p.State.State = "listd"
@@ -181,7 +187,8 @@ func (p ListdStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 		for i, res := range p.reserves {
 			tgv := volley.NewTelegramViewRu(res)
 			ab := telegram.ActionButton{
-				Action: "show", Data: res.Base64Id(), Text: fmt.Sprintf("%v. %s", i+1, tgv.String())}
+				Action: "show", Data: res.Base64Id(),
+				Text: fmt.Sprintf("%v. %s", i+1, tgv.String())}
 			ah.Actions = append(ah.Actions, ab)
 		}
 		return &ah

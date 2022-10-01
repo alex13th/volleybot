@@ -18,6 +18,7 @@ func (rl StaticVolleyResourceLoader) GetResources() (res VolleyResources) {
 	res.Resources.Actions = bvbot.NewActionsResourcesRu()
 	res.Resources.Activity = bvbot.NewAcivityResourcesRu()
 	res.Resources.Cancel = bvbot.NewCancelResourcesRu()
+	res.Resources.Config = bvbot.NewConfigResourcesRu()
 	res.Resources.Courts = bvbot.NewCourtsResourcesRu()
 	res.Resources.Description = bvbot.NewDescResourcesRu()
 	res.Resources.Join = bvbot.NewJoinPlayersResourcesRu()
