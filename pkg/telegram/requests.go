@@ -205,3 +205,47 @@ func (req *DeleteMessageRequest) GetParams() (val url.Values, method string, err
 	defer req.mu.RUnlock()
 	return
 }
+
+type LabeledPrice struct {
+	Label  interface{} `json:"label"`
+	Amount interface{} `json:"amount"`
+}
+type InvoiceRequest struct {
+	mu            sync.RWMutex
+	ChatId        interface{}    `json:"chat_id"`
+	Title         string         `json:"title"`
+	Description   string         `json:"description"`
+	Payload       string         `json:"payload"`
+	ProviderToken string         `json:"provider_token"`
+	Currency      string         `json:"currency"`
+	Prices        []LabeledPrice `json:"prices"`
+	ReplyMarkup   interface{}    `json:"reply_markup"`
+}
+
+func (req *InvoiceRequest) GetParams() (val url.Values, method string, err error) {
+	req.mu.RLock()
+	method = "sendInvoice"
+	val = url.Values{}
+	val.Add("chat_id", fmt.Sprint(req.ChatId))
+	val.Add("title", req.Title)
+	val.Add("description", req.Description)
+	val.Add("payload", req.Payload)
+	val.Add("provider_token", req.ProviderToken)
+	val.Add("currency", req.Currency)
+
+	defer req.mu.RUnlock()
+
+	if data, err := json.Marshal(req.Prices); err != nil {
+		return nil, "", err
+	} else {
+		val.Add("prices", string(data))
+	}
+	if req.ReplyMarkup != nil {
+		data, err := json.Marshal(req.ReplyMarkup)
+		if err != nil {
+			return nil, "", err
+		}
+		val.Add("reply_markup", string(data))
+	}
+	return
+}
