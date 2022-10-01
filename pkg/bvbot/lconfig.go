@@ -6,20 +6,11 @@ import (
 
 type ConfigStateProvider struct {
 	BaseStateProvider
-	Config    Config
 	Resources ConfigResources
 }
 
-func (p ConfigStateProvider) Proceed() (st telegram.State, err error) {
-	if p.State.Updated {
-		p.ConfigRepository.Update(p.Location, p.name, p.Config)
-		p.State.Updated = false
-	}
-	return p.BaseStateProvider.Proceed()
-}
-
 func (p ConfigStateProvider) GetMR() *telegram.MessageRequest {
-	cfgview := NewConfigTelegramViewRu(p.Config)
+	cfgview := NewConfigTelegramViewRu(p.GetLocationConfig())
 	txt := cfgview.GetText()
 
 	var kbd telegram.InlineKeyboardMarkup

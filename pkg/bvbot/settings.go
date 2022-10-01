@@ -49,7 +49,6 @@ func (p SettingsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 type MaxPlayersStateProvider struct {
 	BaseStateProvider
 	Resources MaxPlayersResources
-	Config    CourtsConfig
 }
 
 func (p MaxPlayersStateProvider) GetRequests() []telegram.StateRequest {
@@ -61,8 +60,8 @@ func (p MaxPlayersStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
 	kh := telegram.CountKeyboardHelper{
 		Columns: res.Columns,
-		Min:     p.Config.MinPlayers,
-		Max:     p.Config.MaxPlayers * p.reserve.CourtCount,
+		Min:     p.GetLocationConfig().Courts.MinPlayers,
+		Max:     p.GetLocationConfig().Courts.MaxPlayers * p.reserve.CourtCount,
 		Step:    1,
 	}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
@@ -84,7 +83,6 @@ func (p MaxPlayersStateProvider) Proceed() (telegram.State, error) {
 type CourtsStateProvider struct {
 	BaseStateProvider
 	Resources CourtsResources
-	Config    CourtsConfig
 }
 
 func (p CourtsStateProvider) GetRequests() []telegram.StateRequest {
@@ -94,7 +92,7 @@ func (p CourtsStateProvider) GetRequests() []telegram.StateRequest {
 
 func (p CourtsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	res := p.Resources
-	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 1, Max: p.Config.Max, Step: 1}
+	kh := telegram.CountKeyboardHelper{Columns: res.Columns, Min: 1, Max: p.GetLocationConfig().Courts.Max, Step: 1}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(res.Message)
 	return &kh
 }
@@ -123,7 +121,7 @@ func (p PriceStateProvider) GetRequests() []telegram.StateRequest {
 }
 
 func (p PriceStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
-	kh := telegram.CountKeyboardHelper{Columns: p.Resources.Columns,
+	kh := telegram.CountKeyboardHelper{AlwaysZero: true, Columns: p.Resources.Columns,
 		Min: p.Config.Min, Max: p.Config.Max, Step: p.Config.Step}
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(p.Resources.Message)
 	return &kh
