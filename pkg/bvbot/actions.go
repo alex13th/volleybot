@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type ActionsStateProvider struct {
 	BaseStateProvider
 	Resources     ActionsResources
@@ -47,9 +46,11 @@ func (p ActionsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
 				Action: "copy", Text: res.CopyBtn})
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
-				Action: "pub", Text: res.PublishBtn})
+				Action: "paid", Text: res.PaidBtn})
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
 				Action: "rmpl", Text: res.RemovePlayerBtn})
+			kh.Actions = append(kh.Actions, telegram.ActionButton{
+				Action: "pub", Text: res.PublishBtn})
 		}
 	}
 	return &kh
@@ -123,6 +124,7 @@ func (p CancelStateProvider) Proceed() (telegram.State, error) {
 	}
 	return p.BaseStateProvider.Proceed()
 }
+
 type RemovePlayerStateProvider struct {
 	BaseStateProvider
 	Resources RemovePlayerResources
@@ -154,6 +156,42 @@ func (p RemovePlayerStateProvider) Proceed() (telegram.State, error) {
 		rpl.Count = 0
 		p.reserve.JoinPlayer(rpl)
 		p.State.Action = p.BackState.State
+		p.State.Updated = true
+	}
+	return p.BaseStateProvider.Proceed()
+}
+
+type PaidPlayerStateProvider struct {
+	BaseStateProvider
+	Resources RemovePlayerResources
+}
+
+func (p PaidPlayerStateProvider) GetRequests() []telegram.StateRequest {
+	p.kh = p.GetKeyboardHelper()
+	return p.BaseStateProvider.GetRequests()
+}
+
+func (p PaidPlayerStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
+	if p.State.ChatId == p.Person.TelegramId {
+		pllist := []telegram.EnumItem{}
+		for _, mb := range p.reserve.Members {
+			pllist = append(pllist, telegram.EnumItem{Id: strconv.Itoa(mb.TelegramId), Item: mb.String()})
+		}
+		kh := telegram.NewEnumKeyboardHelper(pllist)
+		kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper(p.Resources.Message)
+		return &kh
+	}
+	return nil
+}
+
+func (p *PaidPlayerStateProvider) Proceed() (telegram.State, error) {
+	if p.State.Action == "set" {
+		kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
+		ptid, _ := strconv.Atoi(kh.Value)
+		rpl := p.reserve.GetMemberByTelegramId(ptid)
+		rpl.Paid = !rpl.Paid
+		p.reserve.JoinPlayer(rpl)
+		p.State.Action = p.State.State
 		p.State.Updated = true
 	}
 	return p.BaseStateProvider.Proceed()

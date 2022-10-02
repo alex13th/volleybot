@@ -1,6 +1,9 @@
 package bvbot
 
-import "time"
+import (
+	"time"
+	"volleybot/pkg/telegram"
+)
 
 type Resources struct {
 	Actions      ActionsResources
@@ -65,11 +68,41 @@ func NewListResourcesRu() (r ListResources) {
 	return
 }
 
+type ShowResources struct {
+	DateTime       telegram.DateTimeResources
+	ActionsBtn     string
+	DescriptionBtn string
+	JoinBtn        string
+	JoinLeaveBtn   string
+	JoinMultiBtn   string
+	JoinTimeBtn    string
+	PayBtn         string
+	RefreshBtn     string
+	SetsBtn        string
+	SettingsBtn    string
+}
+
+func NewShowResourcesRu() (r ShowResources) {
+	r.DateTime = telegram.NewDateTimeResourcesRu()
+	r.ActionsBtn = "Действия"
+	r.DescriptionBtn = "Описание"
+	r.JoinBtn = "😀 Буду"
+	r.JoinLeaveBtn = "😞 Не смогу"
+	r.JoinMultiBtn = "🤩 Буду не один"
+	r.JoinTimeBtn = "🏃‍♂️ Опоздаю"
+	r.PayBtn = "💰 Оплатить"
+	r.RefreshBtn = "Обновить"
+	r.SetsBtn = "⏱ Кол-во часов"
+	r.SettingsBtn = "Настройки"
+	return
+}
+
 type ActionsResources struct {
 	BackBtn         string `json:"back_btn"`
 	CancelBtn       string `json:"cancel_btn"`
 	CopyBtn         string `json:"copy_btn"`
 	CopyDoneMessage string `json:"copy_done_msg"`
+	PaidBtn         string `json:"paid"`
 	PublishBtn      string `json:"publish_btn"`
 	RemovePlayerBtn string `json:"remove_player_btn"`
 }
@@ -79,6 +112,7 @@ func NewActionsResourcesRu() (r ActionsResources) {
 	r.CancelBtn = "💥Отменить"
 	r.CopyBtn = "🫂 Копировать"
 	r.CopyDoneMessage = "Копия сделана! 👆"
+	r.PaidBtn = "💰 Оплаты"
 	r.PublishBtn = "Опубликовать"
 	r.RemovePlayerBtn = "Удалить игрока"
 	return

@@ -238,6 +238,10 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.State = "actions"
 		bp.BackState.Action = bp.BackState.State
 		sp = RemovePlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.RemovePlayer}
+	case "paid":
+		bp.BackState.State = "actions"
+		bp.BackState.Action = bp.BackState.State
+		sp = &PaidPlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.RemovePlayer}
 	case "plevel":
 		bp.BackState.State = "profile"
 		bp.BackState.Action = bp.BackState.State

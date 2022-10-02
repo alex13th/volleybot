@@ -37,8 +37,11 @@ func TestActionsStateKbd(t *testing.T) {
 			{Text: res.CopyBtn, CallbackData: "res_actions_copy_" + r.Id.String()},
 		},
 		{
-			{Text: res.PublishBtn, CallbackData: "res_actions_pub_" + r.Id.String()},
+			{Text: res.PaidBtn, CallbackData: "res_actions_paid_" + r.Id.String()},
 			{Text: res.RemovePlayerBtn, CallbackData: "res_actions_rmpl_" + r.Id.String()},
+		},
+		{
+			{Text: res.PublishBtn, CallbackData: "res_actions_pub_" + r.Id.String()},
 		},
 	}
 

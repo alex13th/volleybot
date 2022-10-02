@@ -7,33 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type ShowResources struct {
-	DateTime       telegram.DateTimeResources
-	ActionsBtn     string
-	DescriptionBtn string
-	JoinBtn        string
-	JoinLeaveBtn   string
-	JoinMultiBtn   string
-	JoinTimeBtn    string
-	RefreshBtn     string
-	SetsBtn        string
-	SettingsBtn    string
-}
-
-func NewShowResourcesRu() (r ShowResources) {
-	r.DateTime = telegram.NewDateTimeResourcesRu()
-	r.ActionsBtn = "Действия"
-	r.DescriptionBtn = "Описание"
-	r.JoinBtn = "😀 Буду"
-	r.JoinLeaveBtn = "😞 Не смогу"
-	r.JoinMultiBtn = "🤩 Буду не один"
-	r.JoinTimeBtn = "🏃‍♂️ Опоздаю"
-	r.RefreshBtn = "Обновить"
-	r.SetsBtn = "⏱ Кол-во часов"
-	r.SettingsBtn = "Настройки"
-	return
-}
-
 type ShowStateProvider struct {
 	BaseStateProvider
 	Resources ShowResources
