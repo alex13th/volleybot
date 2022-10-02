@@ -35,6 +35,7 @@ type Member struct {
 	MemberId   int
 	Count      int
 	ArriveTime time.Time
+	Paid       bool
 }
 
 type PlayerLevel int

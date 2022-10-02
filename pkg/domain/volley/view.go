@@ -99,6 +99,9 @@ func (tgv *TelegramView) GetMembersText() (text string) {
 		if !mb.ArriveTime.IsZero() {
 			text += fmt.Sprintf(" (%s)", mb.ArriveTime.Format("15:04"))
 		}
+		if mb.Paid {
+			text += " 💴"
+		}
 		count++
 		if !over && count > tgv.Volley.MaxPlayers {
 			over = true
