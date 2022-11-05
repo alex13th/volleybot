@@ -189,7 +189,7 @@ func (p *PaidPlayerStateProvider) Proceed() (telegram.State, error) {
 		kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 		ptid, _ := strconv.Atoi(kh.Value)
 		rpl := p.reserve.GetMemberByTelegramId(ptid)
-		rpl.Paid = !rpl.Paid
+		rpl.SetPaid(!rpl.GetPaid())
 		p.reserve.JoinPlayer(rpl)
 		p.State.Action = p.State.State
 		p.State.Updated = true

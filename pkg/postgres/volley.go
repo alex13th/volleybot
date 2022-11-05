@@ -106,7 +106,9 @@ func (rep *VolleyPgRepository) GetMembers(rid uuid.UUID) (mlist []volley.Member,
 	rows, err := rep.dbpool.Query(context.Background(), sql, rid)
 	var mb volley.Member
 	for rows.Next() {
-		rows.Scan(&mb.MemberId, &mb.Count, &mb.ArriveTime, &mb.Paid, &mb.Id)
+		var paid bool
+		rows.Scan(&mb.MemberId, &mb.Count, &mb.ArriveTime, &paid, &mb.Id)
+		mb.SetPaid(paid)
 		p, _ := rep.PersonRepository.Get(mb.Id)
 		mb.Player, _ = rep.GetPlayer(p)
 		mlist = append(mlist, mb)
@@ -235,7 +237,7 @@ func (rep *VolleyPgRepository) AddMember(r volley.Volley, mb volley.Member) (res
 		"VALUES ($1, $2, $3, $4, $5)"
 	sql = fmt.Sprintf(sql, rep.MembersTableName)
 
-	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime, mb.Paid)
+	rows, err := rep.dbpool.Query(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime, mb.GetPaid())
 	if err != nil {
 		return
 	}
@@ -247,7 +249,7 @@ func (rep *VolleyPgRepository) AddMember(r volley.Volley, mb volley.Member) (res
 
 func (rep *VolleyPgRepository) UpdateMember(r volley.Volley, mb volley.Member) (res volley.Volley, err error) {
 	sql := "call " + rep.MembersSpName + " ($1, $2, $3, $4, $5);"
-	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime, mb.Paid)
+	_, err = rep.dbpool.Exec(context.Background(), sql, r.Id, mb.Id, mb.Count, mb.ArriveTime, mb.GetPaid())
 	return
 }
 

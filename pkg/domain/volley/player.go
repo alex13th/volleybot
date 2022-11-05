@@ -32,10 +32,19 @@ func (pl Player) CheckLocationRole(l location.Location, role string) bool {
 
 type Member struct {
 	Player
+	Payment    Payment
 	MemberId   int
 	Count      int
 	ArriveTime time.Time
-	Paid       bool
+	paid       bool
+}
+
+func (m Member) GetPaid() bool {
+	return m.paid
+}
+
+func (m *Member) SetPaid(paid bool) {
+	m.paid = paid
 }
 
 type PlayerLevel int
