@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func NewConfig() (cfg Config) {
@@ -20,15 +22,41 @@ type Config struct {
 }
 
 func (conf Config) Value() (driver.Value, error) {
-	return json.Marshal(conf)
+	result, err := json.Marshal(conf)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "Value",
+			"struct":   "Config",
+			"config":   conf,
+			"error":    err,
+		}).Error("can't serialize config")
+	}
+	return result, err
 }
 
 func (conf *Config) Scan(value interface{}) (err error) {
 	b, ok := value.([]byte)
 	if !ok {
-		return errors.New("type assertion to []byte failed")
+		err = errors.New("type assertion to []byte failed")
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "Scan",
+			"struct":   "Config",
+			"config":   conf,
+			"error":    err,
+		}).Error("type assertion to []byte failed")
+
+		return
 	}
 	if err = json.Unmarshal(b, &conf); err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "Scan",
+			"struct":   "Config",
+			"config":   conf,
+			"error":    err,
+		}).Error("can't parse config")
 		return
 	}
 	estr := []string{}
@@ -42,6 +70,16 @@ func (conf *Config) Scan(value interface{}) (err error) {
 	}
 	if len(estr) > 0 {
 		err = errors.New(strings.Join(estr, ", "))
+	}
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "Scan",
+			"struct":   "Config",
+			"config":   conf,
+			"error":    err,
+		}).Error("can't parse config")
 	}
 	return
 }

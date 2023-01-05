@@ -6,6 +6,7 @@ import (
 	"volleybot/pkg/telegram"
 
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type ActionsStateProvider struct {
@@ -58,8 +59,16 @@ func (p ActionsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 
 func (p ActionsStateProvider) Proceed() (st telegram.State, err error) {
 	if p.State.Action == "copy" {
-		p.State.Action = "show"
 		if p.reserve, err = p.Repository.Add(p.reserve.Copy()); err != nil {
+			p.State.Action = "show"
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ActionsStateProvider",
+				"provider": p,
+				"state":    p.State,
+				"error":    err,
+			}).Error("error copy reserve")
 			return
 		}
 	}
@@ -151,7 +160,17 @@ func (p RemovePlayerStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 func (p RemovePlayerStateProvider) Proceed() (telegram.State, error) {
 	if p.State.Action == "set" {
 		kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
-		ptid, _ := strconv.Atoi(kh.Value)
+		ptid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "RemovePlayerStateProvider",
+				"provider": p,
+				"state":    p.State,
+				"error":    err,
+			}).Error("can't parse player telegram id: " + kh.Value)
+		}
 		rpl := p.reserve.GetMemberByTelegramId(ptid)
 		rpl.Count = 0
 		p.reserve.JoinPlayer(rpl)
@@ -184,10 +203,20 @@ func (p PaidPlayerStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	return nil
 }
 
-func (p *PaidPlayerStateProvider) Proceed() (telegram.State, error) {
+func (p *PaidPlayerStateProvider) Proceed() (st telegram.State, err error) {
 	if p.State.Action == "set" {
 		kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
-		ptid, _ := strconv.Atoi(kh.Value)
+		ptid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "PaidPlayerStateProvider",
+				"provider": p,
+				"state":    p.State,
+				"error":    err,
+			}).Error("can't parse player telegram id: " + kh.Value)
+		}
 		rpl := p.reserve.GetMemberByTelegramId(ptid)
 		rpl.SetPaid(!rpl.GetPaid())
 		p.reserve.JoinPlayer(rpl)

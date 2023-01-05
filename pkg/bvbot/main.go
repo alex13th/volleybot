@@ -5,6 +5,8 @@ import (
 	"time"
 	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type MainStateProvider struct {
@@ -84,12 +86,18 @@ func (p MainStateProvider) Proceed() (st telegram.State, err error) {
 		p.State.State = "listd"
 		p.State.Action = "set"
 		p.State.Value = time.Now().Format("2006-01-02")
-		return p.State, nil
+		return p.State, err
 	} else {
 		p.State.Action = ""
 		return p.State, err
 	}
 	if err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "Proceed",
+			"struct":   "MainStateProvider",
+			"error":    err,
+		}).Error("main state proceed error")
 		return
 	}
 	return p.BaseStateProvider.Proceed()
@@ -162,7 +170,16 @@ func (p *ListdStateProvider) InitReserves() {
 	filter := volley.Volley{}
 	filter.StartTime = time.Date(dt.Year(), dt.Month(), dt.Day(), 0, 0, 0, 0, dt.Location())
 	filter.EndTime = filter.StartTime.Add(time.Duration(time.Hour * 24))
-	p.reserves, _ = p.Repository.GetByFilter(filter, true, true)
+	var err error
+	if p.reserves, err = p.Repository.GetByFilter(filter, true, true); err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "InitReserves",
+			"struct":   "ListdStateProvider",
+			"fliter":   filter,
+			"error":    err,
+		}).Error("can't get reserves by filter")
+	}
 }
 
 func (p ListdStateProvider) GetRequests() (rlist []telegram.StateRequest) {

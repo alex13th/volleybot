@@ -2,6 +2,8 @@ package bvbot
 
 import (
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ConfigCourtsStateProvider struct {
@@ -56,6 +58,13 @@ func (p ConfigCourtsMaxStateProvider) Proceed() (telegram.State, error) {
 		cfg.Courts.Max = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigCourtsMaxStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}
@@ -87,6 +96,13 @@ func (p ConfigCourtsMinPlayersStateProvider) Proceed() (telegram.State, error) {
 		cfg.Courts.MinPlayers = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigCourtsMinPlayersStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}
@@ -118,6 +134,13 @@ func (p ConfigCourtsMaxPlayersStateProvider) Proceed() (telegram.State, error) {
 		cfg.Courts.MaxPlayers = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigCourtsMaxPlayersStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}

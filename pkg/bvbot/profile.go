@@ -7,6 +7,8 @@ import (
 	"volleybot/pkg/domain/volley"
 
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type PlayerStateProvider struct {
@@ -35,7 +37,16 @@ func (p PlayerStateProvider) GetMR() *telegram.MessageRequest {
 }
 
 func (p PlayerStateProvider) GetRequests() (reqlist []telegram.StateRequest) {
-	p.Player, _ = p.Repository.GetPlayer(p.Person)
+	var err error
+	if p.Player, err = p.Repository.GetPlayer(p.Person); err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "GetRequests",
+			"struct":   "PlayerStateProvider",
+			"person":   p.Person,
+			"error":    err,
+		}).Error("can't get player information")
+	}
 	var sreq telegram.StateRequest
 	sreq.State = p.State
 	sreq.Request = p.GetEditMR(p.GetMR())
@@ -96,8 +107,26 @@ func (p PLevelStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		aid, _ := strconv.Atoi(kh.Value)
-		p.Player, _ = p.Repository.GetPlayer(p.Person)
+		aid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "PLevelStateProvider",
+				"value":    kh.Value,
+				"error":    err,
+			}).Error("can't parse level value")
+		}
+		p.Player, err = p.Repository.GetPlayer(p.Person)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "PLevelStateProvider",
+				"person":   p.Person,
+				"error":    err,
+			}).Error("can't get player information")
+		}
 		p.Player.Level = volley.PlayerLevel(aid)
 		p.State.Action = p.BackState.State
 		p.State.Updated = true
@@ -121,7 +150,6 @@ func (p SexStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 	}
 
 	kh := telegram.NewEnumKeyboardHelper(sexs)
-
 	kh.BaseKeyboardHelper = p.GetBaseKeyboardHelper("")
 	return &kh
 }
@@ -130,8 +158,26 @@ func (p SexStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		aid, _ := strconv.Atoi(kh.Value)
-		p.Player, _ = p.Repository.GetPlayer(p.Person)
+		aid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "SexStateProvider",
+				"value":    kh.Value,
+				"error":    err,
+			}).Error("can't parse sex value")
+		}
+		p.Player, err = p.Repository.GetPlayer(p.Person)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "SexStateProvider",
+				"person":   p.Person,
+				"error":    err,
+			}).Error("can't get player information")
+		}
 		p.Player.Sex = person.Sex(aid)
 		p.State.Action = p.BackState.State
 		p.State.Updated = true
@@ -194,7 +240,17 @@ func (p NotifyCancelStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		p.Player, _ = p.Repository.GetPlayer(p.Person)
+		var err error
+		p.Player, err = p.Repository.GetPlayer(p.Person)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "NotifyCancelStateProvider",
+				"person":   p.Person,
+				"error":    err,
+			}).Error("can't get player information")
+		}
 		p.Player.Settings["notify_cancel"] = kh.Value
 		p.State.Action = p.BackState.State
 		p.State.Updated = true
@@ -210,7 +266,17 @@ func (p NotifyChangeStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		p.Player, _ = p.Repository.GetPlayer(p.Person)
+		var err error
+		p.Player, err = p.Repository.GetPlayer(p.Person)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "NotifyChangeStateProvider",
+				"person":   p.Person,
+				"error":    err,
+			}).Error("can't get player information")
+		}
 		p.Player.Settings["notify"] = kh.Value
 		p.State.Action = p.BackState.State
 		p.State.Updated = true

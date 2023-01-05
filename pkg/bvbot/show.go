@@ -5,6 +5,7 @@ import (
 	"volleybot/pkg/telegram"
 
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type ShowStateProvider struct {
@@ -66,9 +67,7 @@ func (p ShowStateProvider) GetKeyboardHelper() (kh telegram.KeyboardHelper) {
 		ah.Actions = append(ah.Actions, telegram.ActionButton{
 			Action: "refresh", Text: res.RefreshBtn})
 	}
-
 	return &ah
-
 }
 
 func (p ShowStateProvider) Proceed() (telegram.State, error) {
@@ -147,10 +146,19 @@ func (p TimeStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.TimeKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		p.reserve.SetStartTime(kh.Time)
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "TimeStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			p.reserve.SetStartTime(kh.Time)
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -191,10 +199,18 @@ func (p SetsStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		p.reserve.SetDurationHours(kh.Count)
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "SetsStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			p.reserve.SetDurationHours(kh.Count)
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -252,15 +268,23 @@ func (p JoinPlayersStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		mb := p.reserve.GetMember(p.Person.Id)
-		if mb.Id == uuid.Nil {
-			mb.Player = volley.Player{Person: p.Person}
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "JoinPlayersStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			mb := p.reserve.GetMember(p.Person.Id)
+			if mb.Id == uuid.Nil {
+				mb.Player = volley.Player{Person: p.Person}
+			}
+			mb.Count = kh.Count
+			p.reserve.JoinPlayer(mb)
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
 		}
-		mb.Count = kh.Count
-		p.reserve.JoinPlayer(mb)
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -288,12 +312,20 @@ func (p JoinTimeStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 func (p JoinTimeStateProvider) Proceed() (telegram.State, error) {
 	if p.State.Action == "set" {
 		kh := p.GetKeyboardHelper().(*telegram.TimeKeyboardHelper)
-		kh.Parse()
-		pl := p.reserve.GetMemberByTelegramId(p.Person.TelegramId)
-		pl.ArriveTime = kh.Time
-		p.reserve.JoinPlayer(pl)
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "JoinTimeStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			pl := p.reserve.GetMemberByTelegramId(p.Person.TelegramId)
+			pl.ArriveTime = kh.Time
+			p.reserve.JoinPlayer(pl)
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }

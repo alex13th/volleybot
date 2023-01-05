@@ -5,6 +5,8 @@ import (
 	"volleybot/pkg/domain/person"
 	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type BaseStateProvider struct {
@@ -28,9 +30,27 @@ func NewBaseStateProvider(state telegram.State, msg telegram.Message, p person.P
 	if rep != nil && state.Data != "" {
 		id, err := volley.Volley{}.IdFromBase64(state.Data)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "NewBaseStateProvider",
+				"struct":   "BaseStateProvider",
+				"provider": p,
+				"state":    state,
+				"error":    err,
+			}).Error("can't parse reserve id: " + state.Data)
+
 			return sp, err
 		}
-		sp.reserve, _ = sp.Repository.Get(id)
+		if sp.reserve, err = sp.Repository.Get(id); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "NewBaseStateProvider",
+				"struct":   "BaseStateProvider",
+				"provider": p,
+				"state":    state,
+				"error":    err,
+			}).Error("can't get reserve with id: " + id.String())
+		}
 	}
 	return
 }
@@ -47,6 +67,16 @@ func (p BaseStateProvider) GetBaseKeyboardHelper(txt string) (kh telegram.BaseKe
 func (p BaseStateProvider) Proceed() (st telegram.State, err error) {
 	if p.State.Updated {
 		err = p.Repository.Update(p.reserve)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "BaseStateProvider",
+				"provider": p,
+				"state":    p.State,
+				"error":    err,
+			}).Error("can't update reserve with id: " + p.reserve.Id.String())
+		}
 	}
 	st = p.State
 	st.Data = p.reserve.Base64Id()
@@ -125,15 +155,35 @@ func (p BaseStateProvider) GetLocationConfig() (conf Config) {
 			conf = NewConfig()
 			p.ConfigRepository.Add(p.Location, p.name, conf)
 		} else {
-			p.ConfigRepository.Update(p.Location, p.name, conf)
+			err := p.ConfigRepository.Update(p.Location, p.name, conf)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"package":  "bvbot",
+					"function": "GetLocationConfig",
+					"struct":   "BaseStateProvider",
+					"provider": p,
+					"state":    p.State,
+					"error":    err,
+				}).Error("can't get config for location: " + p.Location.Id.String())
+			}
 		}
 	}
 
 	return
 }
 
-func (p BaseStateProvider) UpdateLocationConfig(conf Config) error {
-	return p.ConfigRepository.Update(p.Location, p.name, &conf)
+func (p BaseStateProvider) UpdateLocationConfig(conf Config) (err error) {
+	if err = p.ConfigRepository.Update(p.Location, p.name, &conf); err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "UpdateLocationConfig",
+			"struct":   "BaseStateProvider",
+			"provider": p,
+			"state":    p.State,
+			"error":    err,
+		}).Error("can't update config for location: " + p.Location.Id.String())
+	}
+	return
 }
 
 type BvStateBuilder struct {
@@ -143,6 +193,16 @@ type BvStateBuilder struct {
 
 func NewBvStateBuilder(loc location.Location, msg telegram.Message, p person.Person, rep volley.Repository, res Resources, cfgrep location.LocationConfigRepository, st telegram.State) (bld BvStateBuilder, err error) {
 	bp, err := NewBaseStateProvider(st, msg, p, loc, rep, cfgrep, "")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"package":  "bvbot",
+			"function": "NewBvStateBuilder",
+			"struct":   "BvStateBuilder",
+			"message":  msg,
+			"state":    st,
+			"error":    err,
+		}).Error("can't create base state provider")
+	}
 	bld = BvStateBuilder{BaseStateProvider: bp, Resources: res}
 	return
 }

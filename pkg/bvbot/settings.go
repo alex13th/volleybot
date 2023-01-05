@@ -5,6 +5,8 @@ import (
 	"volleybot/pkg/domain/reserve"
 	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type SettingsStateProvider struct {
@@ -73,10 +75,18 @@ func (p MaxPlayersStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		p.reserve.MaxPlayers = kh.Count
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "MaxPlayersStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			p.reserve.MaxPlayers = kh.Count
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -103,10 +113,18 @@ func (p CourtsStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		p.reserve.CourtCount = kh.Count
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "CourtsStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			p.reserve.CourtCount = kh.Count
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -133,10 +151,18 @@ func (p PriceStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.CountKeyboardHelper)
 	if st.Action == "set" {
-		kh.Parse()
-		p.reserve.Price = kh.Count
-		p.State.Updated = true
-		p.State.Action = p.BackState.State
+		if err := kh.Parse(); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "PriceStateProvider",
+				"error":    err,
+			}).Error("keyboard parse error")
+		} else {
+			p.reserve.Price = kh.Count
+			p.State.Updated = true
+			p.State.Action = p.BackState.State
+		}
 	}
 	return p.BaseStateProvider.Proceed()
 }
@@ -167,7 +193,16 @@ func (p ActivityStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 func (p ActivityStateProvider) Proceed() (telegram.State, error) {
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if p.State.Action == "set" {
-		aid, _ := strconv.Atoi(kh.Value)
+		aid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ActivityStateProvider",
+				"value":    kh.Value,
+				"error":    err,
+			}).Error("can't convert activity id")
+		}
 		p.reserve.Activity = reserve.Activity(aid)
 		p.State.Updated = true
 		p.State.Action = p.BackState.State
@@ -202,7 +237,16 @@ func (p LevelStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		aid, _ := strconv.Atoi(kh.Value)
+		aid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "LevelStateProvider",
+				"value":    kh.Value,
+				"error":    err,
+			}).Error("can't convert level id")
+		}
 		p.reserve.MinLevel = aid
 		p.State.Updated = true
 		p.State.Action = p.BackState.State
@@ -234,7 +278,16 @@ func (p NetTypeStateProvider) Proceed() (telegram.State, error) {
 	st := p.State
 	kh := p.GetKeyboardHelper().(*telegram.EnumKeyboardHelper)
 	if st.Action == "set" {
-		aid, _ := strconv.Atoi(kh.Value)
+		aid, err := strconv.Atoi(kh.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "NetTypeStateProvider",
+				"value":    kh.Value,
+				"error":    err,
+			}).Error("can't convert net type id")
+		}
 		p.reserve.NetType = volley.NetType(aid)
 		p.State.Updated = true
 		p.State.Action = p.BackState.State

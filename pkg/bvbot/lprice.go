@@ -2,6 +2,8 @@ package bvbot
 
 import (
 	"volleybot/pkg/telegram"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ConfigPriceStateProvider struct {
@@ -61,6 +63,13 @@ func (p ConfigPriceMinStateProvider) Proceed() (telegram.State, error) {
 		cfg.Price.Min = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigPriceMinStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}
@@ -97,6 +106,13 @@ func (p ConfigPriceMaxStateProvider) Proceed() (telegram.State, error) {
 		cfg.Price.Max = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigPriceMaxStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}
@@ -127,6 +143,13 @@ func (p ConfigPriceStepStateProvider) Proceed() (telegram.State, error) {
 		cfg.Price.Step = kh.Count
 		p.State.Action = p.BackState.State
 		if err := p.UpdateLocationConfig(cfg); err != nil {
+			log.WithFields(log.Fields{
+				"package":  "bvbot",
+				"function": "Proceed",
+				"struct":   "ConfigPriceStepStateProvider",
+				"config":   cfg,
+				"error":    err,
+			}).Error("update location config error")
 			return p.BackState, err
 		}
 	}
