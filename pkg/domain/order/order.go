@@ -15,8 +15,8 @@ type Order struct {
 	Payments []Payment     `json:"payments"`
 }
 
-type Payment interface {
-	GetId() interface{}
-	GetPerson() person.Person
-	GetSum() int
+type Payment struct {
+	Id     uuid.UUID     `json:"id"`
+	Person person.Person `json:"person"`
+	Sum    int           `json:"sum"`
 }

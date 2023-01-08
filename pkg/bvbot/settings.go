@@ -2,7 +2,6 @@ package bvbot
 
 import (
 	"strconv"
-	"volleybot/pkg/domain/reserve"
 	"volleybot/pkg/domain/volley"
 	"volleybot/pkg/telegram"
 
@@ -182,7 +181,7 @@ func (p ActivityStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 
 	activities := []telegram.EnumItem{}
 	for i := 0; i <= 30; i += 10 {
-		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: reserve.Activity(i).String()})
+		activities = append(activities, telegram.EnumItem{Id: strconv.Itoa(i), Item: volley.Activity(i).String()})
 	}
 	kh := telegram.NewEnumKeyboardHelper(activities)
 
@@ -203,7 +202,7 @@ func (p ActivityStateProvider) Proceed() (telegram.State, error) {
 				"error":    err,
 			}).Error("can't convert activity id")
 		}
-		p.reserve.Activity = reserve.Activity(aid)
+		p.reserve.Activity = volley.Activity(aid)
 		p.State.Updated = true
 		p.State.Action = p.BackState.State
 	}

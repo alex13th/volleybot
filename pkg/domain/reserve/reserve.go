@@ -32,33 +32,6 @@ func NewReserve(p person.Person, start time.Time, end time.Time) (res Reserve) {
 	return
 }
 
-type Activity int
-
-const (
-	Game       Activity = 0
-	Training   Activity = 10
-	Tournament Activity = 20
-	Tennis     Activity = 30
-)
-
-func (a Activity) String() string {
-	lnames := make(map[int]string)
-	lnames[0] = "🏐 Игры"
-	lnames[10] = "‼️ Тренировка"
-	lnames[20] = "🌟 Турнир"
-	lnames[30] = "🎾 Теннис"
-	return lnames[int(a)]
-}
-
-func (a Activity) Emoji() string {
-	lnames := make(map[int]string)
-	lnames[0] = "🏐"
-	lnames[10] = "‼️"
-	lnames[20] = "🌟"
-	lnames[30] = "🎾"
-	return lnames[int(a)]
-}
-
 type Reserve struct {
 	Id          uuid.UUID         `json:"id"`
 	Person      person.Person     `json:"person"`

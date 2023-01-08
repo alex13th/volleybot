@@ -8,6 +8,33 @@ import (
 	"github.com/google/uuid"
 )
 
+type Activity int
+
+const (
+	Game       Activity = 0
+	Training   Activity = 10
+	Tournament Activity = 20
+	Tennis     Activity = 30
+)
+
+func (a Activity) String() string {
+	lnames := make(map[int]string)
+	lnames[0] = "🏐 Игры"
+	lnames[10] = "‼️ Тренировка"
+	lnames[20] = "🌟 Турнир"
+	lnames[30] = "🎾 Теннис"
+	return lnames[int(a)]
+}
+
+func (a Activity) Emoji() string {
+	lnames := make(map[int]string)
+	lnames[0] = "🏐"
+	lnames[10] = "‼️"
+	lnames[20] = "🌟"
+	lnames[30] = "🎾"
+	return lnames[int(a)]
+}
+
 func NewVolley(p person.Person, start time.Time, end time.Time) Volley {
 	return Volley{
 		Reserve:    reserve.NewReserve(p, start, end),
@@ -18,12 +45,12 @@ func NewVolley(p person.Person, start time.Time, end time.Time) Volley {
 
 type Volley struct {
 	reserve.Reserve
-	Activity   reserve.Activity `json:"activity"`
-	MinLevel   int              `json:"min_level"`
-	CourtCount int              `json:"court_count"`
-	MaxPlayers int              `json:"max_players"`
-	NetType    NetType          `json:"net_type"`
-	Members    []Member         `json:"members"`
+	Activity   Activity `json:"activity"`
+	MinLevel   int      `json:"min_level"`
+	CourtCount int      `json:"court_count"`
+	MaxPlayers int      `json:"max_players"`
+	NetType    NetType  `json:"net_type"`
+	Members    []Member `json:"members"`
 }
 
 func (res *Volley) Copy() (result Volley) {
