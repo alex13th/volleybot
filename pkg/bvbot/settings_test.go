@@ -66,7 +66,7 @@ func TestSettingsStateKbd(t *testing.T) {
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := SettingsStateProvider{BaseStateProvider: bp, Resources: res}
-			acts := sp.GetKeyboardHelper().GetKeyboard()
+			acts := sp.GetKeyboardHelper().GetKeyboard().(telegram.InlineKeyboardMarkup).InlineKeyboard
 			if !reflect.DeepEqual(acts, test.kbd) {
 				t.Fail()
 			}

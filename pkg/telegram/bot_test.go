@@ -1,42 +1,14 @@
 package telegram
 
 import (
+	"errors"
 	"io"
 	"testing"
 )
 
-func TestNewBot(t *testing.T) {
-	tests := []struct {
-		name     string
-		settings *Bot
-		want     *Bot
-	}{
-		{
-			"Default Url test",
-			&Bot{Token: "SOME123TOKEN"},
-			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "https://api.telegram.org"},
-		},
-		{
-			"Custom Url test",
-			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
-			&Bot{Token: "SOME123TOKEN", ApiEndpoint: "new.api.telegram.com"},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			tb, err := NewBot(test.settings)
-			if tb.ApiEndpoint != test.want.ApiEndpoint || tb.Token != test.settings.Token || err != nil {
-				t.Fail()
-			}
-
-		})
-	}
-}
-
-func TestBotSendRequest(t *testing.T) {
-	tb, _ := NewBot(&Bot{Token: "***Token***"})
-	tb.Client = httpClientMock{}
+func TestSimpleBotSendRequest(t *testing.T) {
+	tb, _ := NewSimpleBot("***Token***", httpClientMock{})
+	tb.client = httpClientMock{}
 
 	req := MessageRequest{
 		ChatId: 586350636,
@@ -76,10 +48,10 @@ func TestBotSendRequest(t *testing.T) {
 	})
 }
 
-func TestBotSendMessage(t *testing.T) {
-	tb, _ := NewBot(&Bot{Token: "***Token***"})
-	tb.Client = httpClientMock{
-		Body: `{
+func TestSimpleBotSendMessage(t *testing.T) {
+	tb, _ := NewSimpleBot("***Token***",
+		httpClientMock{
+			Body: `{
 			"ok": true,
 			"result": {
 				"message_id": 2468,
@@ -89,9 +61,9 @@ func TestBotSendMessage(t *testing.T) {
 				"text": "Hello world!!!"
 			}
 		}`,
-	}
+		})
 
-	req := &MessageRequest{
+	req := MessageRequest{
 		ChatId: 586350636,
 		Text:   "Message text",
 	}
@@ -111,14 +83,14 @@ func TestBotSendMessage(t *testing.T) {
 	})
 }
 
-func TestBotGetUpdates(t *testing.T) {
-	tb := Bot{Token: "***Token***"}
-	tb.Client = httpClientMock{Body: `{
+func TestSimpleBotGetUpdates(t *testing.T) {
+	tb, _ := NewSimpleBot("***Token***",
+		httpClientMock{Body: `{
 		"ok": true,
 		"result": [{"update_id": 123130161},{"update_id": 123130162},{"update_id": 123130163}]
-	}`}
+	}`})
 
-	botResp, err := tb.GetUpdates()
+	resp, err := tb.GetUpdates(UpdatesRequest{})
 
 	t.Run("Error is nil", func(t *testing.T) {
 		if err != nil {
@@ -127,13 +99,41 @@ func TestBotGetUpdates(t *testing.T) {
 	})
 
 	t.Run("Response Ok", func(t *testing.T) {
-		if !botResp.Ok {
+		if !resp.Ok {
 			t.Fail()
 		}
 	})
 
-	t.Run("New offset", func(t *testing.T) {
-		if tb.Request.Offset != 123130164 {
+	t.Run("Response updates", func(t *testing.T) {
+		if (resp.Result[0] != Update{UpdateId: 123130161} ||
+			resp.Result[1] != Update{UpdateId: 123130162} ||
+			resp.Result[2] != Update{UpdateId: 123130163}) {
+			t.Fail()
+		}
+	})
+}
+
+func TestSimplePollerProceedUpdates(t *testing.T) {
+	tb, _ := NewSimpleBot("***Token***",
+		httpClientMock{Body: `{
+		"ok": true,
+		"result": [{"update_id": 123130161},{"update_id": 123130162},{"update_id": 123130163}]
+	}`})
+
+	pol := NewSimplePoller(tb)
+	errHand := UpdateHandlerMock{err: errors.New("Mock error")}
+	pol.UpdateHandlers = append(pol.UpdateHandlers, errHand)
+	pol.Logger = LoggerMock{}
+	err := pol.ProceedUpdates()
+
+	t.Run("Check error", func(t *testing.T) {
+		if err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("Check offset", func(t *testing.T) {
+		if pol.offset != 123130164 {
 			t.Fail()
 		}
 	})

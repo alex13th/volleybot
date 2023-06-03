@@ -17,25 +17,6 @@ func (e HelperError) Error() string {
 	return e.Msg
 }
 
-type MessageRequestHelper interface {
-	GetEditMR() EditMessageTextRequest
-	GetMR() MessageRequest
-}
-
-type CallbackDataParser interface {
-	GetAction() string
-	GetPrefix() string
-	GetState() State
-	GetValue() string
-	Parse(string) error
-	SetState(state State)
-}
-
-type KeyboardHelper interface {
-	GetKeyboard() [][]InlineKeyboardButton
-	GetText() string
-}
-
 type BaseKeyboardHelper struct {
 	State
 	BackData string
@@ -99,7 +80,8 @@ func (kh *DateKeyboardHelper) Parse() (err error) {
 	return
 }
 
-func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+func (kh DateKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]InlineKeyboardButton
 	kbdRow := []InlineKeyboardButton{}
 	currDate := time.Now()
 	for i := 1; i <= kh.Days; i++ {
@@ -124,7 +106,7 @@ func (kh DateKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
+	return kbd
 }
 
 func NewTimeKeyboardHelper() TimeKeyboardHelper {
@@ -152,7 +134,8 @@ type TimeKeyboardHelper struct {
 	Locale      monday.Locale
 }
 
-func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+func (kh *TimeKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]InlineKeyboardButton
 	if kh.StartHour < 0 {
 		kh.StartHour = 24 + kh.StartHour
 	}
@@ -204,7 +187,7 @@ func (kh *TimeKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
+	return kbd
 }
 
 func (kh *TimeKeyboardHelper) Parse() (err error) {
@@ -243,7 +226,8 @@ func (kh CountKeyboardHelper) GetButton(v int) (btn InlineKeyboardButton) {
 	return InlineKeyboardButton{Text: strconv.Itoa(v), CallbackData: st.String()}
 }
 
-func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+func (kh CountKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]InlineKeyboardButton
 	kbdRow := []InlineKeyboardButton{}
 	if kh.Min*kh.Max > 0 && kh.AlwaysZero {
 		kbdRow = append(kbdRow, kh.GetButton(0))
@@ -268,7 +252,7 @@ func (kh CountKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
+	return kbd
 }
 
 func (kh *CountKeyboardHelper) Parse() (err error) {
@@ -301,7 +285,8 @@ type ActionsKeyboardHelper struct {
 	Actions []ActionButton
 }
 
-func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+func (kh ActionsKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]InlineKeyboardButton
 	if kh.Columns == 0 {
 		kh.Columns = 1
 	}
@@ -326,7 +311,8 @@ func (kh ActionsKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
+
+	return InlineKeyboardMarkup{InlineKeyboard: kbd}
 }
 
 type EnumItem struct {
@@ -345,7 +331,8 @@ type EnumKeyboardHelper struct {
 	Enums   []EnumItem
 }
 
-func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
+func (kh EnumKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]InlineKeyboardButton
 	kbdRow := []InlineKeyboardButton{}
 	count := 0
 	for _, val := range kh.Enums {
@@ -368,5 +355,24 @@ func (kh EnumKeyboardHelper) GetKeyboard() (kbd [][]InlineKeyboardButton) {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return
+	return kbd
+}
+
+type SendKeyboardHelper struct {
+	BaseKeyboardHelper
+	RequestId int
+	Text      string
+}
+
+func (kh SendKeyboardHelper) GetKeyboard() interface{} {
+	var kbd [][]KeyboardButton
+
+	kbdRow := []KeyboardButton{}
+	kbdRow = append(kbdRow, KeyboardButton{
+		Text:        kh.Text,
+		RequestChat: KeyboardButtonRequestChat{RequestId: kh.RequestId, BotIsMember: true}},
+	)
+	kbd = append(kbd, kbdRow)
+
+	return ReplyKeyboardMarkup{Keyboard: kbd, OneTimeKeyboard: true}
 }

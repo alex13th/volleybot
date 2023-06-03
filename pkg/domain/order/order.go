@@ -14,9 +14,3 @@ type Order struct {
 	Sum      int           `json:"sum"`
 	Payments []Payment     `json:"payments"`
 }
-
-type Payment struct {
-	Id     uuid.UUID     `json:"id"`
-	Person person.Person `json:"person"`
-	Sum    int           `json:"sum"`
-}

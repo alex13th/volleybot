@@ -42,7 +42,7 @@ func (rep *StatePgRepository) Get(ChatId int) (slist []telegram.State, err error
 	sql := "SELECT chat_id, message_id, prefix, state, action, data " +
 		"FROM %s " +
 		"WHERE chat_id = $1" +
-		"ORDER BY message_id"
+		"ORDER BY message_id DESC"
 	sql = fmt.Sprintf(sql, rep.TableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, ChatId)
 	if err == nil {

@@ -14,7 +14,7 @@ import (
 )
 
 type StartHandler struct {
-	Bot            *telegram.Bot
+	Bot            telegram.Bot
 	Command        telegram.BotCommand
 	ReserveService *services.VolleyBotService
 }
@@ -45,7 +45,7 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 func main() {
 
 	url := os.Getenv("PGURL")
-	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
+	tb, _ := telegram.NewSimpleBot(os.Getenv("TOKEN"), &http.Client{})
 	dbpool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		return
@@ -71,8 +71,7 @@ func main() {
 		vres.Location.Name = "default"
 	}
 
-	tb.Client = &http.Client{}
-	lp, _ := tb.NewPoller()
+	lp := telegram.SimpleLongPoller{SimplePoller: telegram.NewSimplePoller(tb)}
 
 	sh := StartHandler{Bot: tb}
 	startcmd := telegram.CommandHandler{

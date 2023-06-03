@@ -18,9 +18,8 @@ func (p MainStateProvider) GetMR() (mr *telegram.MessageRequest) {
 	txt := ""
 	txt += p.Resources.Text
 
-	var kbd telegram.InlineKeyboardMarkup
 	kh := p.GetKeyboardHelper()
-	kbd.InlineKeyboard = kh.GetKeyboard()
+	kbd := kh.GetKeyboard()
 
 	return p.CreateMR(p.State.ChatId, txt, p.Resources.ParseMode, kbd)
 }
@@ -139,12 +138,12 @@ func (p ListdStateProvider) GetMR() (mr *telegram.MessageRequest) {
 		txt += p.GetListText()
 	}
 	kh := p.GetKeyboardHelper()
-	var kbd telegram.InlineKeyboardMarkup
+	var kbd interface{}
 	if kh != nil {
-		kbd.InlineKeyboard = kh.GetKeyboard()
+		kbd = kh.GetKeyboard()
 	}
 	txt += p.Resources.Text
-	if len(kbd.InlineKeyboard) > 0 {
+	if kbd != nil {
 		mr = &telegram.MessageRequest{ChatId: p.State.ChatId, Text: txt, ReplyMarkup: kbd, ParseMode: p.Resources.ParseMode}
 	} else {
 		mr = &telegram.MessageRequest{ChatId: p.State.ChatId, Text: txt, ParseMode: p.Resources.ParseMode}

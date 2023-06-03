@@ -10,12 +10,6 @@ type CallbackQueryFunc func(cq *CallbackQuery) error
 type MessageFunc func(m *Message) error
 type MessageStateFunc func(m *Message, state State) error
 
-type UpdateHandler interface {
-	ProceedUpdate(tb *Bot, update Update)
-	AppendMessageHandlers(...MessageHandler)
-	AppendCallbackHandlers(...CallbackHandler)
-}
-
 type BaseUpdateHandler struct {
 	MessageHandlers  []MessageHandler
 	CallbackHandlers []CallbackHandler
@@ -29,25 +23,26 @@ func (handler *BaseUpdateHandler) AppendMessageHandlers(mh ...MessageHandler) {
 	handler.MessageHandlers = append(handler.MessageHandlers, mh...)
 }
 
-func (uh BaseUpdateHandler) ProceedUpdate(tb *Bot, update Update) {
+func (uh BaseUpdateHandler) ProceedUpdate(tb Bot, update Update) (err error) {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
-			handler.ProceedMessage(update.Message)
+			if err = handler.ProceedMessage(update.Message); err != nil {
+				return
+			}
 		}
 	}
 	if update.CallbackQuery != nil {
 		for _, handler := range uh.CallbackHandlers {
-			handler.ProceedCallback(update.CallbackQuery)
+			if err = handler.ProceedCallback(update.CallbackQuery); err != nil {
+				return
+			}
 		}
 	}
-}
-
-type CallbackHandler interface {
-	ProceedCallback(*CallbackQuery) error
+	return
 }
 
 type BaseCallbackHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Handler CallbackQueryFunc
 }
 
@@ -56,7 +51,7 @@ func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 }
 
 type PrefixCallbackHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Prefix  string
 	Handler CallbackQueryFunc
 }
@@ -69,12 +64,8 @@ func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 	return errors.New("data hasn't prefix")
 }
 
-type MessageHandler interface {
-	ProceedMessage(tm *Message) error
-}
-
 type BaseMessageHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Handler MessageFunc
 }
 
@@ -83,7 +74,7 @@ func (h *BaseMessageHandler) ProceedMessage(m *Message) error {
 }
 
 type CommandHandler struct {
-	Bot      *Bot
+	Bot      Bot
 	Handler  MessageFunc
 	Command  string
 	Commands []BotCommand
@@ -113,7 +104,7 @@ func (h *CommandHandler) ProceedMessage(m *Message) (err error) {
 }
 
 type StateMessageHandler struct {
-	Bot             *Bot
+	Bot             Bot
 	Handler         MessageStateFunc
 	State           string
 	StateRepository StateRepository

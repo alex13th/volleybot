@@ -3,6 +3,7 @@ package volley
 import (
 	"time"
 	"volleybot/pkg/domain/location"
+	"volleybot/pkg/domain/order"
 	"volleybot/pkg/domain/person"
 )
 
@@ -32,7 +33,7 @@ func (pl Player) CheckLocationRole(l location.Location, role string) bool {
 
 type Member struct {
 	Player
-	Payment    Payment
+	Payment    order.Payment
 	MemberId   int
 	Count      int
 	ArriveTime time.Time

@@ -52,6 +52,8 @@ func (p ActionsStateProvider) GetKeyboardHelper() telegram.KeyboardHelper {
 				Action: "rmpl", Text: res.RemovePlayerBtn})
 			kh.Actions = append(kh.Actions, telegram.ActionButton{
 				Action: "pub", Text: res.PublishBtn})
+			kh.Actions = append(kh.Actions, telegram.ActionButton{
+				Action: "send", Text: res.SendBtn})
 		}
 	}
 	return &kh
@@ -222,6 +224,30 @@ func (p *PaidPlayerStateProvider) Proceed() (st telegram.State, err error) {
 		p.reserve.JoinPlayer(rpl)
 		p.State.Action = p.State.State
 		p.State.Updated = true
+	}
+	return p.BaseStateProvider.Proceed()
+}
+
+type SendStateProvider struct {
+	BaseStateProvider
+	Resources SendResources
+}
+
+func (p SendStateProvider) GetRequests() (reqlist []telegram.StateRequest) {
+	if p.State.Action == "send" {
+		kh := telegram.SendKeyboardHelper{Text: p.Resources.SendBtn, RequestId: p.Message.MessageId}
+		req := telegram.MessageRequest{ChatId: p.State.ChatId, Text: p.Resources.Message, ReplyMarkup: kh.GetKeyboard()}
+		p.State.MessageId = -1
+		p.State.Action = "done"
+		return append(reqlist, telegram.StateRequest{State: p.State, Request: &req})
+	}
+	return
+}
+
+func (p *SendStateProvider) Proceed() (telegram.State, error) {
+	if p.State.State == "send" {
+		p.State.ChatId = p.Message.ChatShared.ChatId
+		p.State.Action = "show"
 	}
 	return p.BaseStateProvider.Proceed()
 }

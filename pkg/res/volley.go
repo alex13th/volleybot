@@ -31,6 +31,7 @@ func (rl StaticVolleyResourceLoader) GetResources() (res VolleyResources) {
 	res.Resources.RemovePlayer = bvbot.RemovePlayerResourcesRu()
 	res.Resources.Settings = bvbot.NewSettingsResourcesRu()
 	res.Resources.Show = bvbot.NewShowResourcesRu()
+	res.Resources.SendResources = bvbot.NewSendResourcesRu()
 	res.Resources.Sets = bvbot.NewSetsResourcesRu()
 	res.Resources.BackBtn = "Назад"
 	res.Resources.DescMessage = "Отлично. Отправьте мне в чат описание активности."

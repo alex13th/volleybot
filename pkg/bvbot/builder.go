@@ -110,9 +110,9 @@ func (p *BaseStateProvider) GetMR() (mr *telegram.MessageRequest) {
 	rview := volley.NewTelegramViewRu(p.reserve)
 	mtxt := rview.GetText()
 
-	var kbd telegram.InlineKeyboardMarkup
+	var kbd interface{}
 	if p.kh != nil {
-		kbd.InlineKeyboard = p.kh.GetKeyboard()
+		kbd = p.kh.GetKeyboard()
 		if kbdText := p.kh.GetText(); kbdText != "" {
 			mtxt += "\n" + kbdText
 		}
@@ -125,8 +125,8 @@ func (p *BaseStateProvider) GetMR() (mr *telegram.MessageRequest) {
 	return p.CreateMR(cid, mtxt, rview.ParseMode, kbd)
 }
 
-func (p BaseStateProvider) CreateMR(cid int, txt string, pmode string, kbd telegram.InlineKeyboardMarkup) *telegram.MessageRequest {
-	if len(kbd.InlineKeyboard) > 0 {
+func (p BaseStateProvider) CreateMR(cid int, txt string, pmode string, kbd interface{}) *telegram.MessageRequest {
+	if kbd != nil {
 		return &telegram.MessageRequest{ChatId: cid, Text: txt, ParseMode: pmode,
 			ReplyMarkup: kbd, DisableNotification: cid < 0}
 	}
@@ -302,6 +302,10 @@ func (bld BvStateBuilder) GetStateProvider(st telegram.State) (sp telegram.State
 		bp.BackState.State = "actions"
 		bp.BackState.Action = bp.BackState.State
 		sp = &PaidPlayerStateProvider{BaseStateProvider: bp, Resources: bld.Resources.RemovePlayer}
+	case "send":
+		bp.BackState.State = "actions"
+		bp.BackState.Action = "done"
+		sp = &SendStateProvider{BaseStateProvider: bp, Resources: bld.Resources.SendResources}
 	case "plevel":
 		bp.BackState.State = "profile"
 		bp.BackState.Action = bp.BackState.State

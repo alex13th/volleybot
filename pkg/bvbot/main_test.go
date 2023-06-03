@@ -52,7 +52,7 @@ func TestMainStateKbd(t *testing.T) {
 			st.ChatId = test.cid
 			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, nil, "")
 			sp := MainStateProvider{BaseStateProvider: bp, Resources: res}
-			acts := sp.GetKeyboardHelper().GetKeyboard()
+			acts := sp.GetKeyboardHelper().GetKeyboard().(telegram.InlineKeyboardMarkup).InlineKeyboard
 			if !reflect.DeepEqual(acts, test.kbd) {
 				t.Fail()
 			}

@@ -11,7 +11,7 @@ import (
 	"volleybot/pkg/telegram"
 )
 
-func NewVolleyBotService(tb *telegram.Bot, vres *res.VolleyResources, strep telegram.StateRepository,
+func NewVolleyBotService(tb telegram.Bot, vres *res.VolleyResources, strep telegram.StateRepository,
 	lrep location.LocationRepository, rrep volley.Repository, prep person.PersonRepository, confrep location.LocationConfigRepository) VolleyBotService {
 
 	s := VolleyBotService{Bot: tb, Resources: vres, StateRepository: strep, LocationRepository: lrep, VolleyRepository: rrep,
@@ -20,7 +20,7 @@ func NewVolleyBotService(tb *telegram.Bot, vres *res.VolleyResources, strep tele
 }
 
 type VolleyBotService struct {
-	Bot                *telegram.Bot
+	Bot                telegram.Bot
 	Prefix             string
 	Resources          *res.VolleyResources
 	LocationRepository location.LocationRepository
@@ -62,7 +62,7 @@ func (p *VolleyBotService) ProceedCallback(cq *telegram.CallbackQuery) (err erro
 		return
 	}
 	p.LogErrors(p.Proceed(cq.From.Id, st, *cq.Message))
-	_, err = cq.Answer(p.Bot, "Ok", nil)
+	_, err = cq.Answer(p.Bot, "Ok", telegram.AnswerCallbackQueryRequest{})
 	return
 }
 
@@ -146,7 +146,7 @@ func (s *VolleyBotService) SendRequests(reqlist []telegram.StateRequest) (errs [
 			}
 			continue
 		}
-		var resp telegram.MessageResponse
+		var resp *telegram.MessageResponse
 		if resp, err = s.Bot.SendMessage(req.Request); err != nil {
 			errs = append(errs, err)
 			continue

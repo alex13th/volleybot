@@ -5,10 +5,6 @@ import (
 	"io"
 )
 
-type Response interface {
-	Parse(reader io.Reader) error
-}
-
 type UpdateResponse struct {
 	Ok          bool               `json:"ok"`
 	Result      []Update           `json:"result"`
@@ -18,11 +14,10 @@ type UpdateResponse struct {
 }
 
 type MessageResponse struct {
-	Ok          bool               `json:"ok"`
-	Result      Message            `json:"result"`
-	Description string             `json:"description"`
-	ErrorCode   int                `json:"error_code"`
-	Parameters  ResponseParameters `json:"parameters"`
+	Ok         bool               `json:"ok"`
+	Result     Message            `json:"result"`
+	ErrorCode  int                `json:"error_code"`
+	Parameters ResponseParameters `json:"parameters"`
 }
 
 type ResponseParameters struct {

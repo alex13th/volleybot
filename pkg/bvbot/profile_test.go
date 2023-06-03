@@ -45,7 +45,7 @@ func TestProfileStateKbd(t *testing.T) {
 			bp, _ := NewBaseStateProvider(st, msg, test.p, loc, nil, nil, "")
 			pp := PlayerStateProvider{BaseStateProvider: bp, Resources: res}
 			sp := ProfileStateProvider{PlayerStateProvider: pp}
-			acts := sp.GetKeyboardHelper().GetKeyboard()
+			acts := sp.GetKeyboardHelper().GetKeyboard().(telegram.InlineKeyboardMarkup).InlineKeyboard
 			if !reflect.DeepEqual(acts, test.kbd) {
 				t.Fail()
 			}

@@ -1,4 +1,4 @@
-package volley
+package order
 
 import (
 	"time"
@@ -8,10 +8,14 @@ import (
 )
 
 type Payment struct {
-	Id       uuid.UUID       `json:"id"`
-	Person   person.Person   `json:"person"`
+	Id     uuid.UUID     `json:"id"`
+	Person person.Person `json:"person"`
+	Sum    int           `json:"sum"`
+}
+
+type TelegramPay struct {
+	Payment
 	PreCheck PaymentPreCheck `json:"pre_check"`
-	Sum      int             `json:"sum"`
 }
 
 func (pay Payment) GetSum() int {

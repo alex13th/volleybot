@@ -5,7 +5,7 @@ import (
 )
 
 func TestUpdateHandlerProceed(t *testing.T) {
-	tb := Bot{Token: "***Token***"}
+	tb, _ := NewSimpleBot("***Token***", nil)
 	message := Message{}
 	tu := Update{Message: &message}
 
@@ -18,7 +18,7 @@ func TestUpdateHandlerProceed(t *testing.T) {
 	}
 	uh.MessageHandlers = append(uh.MessageHandlers, &mh)
 
-	uh.ProceedUpdate(&tb, tu)
+	uh.ProceedUpdate(tb, tu)
 
 	t.Run("Message proceeded", func(t *testing.T) {
 		if message.Caption != "Test caption" {

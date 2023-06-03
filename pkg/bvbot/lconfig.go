@@ -13,11 +13,10 @@ func (p ConfigStateProvider) GetMR() *telegram.MessageRequest {
 	cfgview := NewConfigTelegramViewRu(p.GetLocationConfig())
 	txt := cfgview.GetText()
 
-	var kbd telegram.InlineKeyboardMarkup
 	if p.kh == nil {
 		p.kh = p.GetKeyboardHelper()
 	}
-	kbd.InlineKeyboard = p.kh.GetKeyboard()
+	kbd := p.kh.GetKeyboard()
 
 	return p.CreateMR(p.State.ChatId, txt, p.Resources.ParseMode, kbd)
 }

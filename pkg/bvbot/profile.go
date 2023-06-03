@@ -30,8 +30,7 @@ func (p PlayerStateProvider) GetMR() *telegram.MessageRequest {
 	psetview := person.NewTelegramSettingsViewRu(p.Player.Person)
 	txt := fmt.Sprintf("%s\n\n%s\n%s", pview.GetText(), psetview.GetText(), p.Text)
 
-	var kbd telegram.InlineKeyboardMarkup
-	kbd.InlineKeyboard = p.kh.GetKeyboard()
+	kbd := p.kh.GetKeyboard()
 
 	return p.CreateMR(p.State.ChatId, txt, p.Resources.ParseMode, kbd)
 }

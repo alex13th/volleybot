@@ -12,15 +12,6 @@ var (
 	ErrUpdateState      = errors.New("failed to update the state in the repository")
 )
 
-type StateBuilder interface {
-	GetStateProvider(State) (StateProvider, error)
-}
-
-type StateProvider interface {
-	GetRequests() []StateRequest
-	Proceed() (State, error)
-}
-
 func NewState() State {
 	return State{Separator: "_"}
 }
@@ -76,14 +67,6 @@ type StateRequest struct {
 	State
 	Request
 	Clear bool
-}
-
-type StateRepository interface {
-	Get(ChatId int) ([]State, error)
-	GetByData(Data string) ([]State, error)
-	GetByMessage(msg Message) (State, error)
-	Set(State) error
-	Clear(State) error
 }
 
 func NewMemoryStateRepository() StateRepository {

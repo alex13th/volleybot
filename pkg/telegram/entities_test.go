@@ -6,7 +6,7 @@ import (
 
 func TestMessageCreateReplyRequest(t *testing.T) {
 	msg := Message{Chat: &Chat{Id: 123456789}, MessageId: 987}
-	mr := msg.CreateReplyRequest("Hello", nil)
+	mr := msg.CreateReplyRequest("Hello", MessageRequest{})
 
 	t.Run("Error is nil", func(t *testing.T) {
 		if mr.ChatId != msg.Chat.Id {
@@ -23,7 +23,7 @@ func TestMessageCreateReplyRequest(t *testing.T) {
 
 func TestMessageCreateEditTextRequest(t *testing.T) {
 	msg := Message{Chat: &Chat{Id: 123456789}, MessageId: 987}
-	mer := msg.CreateEditTextRequest("Hello", nil)
+	mer := msg.CreateEditTextRequest("Hello", EditMessageTextRequest{})
 
 	t.Run("Error is nil", func(t *testing.T) {
 		if mer.ChatId != msg.Chat.Id {
@@ -40,7 +40,7 @@ func TestMessageCreateEditTextRequest(t *testing.T) {
 
 func TestMessageCreateMessageRequest(t *testing.T) {
 	msg := Message{Chat: &Chat{Id: 123456789}, MessageId: 987}
-	mer := msg.CreateMessageRequest("Hello", nil)
+	mer := msg.CreateMessageRequest("Hello", MessageRequest{})
 
 	t.Run("Error is nil", func(t *testing.T) {
 		if mer.ChatId != msg.Chat.Id {

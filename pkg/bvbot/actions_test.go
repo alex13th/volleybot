@@ -42,6 +42,7 @@ func TestActionsStateKbd(t *testing.T) {
 		},
 		{
 			{Text: res.PublishBtn, CallbackData: "res_actions_pub_" + r.Id.String()},
+			{Text: res.SendBtn, CallbackData: "res_actions_send_" + r.Id.String()},
 		},
 	}
 
@@ -65,7 +66,7 @@ func TestActionsStateKbd(t *testing.T) {
 			bp, _ := NewBaseStateProvider(st, msg, test.p, test.res.Location, nil, nil, "")
 			bp.reserve = test.res
 			sp := ActionsStateProvider{BaseStateProvider: bp, Resources: res}
-			acts := sp.GetKeyboardHelper().GetKeyboard()
+			acts := sp.GetKeyboardHelper().GetKeyboard().(telegram.InlineKeyboardMarkup).InlineKeyboard
 			if !reflect.DeepEqual(acts, test.kbd) {
 				t.Fail()
 			}
@@ -119,7 +120,7 @@ func TestCancelStateKbd(t *testing.T) {
 			bp.reserve = test.res
 			sp := CancelStateProvider{BaseStateProvider: bp, Resources: res, ShowResources: sres}
 
-			acts := sp.GetKeyboardHelper().GetKeyboard()
+			acts := sp.GetKeyboardHelper().GetKeyboard().(telegram.InlineKeyboardMarkup).InlineKeyboard
 			if !reflect.DeepEqual(acts, test.kbd) {
 				t.Fail()
 			}

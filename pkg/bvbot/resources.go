@@ -6,25 +6,26 @@ import (
 )
 
 type Resources struct {
-	Actions      ActionsResources
-	Activity     AcivityResources
-	Config       ConfigResources
-	Courts       CourtsResources
-	Cancel       CancelResources
-	Description  DescResources
-	Join         JoinResources
-	Level        LevelResources
-	List         ListResources
-	Main         MainResources
-	MaxPlayer    MaxPlayersResources
-	Profile      ProfileResources
-	RemovePlayer RemovePlayerResources
-	Price        PriceResources
-	Settings     SettingsResources
-	Sets         SetsResources
-	Show         ShowResources
-	BackBtn      string
-	DescMessage  string
+	Actions       ActionsResources
+	Activity      AcivityResources
+	Config        ConfigResources
+	Courts        CourtsResources
+	Cancel        CancelResources
+	Description   DescResources
+	Join          JoinResources
+	Level         LevelResources
+	List          ListResources
+	Main          MainResources
+	MaxPlayer     MaxPlayersResources
+	Profile       ProfileResources
+	RemovePlayer  RemovePlayerResources
+	Price         PriceResources
+	Settings      SettingsResources
+	Sets          SetsResources
+	Show          ShowResources
+	SendResources SendResources
+	BackBtn       string
+	DescMessage   string
 }
 
 type MainResources struct {
@@ -104,6 +105,7 @@ type ActionsResources struct {
 	CopyDoneMessage string `json:"copy_done_msg"`
 	PaidBtn         string `json:"paid"`
 	PublishBtn      string `json:"publish_btn"`
+	SendBtn         string `json:"send_btn"`
 	RemovePlayerBtn string `json:"remove_player_btn"`
 }
 
@@ -114,6 +116,7 @@ func NewActionsResourcesRu() (r ActionsResources) {
 	r.CopyDoneMessage = "Копия сделана! 👆"
 	r.PaidBtn = "💰 Оплаты"
 	r.PublishBtn = "Опубликовать"
+	r.SendBtn = "Отправить"
 	r.RemovePlayerBtn = "Удалить игрока"
 	return
 }
@@ -129,6 +132,17 @@ func NewCancelResourcesRu() (r CancelResources) {
 	r.BackBtn = "Передумал"
 	r.ConfirmBtn = "🧨 Уверен"
 	r.Text = "\n🧨*ВНИМАНИЕ!!!*🧨\nИгра будет отменена для всех участников. Если есть желание только выписаться, лучше воспользоваться кнопкой \"Не буду\""
+	return
+}
+
+type SendResources struct {
+	Message string `json:"message"`
+	SendBtn string `json:"send_btn"`
+}
+
+func NewSendResourcesRu() (r SendResources) {
+	r.Message = "Выберите чат для отправки объявления"
+	r.SendBtn = "Куда отправим"
 	return
 }
 
