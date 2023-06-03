@@ -57,7 +57,7 @@ type Chat struct {
 	Bio                   string          `json:"bio"`
 	Description           string          `json:"description"`
 	InviteLink            string          `json:"invite_link"`
-	PinnedMessage         *Message        `json:"pinned_message"`
+	PinnedMessage         Message         `json:"pinned_message"`
 	Permissions           ChatPermissions `json:"permissions"`
 	SlowModeDelay         int             `json:"slow_mode_delay"`
 	MessageAutoDeleteTime int             `json:"message_auto_delete_time"`
@@ -65,6 +65,26 @@ type Chat struct {
 	CanSetStickerSet      bool            `json:"can_set_sticker_set"`
 	LinkedChatId          int             `json:"linked_chat_id"`
 	Location              ChatLocation    `json:"location"`
+}
+
+type ChatShared struct {
+	RequestId int `json:"request_id"`
+	ChatId    int `json:"chat_id"`
+}
+
+type KeyboardButtonRequestChat struct {
+	RequestId   int  `json:"request_id"`
+	BotIsMember bool `json:"bot_is_member"`
+}
+
+type KeyboardButton struct {
+	Text        string                    `json:"text"`
+	RequestChat KeyboardButtonRequestChat `json:"request_chat"`
+}
+
+type ReplyKeyboardMarkup struct {
+	Keyboard        [][]KeyboardButton `json:"keyboard"`
+	OneTimeKeyboard bool               `json:"one_time_keyboard"`
 }
 
 type InlineKeyboardButton struct {
@@ -102,6 +122,7 @@ type Message struct {
 	ForwardSenderName     string          `json:"forward_sender_name"`
 	ForwardDate           int             `json:"forward_date"`
 	ReplyToMessage        *Message        `json:"reply_to_message"`
+	ChatShared            *ChatShared     `json:"chat_shared"`
 	ViaBot                *User           `json:"via_bot"`
 	EditDate              int             `json:"edit_date"`
 	MediaGroupId          int             `json:"media_group_id"`
@@ -113,7 +134,7 @@ type Message struct {
 	ReplyMarkup           interface{}     `json:"reply_markup"`
 }
 
-func (msg *Message) GetCommand() string {
+func (msg Message) GetCommand() string {
 	re, err := regexp.Compile(`^/([a-zA-Z0-9_]*)`)
 	if err != nil {
 		return ""
@@ -125,59 +146,41 @@ func (msg *Message) GetCommand() string {
 	return matches[1]
 }
 
-func (msg *Message) IsCommand() bool {
+func (msg Message) IsCommand() bool {
 	return msg.GetCommand() != ""
 }
 
-func (msg *Message) SendMessage(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
+func (msg Message) SendMessage(tb Bot, Text string, mr MessageRequest) (*MessageResponse, error) {
 	return tb.SendMessage(msg.CreateMessageRequest(Text, mr))
 }
 
-func (msg *Message) DeleteMessage(tb *Bot) {
+func (msg Message) DeleteMessage(tb Bot) {
 	tb.SendMessage(&DeleteMessageRequest{ChatId: msg.Chat.Id, MessageId: msg.MessageId})
 }
 
-func (msg *Message) Reply(tb *Bot, Text string, mr *MessageRequest) MessageResponse {
+func (msg Message) Reply(tb Bot, Text string, mr MessageRequest) (*MessageResponse, error) {
 	return tb.SendMessage(msg.CreateReplyRequest(Text, mr))
 }
 
-func (msg *Message) CreateReplyRequest(Text string, mr *MessageRequest) (result *MessageRequest) {
+func (msg Message) CreateReplyRequest(Text string, mr MessageRequest) (result MessageRequest) {
 	result = msg.CreateMessageRequest(Text, mr)
 	result.ReplyToMessageId = msg.MessageId
 	return
 }
 
-func (msg *Message) CreateMessageRequest(Text string, mr *MessageRequest) (result *MessageRequest) {
-	if mr == nil {
-		result = &MessageRequest{}
-	} else {
-		result = mr
-	}
+func (msg *Message) CreateMessageRequest(Text string, mr MessageRequest) (result MessageRequest) {
 	result.ChatId = msg.Chat.Id
 	result.Text += Text
 
 	return
 }
 
-func (msg *Message) EditText(tb *Bot, Text string,
-	mer *EditMessageTextRequest) MessageResponse {
-	if mer == nil {
-		mer = &EditMessageTextRequest{}
-	}
+func (msg Message) EditText(tb Bot, Text string, mer EditMessageTextRequest) (*MessageResponse, error) {
 	return tb.SendMessage(msg.CreateEditTextRequest(Text, mer))
 }
 
-func (msg *Message) CreateEditTextRequest(Text string, Request *EditMessageTextRequest) (mer *EditMessageTextRequest) {
-	if Request == nil {
-		mer = &EditMessageTextRequest{}
-	} else {
-		mer = Request
-	}
-	mer.ChatId = msg.Chat.Id
-	mer.MessageId = msg.MessageId
-	mer.Text += Text
-
-	return
+func (msg Message) CreateEditTextRequest(Text string, Request EditMessageTextRequest) EditMessageTextRequest {
+	return EditMessageTextRequest{ChatId: msg.Chat.Id, MessageId: msg.MessageId, Text: Text}
 }
 
 type CallbackQuery struct {
@@ -190,10 +193,7 @@ type CallbackQuery struct {
 	GameShortName   string   `json:"game_short_name"`
 }
 
-func (cq *CallbackQuery) Answer(tb *Bot, Text string, req *AnswerCallbackQueryRequest) MessageResponse {
-	if req == nil {
-		req = &AnswerCallbackQueryRequest{}
-	}
+func (cq CallbackQuery) Answer(tb Bot, Text string, req AnswerCallbackQueryRequest) (*MessageResponse, error) {
 	req.CallbackQueryId = cq.Id
 	req.Text = Text
 	return tb.SendMessage(req)

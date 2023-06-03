@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"volleybot/pkg/handlers"
 	"volleybot/pkg/postgres"
 	"volleybot/pkg/res"
 	"volleybot/pkg/services"
@@ -15,22 +14,20 @@ import (
 )
 
 type StartHandler struct {
-	Bot           *telegram.Bot
-	Command       telegram.BotCommand
-	orderHandler  *handlers.OrderBotHandler
-	personHandler *handlers.PersonBotHandler
+	Bot            telegram.Bot
+	Command        telegram.BotCommand
+	ReserveService *services.VolleyBotService
 }
 
-func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.MessageResponse) (result telegram.MessageResponse, err error) {
+func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.MessageResponse) error {
 	if msg.Chat.Id <= 0 {
-		return
+		return nil
 	}
 	text := "*Привет!*\n" +
 		"Я достаточно молодой волейбольный бот, но кое-что я могу.\n\n" +
 		"*Вот те команды, которые я уже понимаю:*"
 	cmds := []telegram.BotCommand{h.Command}
-	cmds = append(cmds, h.orderHandler.GetCommands(msg.From)...)
-	cmds = append(cmds, h.personHandler.GetCommands(msg.From)...)
+	cmds = append(cmds, h.ReserveService.GetCommands(msg.From.Id)...)
 	for _, cmd := range cmds {
 		text += fmt.Sprintf("\n/%s - %s", cmd.Command, cmd.Description)
 	}
@@ -41,49 +38,51 @@ func (h *StartHandler) StartCmd(msg *telegram.Message, chanr chan telegram.Messa
 		ChatId:    msg.Chat.Id,
 		Text:      text,
 		ParseMode: "Markdown"}
-	return h.Bot.SendMessage(mr), nil
+	h.Bot.SendMessage(mr)
+	return nil
 }
 
 func main() {
 
 	url := os.Getenv("PGURL")
+	tb, _ := telegram.NewSimpleBot(os.Getenv("TOKEN"), &http.Client{})
 	dbpool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		return
 	}
 
-	pservice, _ := services.NewPersonService(services.WithPersonPgRepository(dbpool))
-	oservice, _ := services.NewOrderService(pservice,
-		services.WithPgLocationRepository(dbpool),
-		services.WithReservePgRepository(dbpool))
-	tb, _ := telegram.NewBot(&telegram.Bot{Token: os.Getenv("TOKEN")})
-	tb.Client = &http.Client{}
-	strep, _ := postgres.NewStatePgRepository(dbpool)
+	vres := res.StaticVolleyResourceLoader{}.GetResources()
+	lrep, _ := postgres.NewLocationRepository(dbpool)
+	lrep.UpdateDB()
+	prep, _ := postgres.NewPersonPgRepository(dbpool)
+	prep.UpdateDB()
+	rrep, _ := postgres.NewVolleyPgRepository(dbpool, &prep, &lrep)
+	rrep.UpdateDB()
+	strep, _ := postgres.NewStateRepository(dbpool)
 	strep.UpdateDB()
-	orderHandler := handlers.NewOrderHandler(tb, oservice, &strep, res.StaticOrderResourceLoader{})
-	orderHandler.StateRepository = &strep
-	personHandler := handlers.NewPersonHandler(tb, pservice, res.StaticPersonResourceLoader{})
+	confrep, _ := postgres.NewLocationConfigRepository(dbpool)
+	confrep.UpdateDB()
+
+	vservice := services.NewVolleyBotService(tb, &vres, &strep, &lrep, &rrep, &prep, &confrep)
+
 	if os.Getenv("LOCATION") != "" {
-		orderHandler.Resources.Location.Name = os.Getenv("LOCATION")
+		vres.Location.Name = os.Getenv("LOCATION")
 	} else {
-		orderHandler.Resources.Location.Name = "default"
+		vres.Location.Name = "default"
 	}
 
-	lp, _ := tb.NewPoller()
-	lp.UpdateHandlers[0].AppendMessageHandlers(orderHandler.GetMessageHandler()...)
-	lp.UpdateHandlers[0].AppendCallbackHandlers(orderHandler.GetCallbackHandlers()...)
-	lp.UpdateHandlers[0].AppendMessageHandlers(personHandler.GetMessageHandler()...)
-	lp.UpdateHandlers[0].AppendCallbackHandlers(personHandler.GetCallbackHandlers()...)
+	lp := telegram.SimpleLongPoller{SimplePoller: telegram.NewSimplePoller(tb)}
 
 	sh := StartHandler{Bot: tb}
 	startcmd := telegram.CommandHandler{
-		Command: "start", Handler: func(m *telegram.Message) (telegram.MessageResponse, error) {
+		Command: "start", Handler: func(m *telegram.Message) error {
 			return sh.StartCmd(m, nil)
 		}}
 	lp.UpdateHandlers[0].AppendMessageHandlers(&startcmd)
+	lp.UpdateHandlers[0].AppendMessageHandlers(&vservice)
+	lp.UpdateHandlers[0].AppendCallbackHandlers(&vservice)
 
-	sh.orderHandler = &orderHandler
-	sh.personHandler = &personHandler
+	sh.ReserveService = &vservice
 	sh.Command.Command = "start"
 	sh.Command.Description = "начать работу с ботом"
 	cmds := []telegram.BotCommand{sh.Command}

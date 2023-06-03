@@ -10,3 +10,9 @@ type LocationRepository interface {
 	Add(Location) (Location, error)
 	Update(Location) error
 }
+
+type LocationConfigRepository interface {
+	Add(loc Location, service string, config interface{}) error
+	Get(loc Location, service string, config interface{}) error
+	Update(loc Location, service string, config interface{}) error
+}

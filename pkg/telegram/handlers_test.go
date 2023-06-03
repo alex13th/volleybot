@@ -5,20 +5,20 @@ import (
 )
 
 func TestUpdateHandlerProceed(t *testing.T) {
-	tb := Bot{Token: "***Token***"}
+	tb, _ := NewSimpleBot("***Token***", nil)
 	message := Message{}
 	tu := Update{Message: &message}
 
 	uh := BaseUpdateHandler{}
 	mh := BaseMessageHandler{
-		Handler: func(tm *Message) (MessageResponse, error) {
+		Handler: func(tm *Message) error {
 			tm.Caption = "Test caption"
-			return MessageResponse{}, nil
+			return nil
 		},
 	}
 	uh.MessageHandlers = append(uh.MessageHandlers, &mh)
 
-	uh.ProceedUpdate(&tb, tu)
+	uh.ProceedUpdate(tb, tu)
 
 	t.Run("Message proceeded", func(t *testing.T) {
 		if message.Caption != "Test caption" {
@@ -67,13 +67,13 @@ func TestCommandHandlerProceed(t *testing.T) {
 	}
 
 	mh := BaseMessageHandler{
-		Handler: func(tm *Message) (MessageResponse, error) {
+		Handler: func(tm *Message) error {
 			tm.Caption = "Ok"
-			return MessageResponse{}, nil
+			return nil
 		},
 	}
 
-	ch := CommandHandler{Command: "start", Handler: func(m *Message) (MessageResponse, error) {
+	ch := CommandHandler{Command: "start", Handler: func(m *Message) error {
 		return mh.ProceedMessage(m)
 	}}
 
@@ -122,9 +122,9 @@ func TestPrefixCallbackHandlerProceed(t *testing.T) {
 
 	handler := PrefixCallbackHandler{
 		Prefix: "pref",
-		Handler: func(cb *CallbackQuery) (MessageResponse, error) {
+		Handler: func(cb *CallbackQuery) error {
 			cb.Data = "Ok"
-			return MessageResponse{}, nil
+			return nil
 		},
 	}
 

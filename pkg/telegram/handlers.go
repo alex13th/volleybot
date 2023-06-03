@@ -6,15 +6,9 @@ import (
 	"strings"
 )
 
-type CallbackQueryFunc func(cq *CallbackQuery) (MessageResponse, error)
-type MessageFunc func(m *Message) (MessageResponse, error)
-type MessageStateFunc func(m *Message, state State) (MessageResponse, error)
-
-type UpdateHandler interface {
-	ProceedUpdate(tb *Bot, update Update)
-	AppendMessageHandlers(...MessageHandler)
-	AppendCallbackHandlers(...CallbackHandler)
-}
+type CallbackQueryFunc func(cq *CallbackQuery) error
+type MessageFunc func(m *Message) error
+type MessageStateFunc func(m *Message, state State) error
 
 type BaseUpdateHandler struct {
 	MessageHandlers  []MessageHandler
@@ -29,61 +23,58 @@ func (handler *BaseUpdateHandler) AppendMessageHandlers(mh ...MessageHandler) {
 	handler.MessageHandlers = append(handler.MessageHandlers, mh...)
 }
 
-func (uh BaseUpdateHandler) ProceedUpdate(tb *Bot, update Update) {
+func (uh BaseUpdateHandler) ProceedUpdate(tb Bot, update Update) (err error) {
 	if update.Message != nil {
 		for _, handler := range uh.MessageHandlers {
-			handler.ProceedMessage(update.Message)
+			if err = handler.ProceedMessage(update.Message); err != nil {
+				return
+			}
 		}
 	}
 	if update.CallbackQuery != nil {
 		for _, handler := range uh.CallbackHandlers {
-			handler.ProceedCallback(update.CallbackQuery)
+			if err = handler.ProceedCallback(update.CallbackQuery); err != nil {
+				return
+			}
 		}
 	}
-}
-
-type CallbackHandler interface {
-	ProceedCallback(*CallbackQuery) (MessageResponse, error)
+	return
 }
 
 type BaseCallbackHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Handler CallbackQueryFunc
 }
 
-func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+func (h *BaseCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 	return h.Handler(cb)
 }
 
 type PrefixCallbackHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Prefix  string
 	Handler CallbackQueryFunc
 }
 
-func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) (MessageResponse, error) {
+func (h *PrefixCallbackHandler) ProceedCallback(cb *CallbackQuery) error {
 	var prefix []string = strings.Split(cb.Data, "_")
 	if len(prefix) > 1 && prefix[0] == h.Prefix {
 		return h.Handler(cb)
 	}
-	return MessageResponse{}, errors.New("data hasn't prefix")
-}
-
-type MessageHandler interface {
-	ProceedMessage(tm *Message) (MessageResponse, error)
+	return errors.New("data hasn't prefix")
 }
 
 type BaseMessageHandler struct {
-	Bot     *Bot
+	Bot     Bot
 	Handler MessageFunc
 }
 
-func (h *BaseMessageHandler) ProceedMessage(m *Message) (MessageResponse, error) {
+func (h *BaseMessageHandler) ProceedMessage(m *Message) error {
 	return h.Handler(m)
 }
 
 type CommandHandler struct {
-	Bot      *Bot
+	Bot      Bot
 	Handler  MessageFunc
 	Command  string
 	Commands []BotCommand
@@ -94,7 +85,7 @@ func (h *CommandHandler) GetCommands() []BotCommand {
 	return h.Commands
 }
 
-func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+func (h *CommandHandler) ProceedMessage(m *Message) (err error) {
 	if h.IsRegexp {
 		var re *regexp.Regexp
 		re, err = regexp.Compile(h.Command)
@@ -113,18 +104,21 @@ func (h *CommandHandler) ProceedMessage(m *Message) (result MessageResponse, err
 }
 
 type StateMessageHandler struct {
-	Bot             *Bot
+	Bot             Bot
 	Handler         MessageStateFunc
 	State           string
 	StateRepository StateRepository
 }
 
-func (h *StateMessageHandler) ProceedMessage(m *Message) (result MessageResponse, err error) {
+func (h *StateMessageHandler) ProceedMessage(m *Message) error {
 	slist, err := h.StateRepository.Get(m.Chat.Id)
+	if err != nil {
+		return err
+	}
 	for _, st := range slist {
 		if st.State == h.State {
 			return h.Handler(m, st)
 		}
 	}
-	return
+	return err
 }
