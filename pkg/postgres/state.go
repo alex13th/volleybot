@@ -41,7 +41,7 @@ func (rep *StatePgRepository) UpdateDB() (err error) {
 func (rep *StatePgRepository) Get(ChatId int) (slist []telegram.State, err error) {
 	sql := "SELECT chat_id, message_id, prefix, state, action, data " +
 		"FROM %s " +
-		"WHERE chat_id = $1" +
+		"WHERE chat_id = $1 and message_id <= 0" +
 		"ORDER BY message_id DESC"
 	sql = fmt.Sprintf(sql, rep.TableName)
 	rows, err := rep.dbpool.Query(context.Background(), sql, ChatId)
@@ -119,8 +119,7 @@ func (rep *StatePgRepository) Clear(st telegram.State) error {
 		"WHERE (chat_id = $1) AND (message_id = $2);"
 	sql = fmt.Sprintf(sql, rep.TableName)
 
-	row := rep.dbpool.QueryRow(context.Background(), sql,
+	_, err := rep.dbpool.Exec(context.Background(), sql,
 		st.ChatId, st.MessageId)
-	err := row.Scan()
 	return err
 }

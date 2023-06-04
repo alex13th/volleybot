@@ -106,7 +106,7 @@ func (kh DateKeyboardHelper) GetKeyboard() interface{} {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return kbd
+	return InlineKeyboardMarkup{InlineKeyboard: kbd}
 }
 
 func NewTimeKeyboardHelper() TimeKeyboardHelper {
@@ -187,7 +187,7 @@ func (kh *TimeKeyboardHelper) GetKeyboard() interface{} {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return kbd
+	return InlineKeyboardMarkup{InlineKeyboard: kbd}
 }
 
 func (kh *TimeKeyboardHelper) Parse() (err error) {
@@ -252,7 +252,7 @@ func (kh CountKeyboardHelper) GetKeyboard() interface{} {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return kbd
+	return InlineKeyboardMarkup{InlineKeyboard: kbd}
 }
 
 func (kh *CountKeyboardHelper) Parse() (err error) {
@@ -355,7 +355,7 @@ func (kh EnumKeyboardHelper) GetKeyboard() interface{} {
 		kbdRow = append(kbdRow, InlineKeyboardButton{Text: "Назад", CallbackData: kh.BackData})
 		kbd = append(kbd, kbdRow)
 	}
-	return kbd
+	return InlineKeyboardMarkup{InlineKeyboard: kbd}
 }
 
 type SendKeyboardHelper struct {
@@ -374,5 +374,5 @@ func (kh SendKeyboardHelper) GetKeyboard() interface{} {
 	)
 	kbd = append(kbd, kbdRow)
 
-	return ReplyKeyboardMarkup{Keyboard: kbd, OneTimeKeyboard: true}
+	return ReplyKeyboardMarkup{Keyboard: kbd, OneTimeKeyboard: true, ResizeKeyboard: true}
 }

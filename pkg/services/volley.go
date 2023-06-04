@@ -144,6 +144,8 @@ func (s *VolleyBotService) SendRequests(reqlist []telegram.StateRequest) (errs [
 			if err = s.StateRepository.Clear(req.State); err != nil {
 				errs = append(errs, err)
 			}
+		}
+		if req.Request == nil {
 			continue
 		}
 		var resp *telegram.MessageResponse

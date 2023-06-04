@@ -233,19 +233,21 @@ type SendStateProvider struct {
 	Resources SendResources
 }
 
-func (p SendStateProvider) GetRequests() (reqlist []telegram.StateRequest) {
+func (p SendStateProvider) GetRequests() (rlist []telegram.StateRequest) {
 	if p.State.Action == "send" {
 		kh := telegram.SendKeyboardHelper{Text: p.Resources.SendBtn, RequestId: p.Message.MessageId}
 		req := telegram.MessageRequest{ChatId: p.State.ChatId, Text: p.Resources.Message, ReplyMarkup: kh.GetKeyboard()}
 		p.State.MessageId = -1
 		p.State.Action = "done"
-		return append(reqlist, telegram.StateRequest{State: p.State, Request: &req})
+		return append(rlist, telegram.StateRequest{State: p.State, Request: &req})
 	}
-	return
+	p.State.ChatId = p.Message.From.Id
+	req := telegram.MessageRequest{ChatId: p.State.ChatId, Text: "LASLALA", ReplyMarkup: telegram.ReplyKeyboardRemove{RemoveKeyboard: true}}
+	return append(rlist, telegram.StateRequest{State: p.State, Clear: true, Request: req})
 }
 
 func (p *SendStateProvider) Proceed() (telegram.State, error) {
-	if p.State.State == "send" {
+	if p.State.State == "send" && p.Message.ChatShared != nil {
 		p.State.ChatId = p.Message.ChatShared.ChatId
 		p.State.Action = "show"
 	}

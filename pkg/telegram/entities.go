@@ -85,6 +85,12 @@ type KeyboardButton struct {
 type ReplyKeyboardMarkup struct {
 	Keyboard        [][]KeyboardButton `json:"keyboard"`
 	OneTimeKeyboard bool               `json:"one_time_keyboard"`
+	ResizeKeyboard  bool               `json:"resize_keyboard"`
+}
+
+type ReplyKeyboardRemove struct {
+	RemoveKeyboard bool `json:"remove_keyboard"`
+	Selective      bool `json:"selective"`
 }
 
 type InlineKeyboardButton struct {
